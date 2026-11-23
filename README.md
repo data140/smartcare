@@ -10,7 +10,7 @@
 | `src/page.html` | 화면 구성 (HTML). `<!--#include … -->` 자리에 스타일·코드가 들어감 |
 | `src/styles/` | `app.css`(앱 스타일), `nocturne.css`(디자인 기본값), `phosphor-*.css`(아이콘) |
 | `src/bundle/` | 묶음 파일 껍데기와 글꼴·라이브러리 묶음 (보통 고치지 않음) |
-| `config/` | 데이터 서버 주소·공개 키·로그인 방식 (`prod.json` 운영(도쿄), `next.json` 새 서버(서울)) |
+| `config/` | 데이터 서버 주소·공개 키·로그인 방식 (`prod.json` 운영 = 서울, `next.json` 새 서버 화면, `migrate-src.json` 데이터 이전 원본 = 도쿄) |
 | `supabase/schema.sql` | 운영 서버(도쿄) 보안 구성 — 기관 공용 계정 |
 | `supabase/schema-next.sql` | 새 서버(서울) 구성 — 직원별 계정 · 기관/역할별 권한 · 감사 기록 |
 | `supabase/functions/smartcare-staff/` | 계정 관리 서버 함수 (직원 계정 만들기·비밀번호·권한) |
@@ -89,3 +89,13 @@
 - 질문 내용은 저장하지 않고 감사 기록에 글자 수·사용량만 남깁니다.
 
 설정: Edge Functions › Deploy a new function › Via Editor → 이름 `smartcare-ai`, 내용 `supabase/functions/smartcare-ai/index.ts` → **Verify JWT 끄기** → Edge Functions › Secrets 에 `ANTHROPIC_API_KEY` 추가 → 화면 AI 비서의 설정(시스템 관리자)에서 연결 주소 저장.
+
+## 서버 전환 (도쿄 → 서울)
+
+운영 설정(`config/prod.json`)을 서울 서버 · 직원별 계정 방식으로 바꾼 빌드를 배포합니다.
+
+- 직원 브라우저에서 새 운영 화면을 처음 열면, 예전 서버의 화면 데이터·로그인 정보를 비우고(`sc.server.v1` 기록 비교) 서울 서버에서 다시 받습니다. 화면 설정(테마 등)은 남깁니다.
+- 전환 전에 열려 있던 예전 화면은 도쿄 서버의 저장 멈춤 표시 때문에 저장하지 못하고 새로고침을 요구합니다.
+- 운영 화면에서는 데이터 이전 메뉴가 보이지 않습니다 (원본 = 자기 자신).
+
+전환 당일 순서: 새 서버 화면에서 **최종 이전** → 전환 PR 병합 → 운영 주소에서 시스템 관리자 로그인 확인 → 직원 임시 비밀번호 전달

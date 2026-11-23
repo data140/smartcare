@@ -39,7 +39,10 @@ def config(env):
 
 
 def prod_cfg():
-    path = P('config', 'prod.json')
+    # 데이터 이전 도구의 원본 서버: config/migrate-src.json 이 있으면 그것, 없으면 운영 설정
+    path = P('config', 'migrate-src.json')
+    if not os.path.exists(path):
+        path = P('config', 'prod.json')
     return json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {}
 
 

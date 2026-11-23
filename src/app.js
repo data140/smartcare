@@ -643,7 +643,33 @@ class Component extends DCLogic {
     if (org === 'ORG1') return k;
     return Component.isGlobalKey(k.slice(10)) ? k : null;
   }
+  // 데이터 서버가 바뀌면(도쿄 → 서울 전환 등) 이 기기에 남은 예전 서버의 화면 데이터·로그인을 비움
+  // 서버 주소와 로그인 방식을 'sc.server.v1' 에 기록해 두고, 다르면 비운 뒤 새 서버에서 다시 받음
+  static resetIfServerChanged() {
+    const NS = Component.STORE_NS;
+    let ls; try { ls = window.localStorage; } catch (e) { return; }
+    const cur = (Component.CLOUD_DEFAULT.url || '') + '|' + Component.AUTH_MODE;
+    const mk = NS + 'sc.server.v1';
+    let prev = null; try { prev = ls.getItem(mk); } catch (e) { return; }
+    if (prev === cur) return;
+    // 기록이 없는 기기: 공용 계정 방식은 기록만 (지금 쓰던 데이터 그대로), 직원별 계정 방식은 예전 데이터로 보고 비움
+    if (prev == null && Component.AUTH_MODE !== 'staff') { try { ls.setItem(mk, cur); } catch (e) {} return; }
+    const del = [];
+    try {
+      for (let i = 0; i < ls.length; i++) {
+        const raw = ls.key(i);
+        if (!raw) continue;
+        if (NS ? raw.indexOf(NS) !== 0 : /^[a-z]+~/.test(raw)) continue;
+        const k = NS ? raw.slice(NS.length) : raw;
+        if (k.indexOf('smartcare.') === 0 || ['sc.kvSeen.v1', 'sc.auth.v1', 'sc.lastView.v1', 'sc.sysOrg.v1'].indexOf(k) >= 0) del.push(raw);
+      }
+    } catch (e) {}
+    del.forEach(raw => { try { ls.removeItem(raw); } catch (e) {} });
+    try { sessionStorage.removeItem('sc.lastView.v1'); } catch (e) {}
+    try { ls.setItem(mk, cur); } catch (e) {}
+  }
   static installOrgNs() {
+    Component.resetIfServerChanged();
     // 로그인한 기관을 데이터를 읽기 전에 정함 (마지막 로그인 화면 기록 기준)
     try {
       const v = JSON.parse(window.localStorage.getItem('sc.lastView.v1') || 'null');
@@ -1559,6 +1585,17 @@ class Component extends DCLogic {
           fcWheel: (e) => { if (!e.ctrlKey) return; e.preventDefault(); step(e.deltaY < 0 ? 1 : -1, { x: e.clientX, y: e.clientY }); }
         };
       })(),
+      // 네모 크기 조절: 테두리 4개 + 모서리 4개 손잡이
+      fcHandles: [
+        { m: 'n', l: '50%', t: '0%', w: '34px', h: '10px', r: '5px', cur: 'ns-resize', label: '위쪽 크기 조절' },
+        { m: 's', l: '50%', t: '100%', w: '34px', h: '10px', r: '5px', cur: 'ns-resize', label: '아래쪽 크기 조절' },
+        { m: 'w', l: '0%', t: '50%', w: '10px', h: '34px', r: '5px', cur: 'ew-resize', label: '왼쪽 크기 조절' },
+        { m: 'e', l: '100%', t: '50%', w: '10px', h: '34px', r: '5px', cur: 'ew-resize', label: '오른쪽 크기 조절' },
+        { m: 'nw', l: '0%', t: '0%', w: '16px', h: '16px', r: '50%', cur: 'nwse-resize', label: '왼쪽 위 모서리' },
+        { m: 'ne', l: '100%', t: '0%', w: '16px', h: '16px', r: '50%', cur: 'nesw-resize', label: '오른쪽 위 모서리' },
+        { m: 'sw', l: '0%', t: '100%', w: '16px', h: '16px', r: '50%', cur: 'nesw-resize', label: '왼쪽 아래 모서리' },
+        { m: 'se', l: '100%', t: '100%', w: '16px', h: '16px', r: '50%', cur: 'nwse-resize', label: '오른쪽 아래 모서리' }
+      ].map(hd => Object.assign({}, hd, { down: (e) => { e.stopPropagation(); this.fcResize(e, hd.m); } })),
       fcHasBox: !!(b && b.w > 0.005), fcBoxL: b ? pc(b.x) : '0', fcBoxT: b ? pc(b.y) : '0', fcBoxW: b ? pc(b.w) : '0', fcBoxH: b ? pc(b.h) : '0',
       fcCantApply: !(src && b && b.w > 0.01 && b.h > 0.01),
       fcHint: !src ? '이 환자가 참여한 일지의 현장사진이 먼저 나옵니다'
@@ -1572,7 +1609,7 @@ class Component extends DCLogic {
               const q = long >= 400 ? '선명' : long >= 200 ? '보통 (조금 흐릴 수 있음)' : '흐림 — 얼굴이 작게 찍힌 사진입니다. 가까이서 찍은 사진을 권장';
               return '고른 부분 원본 ' + pw + '×' + ph + 'px → 긴 변 ' + Math.max(800, Math.min(1200, long)) + 'px로 크게 저장 · 화질: ' + q;
             })()
-          : '얼굴 주변을 끌어서 네모를 그리세요 · Ctrl + 마우스 휠로 확대/축소'),
+          : '얼굴 주변을 끌어서 네모를 그리세요 · 테두리·모서리를 끌면 크기 조절 · Ctrl + 마우스 휠로 확대/축소'),
       fcStageRef: this._fcStage, fcFileRef: this._fcFile,
       fcClose: () => this.setState({ faceCrop: null }),
       fcPickFile: () => { if (this._fcFile.current) this._fcFile.current.click(); },
@@ -1624,6 +1661,27 @@ class Component extends DCLogic {
         im.src = fc2.src;
       }
     };
+  }
+
+  // 얼굴 네모 크기 조절 (사진 크기 대비 비율 0~1 · 반대쪽 변은 고정)
+  fcResize(e, mode) {
+    const el = this._fcStage.current, b0 = (this.state.faceCrop || {}).box;
+    if (!el || !b0) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const MIN = 0.02;
+    const move = (ev) => {
+      const dx = (ev.clientX - sx) / r.width, dy = (ev.clientY - sy) / r.height;
+      let l = b0.x, t = b0.y, rt = b0.x + b0.w, bt = b0.y + b0.h;
+      if (mode.indexOf('w') >= 0) l = Math.max(0, Math.min(rt - MIN, l + dx));
+      if (mode.indexOf('e') >= 0) rt = Math.min(1, Math.max(l + MIN, rt + dx));
+      if (mode.indexOf('n') >= 0) t = Math.max(0, Math.min(bt - MIN, t + dy));
+      if (mode.indexOf('s') >= 0) bt = Math.min(1, Math.max(t + MIN, bt + dy));
+      this.setState({ faceCrop: Object.assign({}, this.state.faceCrop, { box: { x: l, y: t, w: rt - l, h: bt - t } }) });
+    };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
   }
 
   // 왼쪽 메뉴 높이 = 화면에 보이는 높이 (위쪽 바가 보일 때도 하단 로그아웃이 화면 안에 들어오게)
@@ -3796,7 +3854,7 @@ class Component extends DCLogic {
   }
   // ───── 버전 보호: 예전 파일로 열린 기기가 서버 데이터를 덮어쓰지 않게 ─────
   // 배포할 때마다 BUILD 숫자를 올림. 서버에 더 높은 번호가 있으면 이 기기는 저장을 멈추고 새로고침을 요구함
-  static BUILD = 2026111801;
+  static BUILD = 2026112301;
   // 동시 수정 시 합쳐서 저장하는 항목: 일지(일자·프로그램별), 환자 명부
   static isMergeKey(uk) {
     return !!uk && (uk.indexOf(Component.WSESS_PREFIX) === 0 || uk === 'smartcare.patients.v1');
@@ -7034,7 +7092,7 @@ class Component extends DCLogic {
             { k: 'set-staff', label: '계정 · 권한', icon: 'ph ph-identification-badge', show: can('settings'), on: v === 'settings' && st === 'staff', go: goView('settings', { setTab: 'staff' }) },
             { k: 'set-org', label: '기관 관리', icon: 'ph ph-buildings', show: can('settings') && isSys, on: v === 'settings' && st === 'org', go: goView('settings', { setTab: 'org' }) },
             { k: 'set-cloud', label: '데이터 서버', icon: 'ph ph-cloud', show: can('settings') && isSys, on: v === 'settings' && st === 'cloud', go: goView('settings', { setTab: 'cloud' }) },
-            { k: 'set-migrate', label: '데이터 이전', icon: 'ph ph-arrow-fat-lines-right', show: can('settings') && isSys && Component.isStaffMode(), on: v === 'settings' && st === 'migrate', go: goView('settings', { setTab: 'migrate' }) }
+            { k: 'set-migrate', label: '데이터 이전', icon: 'ph ph-arrow-fat-lines-right', show: can('settings') && isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url, on: v === 'settings' && st === 'migrate', go: goView('settings', { setTab: 'migrate' }) }
           ] }
         ];
         // 메뉴 순서는 사용자(계정)별로 저장 — 다른 PC에서 같은 계정으로 로그인해도 유지
@@ -9560,7 +9618,7 @@ class Component extends DCLogic {
         { key: 'program', label: '프로그램 관리' },
         { key: 'ward', label: '병동 · 호실' },
         { key: 'staff', label: '담당자 명단 및 권한' }
-      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
+      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
         label: t.label, active: s.setTab === t.key, inactive: s.setTab !== t.key,
         go: () => { if (t.key === s.setTab) return; guardLeave(() => this.setState({ setTab: t.key })); }
       })),
@@ -9569,7 +9627,7 @@ class Component extends DCLogic {
       setWardTab: s.setTab === 'ward',
       setOrgTab: isSys && s.setTab === 'org',
       setCloudTab: isSys && s.setTab === 'cloud',
-      setMigrateTab: isSys && Component.isStaffMode() && s.setTab === 'migrate',
+      setMigrateTab: isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url && s.setTab === 'migrate',
       ...(() => {
         const m = s.mig || {}, src = this.migSrc();
         const sm = m.summary;
