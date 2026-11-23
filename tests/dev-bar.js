@@ -27,6 +27,7 @@ const hasBar = (p) => p.evaluate(() => /데이터 상태/.test(document.body.inn
     let p = await ctx.newPage(); const errors = []; p.on('pageerror', e => errors.push(e.message));
     await p.goto(BASE + '/'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     check('개발 빌드: 기기 모드 전환 바가 보임', await hasBar(p));
+    check('개발 빌드: 모형 주소창(smartcare.hospital.kr)이 보임', await p.evaluate(() => document.body.innerText.includes('smartcare.hospital.kr')));
     await ctx.close();
 
     // 2) 운영 빌드(PC): 바 없음 · 저장된 고정값·주소 지정이 있어도 PC 화면
@@ -35,12 +36,17 @@ const hasBar = (p) => p.evaluate(() => /데이터 상태/.test(document.body.inn
     await p.addInitScript(() => { try { localStorage.setItem('smartcare.viewMode.v1', 'tablet'); } catch (e) {} });
     await p.goto(BASE + '/?app=mobile'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     check('운영 빌드(PC): 조작 바 없음', !(await hasBar(p)));
+    check('운영 빌드(PC): 모형 주소창 없음 (로그인 화면)', await p.evaluate(() => !document.body.innerText.includes('smartcare.hospital.kr')));
     check('운영 빌드(PC): 저장된 태블릿 고정·?app=mobile 을 무시하고 PC 화면', await p.evaluate(() => !document.querySelector('[aria-label="보기 모드 전환"]')) && (await p.evaluate(() => document.querySelector('input[autocomplete="username"]').getBoundingClientRect().width)) > 0);
     // ?dev=1 로 개발자 확인
     await p.goto(BASE + '/?dev=1'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     check('운영 빌드라도 ?dev=1 이면 조작 바가 보임 (개발자용)', await hasBar(p));
     await p.goto(BASE + '/?dev=0'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     check('?dev=0 으로 다시 숨김', !(await hasBar(p)));
+    await p.locator('input[autocomplete="username"]').first().fill('100101'); await p.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await p.locator('button:has-text("로그인")').last().click(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
+    check('운영 빌드(PC): 모형 주소창 없음 (로그인 후)', await p.evaluate(() => !document.body.innerText.includes('smartcare.hospital.kr')));
+
     await ctx.close();
 
     // 3) 운영 빌드(휴대폰): 휴대폰 화면 자동 선택 · 떠 있는 전환 버튼 없음

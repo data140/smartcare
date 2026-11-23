@@ -104,6 +104,7 @@
   <!-- ══════════ 로그인 ══════════ -->
   <sc-if value="{{ showLogin }}" hint-placeholder-val="{{ true }}">
     <div style="width: 100%; max-width: 1440px; margin: 0 auto; min-height: calc(100vh - 64px); border-radius: 0; box-shadow: 0 0 0 1px var(--color-divider); background: var(--color-bg); overflow: hidden;">
+      <sc-if value="{{ showDevBar }}" hint-placeholder-val="{{ false }}">
       <div style="display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-6); background: var(--color-surface); border-bottom: 1px solid var(--color-divider);">
         <span style="display: flex; gap: 6px;">
           <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-neutral-700);"></span>
@@ -112,6 +113,7 @@
         </span>
         <span style="font-size: 13px; color: var(--color-neutral-600); font-family: ui-monospace, monospace;">smartcare.hospital.kr/login</span>
       </div>
+      </sc-if>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); min-height: 620px;">
         <div style="padding: calc(var(--space-8) * 2) calc(var(--space-8) * 1.5); display: flex; flex-direction: column; justify-content: center; gap: var(--space-8); border-right: 1px solid var(--color-divider);">
           <div>
@@ -171,6 +173,7 @@
   <!-- ══════════ PC 웹 ══════════ -->
   <sc-if value="{{ showPc }}" hint-placeholder-val="{{ false }}">
     <div style="width: 100%; max-width: {{ pcMaxW }}; margin: 0 auto; min-height: calc(100vh - 64px); border-radius: 0; box-shadow: 0 0 0 1px var(--color-divider); background: var(--color-bg); overflow: clip;">
+      <sc-if value="{{ showDevBar }}" hint-placeholder-val="{{ false }}">
       <div style="display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-6); background: var(--color-surface); border-bottom: 1px solid var(--color-divider);">
         <span style="display: flex; gap: 6px;">
           <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-neutral-700);"></span>
@@ -179,6 +182,7 @@
         </span>
         <span style="font-size: 13px; color: var(--color-neutral-600); font-family: ui-monospace, monospace;">{{ pcUrl }}</span>
       </div>
+      </sc-if>
 
       <div class="nav" style="padding: var(--space-4) {{ pcPadX }}; gap: var(--space-4) var(--space-8); flex-wrap: wrap; border-bottom: 1px solid var(--color-divider);">
         <span class="nav-brand" style="font-size: 17px;">스마트케어</span>
