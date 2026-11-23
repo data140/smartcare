@@ -274,6 +274,46 @@ class Component extends DCLogic {
       if (/오늘|브리핑/.test(q)) return { from: today, to: today, label: '오늘' };
       return null;
     };
+    // ── 목록 · 명단 · 인원 질문 (무료 규칙형) ──
+    const howto = /어떻게|방법|하는\s*법/.test(raw);
+    const nameAsked = PATIENTS.some(p => p.name && p.name.length >= 2 && raw.indexOf(p.name) >= 0);
+    const wardNames = (s.wards || []).map(w => w.name).filter(Boolean);
+    const ward = wardNames.find(w => raw.indexOf(w) >= 0) || (((/(\d+)\s*병동/.exec(raw) || [])[0]) || '').replace(/\s+/g, '');
+    const inWard = (p) => !ward || (p.room || '').indexOf(ward + ' ') === 0;
+    const sched = (p) => fmt(p.date) + ' ' + WDN[new Date(p.date + 'T00:00:00').getDay()] + (p.start ? ' ' + p.start : '') + ' ' + p.program;
+    // a) 일지 미작성 프로그램 목록
+    if (/미작성|안\s*쓴|못\s*쓴/.test(raw) && /목록|리스트|어떤|어느|뭐|무엇|보여|알려|프로그램|일정/.test(raw) && !howto) {
+      const list = iss.unwritten;
+      const lines = list.slice(0, 15).map(p => L(sched(p) + (p.staff && p.staff.length ? ' · ' + p.staff.join(', ') : '') + (p.place ? ' · ' + p.place : ''), p.date < today ? 'red' : 'amber'));
+      if (!list.length) lines.push(L('일지가 밀린 프로그램은 없습니다.', 'green'));
+      if (list.length > 15) lines.push(L('외 ' + (list.length - 15) + '건 — 전체는 일지 목록에서 볼 수 있습니다.'));
+      return { title: '일지 미작성 프로그램 ' + list.length + '건', lines, note: '취소된 일정 제외 · 오늘까지의 일정 기준', actions: list.length ? [{ label: '일지 목록 · 검수', go: goLogs('list') }] : [] };
+    }
+    // b) 담당자별 일정
+    if (/담당자?\s*별|직원\s*별|선생님\s*별|사람\s*별/.test(raw) && /일정|프로그램|스케줄|할\s*일/.test(raw) && !howto) {
+      const rg = dayRange(raw) || dayRange('이번 주');
+      const list = (s.plans || []).filter(p => p.status !== '취소' && p.date >= rg.from && p.date <= rg.to)
+        .sort((a, b) => (a.date + String(a.start)).localeCompare(b.date + String(b.start)));
+      const by = {};
+      list.forEach(p => { const names = (p.staff || []).length ? p.staff : ['담당자 미지정']; names.forEach(n => { (by[n] = by[n] || []).push(p); }); });
+      const lines = Object.keys(by).sort((x, y) => by[y].length - by[x].length || x.localeCompare(y)).map(n => {
+        const ps = by[n];
+        return L(n + ' (' + ps.length + '건) — ' + ps.slice(0, 4).map(sched).join(', ') + (ps.length > 4 ? ' 외 ' + (ps.length - 4) + '건' : ''), n === '담당자 미지정' ? 'amber' : '');
+      });
+      if (!lines.length) lines.push(L(rg.label + '(' + fmt(rg.from) + ' ~ ' + fmt(rg.to) + ')에는 등록된 일정이 없습니다.'));
+      return { title: rg.label + ' 담당자별 일정', lines, note: '기간 ' + rg.from + ' ~ ' + rg.to + ' · 취소된 일정 제외' + (list.length ? ' · 일정 ' + list.length + '건' : ''), actions: [{ label: '캘린더 열기', go: this.aiGo({ pcView: 'logs', logTab: 'calendar', calMonth: rg.from.slice(0, 7) }) }] };
+    }
+    // c) 증명사진 · 동의 미완료 환자 인원 · 명단 (병동을 말하면 그 병동만)
+    const photoTopic = /증명\s*사진/.test(raw), consentTopic = !photoTopic && /동의/.test(raw);
+    if ((photoTopic || consentTopic) && /누구|누가|명단|목록|리스트|어느\s*환자|어떤\s*환자|몇\s*명|몇\s*분|인원|알려|보여/.test(raw) && !howto && !nameAsked) {
+      const inpt = PATIENTS.filter(p => (p.stay || '재원') === '재원' && inWard(p));
+      const miss = (photoTopic ? iss.noPhoto : iss.noConsent).filter(inWard);
+      const what = (ward ? ward + ' ' : '') + (photoTopic ? '증명사진 없는 환자' : '동의 미완료 환자');
+      const lines = [L((ward ? ward + ' ' : '') + '재원 환자 ' + inpt.length + '명 중 ' + (photoTopic ? '증명사진이 없는' : '동의가 완료되지 않은') + ' 환자는 ' + miss.length + '명입니다.', miss.length ? 'amber' : 'green')];
+      miss.slice(0, 10).forEach(p => lines.push(L(p.name + (p.room ? ' · ' + p.room : '') + (photoTopic ? '' : ' · 동의 ' + (p.consent || '확인전')))));
+      if (miss.length > 10) lines.push(L('외 ' + (miss.length - 10) + '명 — 전체 명단은 ' + (photoTopic ? '환자 등록 관리의 [사진 없음]' : '서면 동의서 관리') + '에서 볼 수 있습니다.'));
+      return { title: what + ' ' + miss.length + '명', lines, note: photoTopic ? '재원 환자 기준' : '재원 환자 · 환자 정보의 동의 항목이 "동의"가 아닌 경우 기준', actions: [photoTopic ? { label: '환자 등록 관리', go: this.aiGo({ pcView: 'patients' }) } : { label: '서면 동의서 관리', go: this.aiGo({ pcView: 'consent' }) }] };
+    }
     const askSched = /할\s*일|해야|일정|스케줄|프로그램\s*(있|뭐|무엇)|뭐\s*(있|하)|브리핑|오늘|내일|모레|요일|다음\s*주|이번\s*주/.test(raw)
       && !/통계|몇\s*(명|건|회)|실인원|참여\s*(인원|건수)/.test(raw)
       && !/어떻게|방법|하는\s*법|등록하|만들/.test(raw)
@@ -386,7 +426,7 @@ class Component extends DCLogic {
     // 6) 모르는 질문
     return {
       title: '이렇게 물어보세요',
-      lines: [L('"오늘 할 일" · "미비사항 점검"'), L('"이번 달 미술치료 참여 몇 명?" · "지난달 3병동 통계"'), L('"홍길동 참여 이력" (환자 이름)'), L('"일지 작성 방법" · "동의서 어떻게 받아?"')],
+      lines: [L('"오늘 할 일" · "미비사항 점검" · "일지 미작성 프로그램 목록"'), L('"3병동 동의 미완료 환자는 누구야?" · "증명사진 없는 환자 몇 명이야?"'), L('"이번 주 담당자별 일정 알려 줘"'), L('"이번 달 미술치료 참여 몇 명?" · "지난달 3병동 통계"'), L('"홍길동 참여 이력" (환자 이름)'), L('"일지 작성 방법" · "동의서 어떻게 받아?"')],
       note: this.aiCfg().url ? '' : '지금은 무료 규칙형이라 정해진 질문 위주로 답합니다. 시스템 관리자가 AI를 연결하면 자유롭게 물어볼 수 있습니다.'
     };
   }
@@ -452,9 +492,9 @@ class Component extends DCLogic {
     const isSys = (Array.isArray(me.roles) ? me.roles : [me.role]).indexOf('시스템관리자') >= 0;
     const narrow = (s.vw || 1600) < 700;
     const dotC = { red: '#e03131', amber: '#e8890c', green: '#2b8a3e' };
-    const welcome = { role: 'bot', title: '무엇을 도와드릴까요?', lines: [{ t: '오늘 할 일, 미비사항 점검, 통계, 환자 참여 이력, 사용법을 물어보세요.', c: '' }] };
+    const welcome = { role: 'bot', title: '무엇을 도와드릴까요?', lines: [{ t: '오늘 할 일, 미비사항 점검, 미작성 일지 목록, 담당자별 일정, 동의·증명사진 미완료 환자, 통계, 환자 참여 이력, 사용법을 물어보세요.', c: '' }] };
     const msgs = (s.aiMsgs && s.aiMsgs.length) ? s.aiMsgs : [welcome];
-    const chipQ = ['오늘 할 일', '내일 일정', '이번 주 일정', '미비사항 점검', '이번 달 통계', '일지 작성 방법'];
+    const chipQ = ['오늘 할 일', '내일 일정', '이번 주 일정', '미비사항 점검', '일지 미작성 목록', '이번 주 담당자별 일정', '증명사진 없는 환자 몇 명', '이번 달 통계', '일지 작성 방법'];
     return {
       aiShow: true,
       aiOpen: !!s.aiOpen,
