@@ -131,7 +131,7 @@
             <div style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 23px;">로그인</div>
             <div style="font-size: 14px; color: var(--color-neutral-500); margin-top: var(--space-2);">소속기관을 선택하고 사번 또는 Gmail로 로그인하십시오.</div>
           </div>
-          <div style="display: flex; flex-direction: column; gap: var(--space-5, 14px); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-md);">
+          <form autocomplete="on" sc-camel-on-submit="{{ onLoginSubmit }}" style="display: flex; flex-direction: column; gap: var(--space-5, 14px); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-md);">
             <sc-if value="{{ lgNotSys }}" hint-placeholder-val="{{ true }}">
               <div class="field"><label>소속기관</label>
                 <sc-raw-select class="input" value="{{ lgOrg }}" sc-camel-on-change="{{ onLgOrg }}" style="min-height: 46px; font-size: 15px;">
@@ -145,21 +145,22 @@
             <div class="field"><label>로그인 방식</label>
               <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin-top: var(--space-2);">
                 <sc-for list="{{ lgModes }}" as="lm" hint-placeholder-count="3">
-                  <sc-if value="{{ lm.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ lm.go }}" aria-pressed="true" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 4px 8px; border-radius: var(--radius-md); border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; text-align: center; line-height: 1.3; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);"><i class="{{ lm.icon }}" style="font-size: 16px;"></i>{{ lm.label }}</button></sc-if>
-                  <sc-if value="{{ lm.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ lm.go }}" aria-pressed="false" class="btn btn-secondary" style="min-height: 48px; padding: 4px 8px; justify-content: center; font-size: 14.5px; line-height: 1.3; text-align: center;"><i class="{{ lm.icon }}" style="font-size: 16px;"></i>{{ lm.label }}</button></sc-if>
+                  <sc-if value="{{ lm.on }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ lm.go }}" aria-pressed="true" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 4px 8px; border-radius: var(--radius-md); border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; text-align: center; line-height: 1.3; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);"><i class="{{ lm.icon }}" style="font-size: 16px;"></i>{{ lm.label }}</button></sc-if>
+                  <sc-if value="{{ lm.off }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ lm.go }}" aria-pressed="false" class="btn btn-secondary" style="min-height: 48px; padding: 4px 8px; justify-content: center; font-size: 14.5px; line-height: 1.3; text-align: center;"><i class="{{ lm.icon }}" style="font-size: 16px;"></i>{{ lm.label }}</button></sc-if>
                 </sc-for>
               </div>
             </div>
-            <div class="field"><label>{{ lgIdLabel }}</label><input class="input" value="{{ lgId }}" sc-camel-on-change="{{ onLgId }}" sc-camel-on-key-down="{{ lgKey }}" placeholder="{{ lgIdPh }}" autocomplete="username" style="min-height: 46px; font-size: 15px;"></div>
+            <div class="field"><label>{{ lgIdLabel }}</label><input class="input" value="{{ lgId }}" sc-camel-on-change="{{ onLgId }}" placeholder="{{ lgIdPh }}" name="username" autocomplete="username" style="min-height: 46px; font-size: 15px;"></div>
             <div class="field"><label>비밀번호</label>
               <div style="position: relative;">
-                <input class="input" type="{{ lgPwType }}" value="{{ lgPw }}" sc-camel-on-change="{{ onLgPw }}" sc-camel-on-key-down="{{ lgKey }}" autocomplete="current-password" style="min-height: 46px; font-size: 15px; padding-right: 48px; width: 100%;">
-                <button sc-camel-on-click="{{ toggleLgPw }}" aria-label="{{ lgPwToggleLabel }}" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--color-neutral-400); cursor: pointer; display: grid; place-items: center; font-size: 19px;"><i class="{{ lgPwIcon }}"></i></button>
+                <input class="input" type="{{ lgPwType }}" value="{{ lgPw }}" sc-camel-on-change="{{ onLgPw }}" name="password" autocomplete="current-password" style="min-height: 46px; font-size: 15px; padding-right: 48px; width: 100%;">
+                <button type="button" sc-camel-on-click="{{ toggleLgPw }}" aria-label="{{ lgPwToggleLabel }}" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--color-neutral-400); cursor: pointer; display: grid; place-items: center; font-size: 19px;"><i class="{{ lgPwIcon }}"></i></button>
               </div>
             </div>
+            <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; color: var(--color-neutral-400);"><input type="checkbox" checked="{{ lgRemember }}" sc-camel-on-change="{{ onLgRemember }}" style="width: 18px; height: 18px; accent-color: var(--color-accent);"> 이 기기에 아이디 저장 <span style="font-size: 12px; color: var(--color-neutral-600);">(개인 PC·휴대폰에서만)</span></label>
             <sc-if value="{{ lgErr }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13.5px; color: var(--color-accent-300);">{{ lgErr }}</div></sc-if>
-            <button sc-camel-on-click="{{ login }}" disabled="{{ lgBusy }}" class="btn btn-primary btn-block" style="min-height: 50px; font-size: 16px;"><i class="ph ph-sign-in"></i> {{ lgBtnLabel }}</button>
-          </div>
+            <button type="submit" disabled="{{ lgBusy }}" class="btn btn-primary btn-block" style="min-height: 50px; font-size: 16px;"><i class="ph ph-sign-in"></i> {{ lgBtnLabel }}</button>
+          </form>
           <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
             <div style="display: flex; gap: var(--space-3); align-items: center; padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-neutral-700); font-size: 13.5px; color: var(--color-neutral-400);">
               <i class="ph ph-wifi-slash" style="font-size: 18px;"></i> 오프라인 — 마지막 동기화 기준 데이터로 열립니다. 저장한 일지는 연결 시 자동 전송됩니다.

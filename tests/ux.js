@@ -60,6 +60,40 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.locator('button:has-text("일정 등록")').first().click(); await sleep(600);
     const names = await p.evaluate(() => document.body.innerText);
     check('끈 사람(박체험)은 일정 등록 담당자 목록에서 빠지고 다른 사람은 그대로', !/담당자 \*[\s\S]*박체험/.test(names.split('담당자 *')[1] || '') && /김체험/.test(names.split('담당자 *')[1] || ''));
+    // 4) Gmail 로그인 (기관 + Gmail 주소 + 비밀번호) — 김체험 계정의 Gmail 로 로그인
+    const p4 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
+    p4.on('pageerror', e => errors.push(e.message));
+    await p4.goto(BASE + '/'); await p4.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await p4.locator('button:has-text("Gmail")').first().click(); await sleep(300);
+    await p4.locator('input[autocomplete="username"]').first().fill('staff1@example.test');
+    await p4.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await p4.locator('button:has-text("로그인")').last().click();
+    const ok4 = await p4.waitForSelector('text=가상환자1', { timeout: 15000 }).then(() => true, () => false);
+    check('Gmail 주소로 로그인됨 (기관 + Gmail + 비밀번호)', ok4);
+    const p5 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
+    await p5.goto(BASE + '/'); await p5.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await p5.locator('button:has-text("Gmail")').first().click(); await sleep(300);
+    await p5.locator('input[autocomplete="username"]').first().fill('staff1@example.test');
+    await p5.locator('input[autocomplete="current-password"]').first().fill('틀린비밀번호');
+    await p5.locator('button:has-text("로그인")').last().click(); await sleep(1500);
+    check('Gmail 로그인도 비밀번호가 틀리면 들어가지 못함', !(await p5.evaluate(() => document.body.innerText.includes('가상환자1'))) && await p5.evaluate(() => /일치하지|확인|틀|실패/.test(document.body.innerText)));
+    // 5) 아이디 저장 (비밀번호는 저장하지 않음) · Enter 로 로그인
+    const p6 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
+    p6.on('pageerror', e => errors.push(e.message));
+    await p6.goto(BASE + '/'); await p6.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    check('로그인 화면에 "이 기기에 아이디 저장" 선택이 있음 (처음에는 꺼짐)', (await p6.locator('label:has-text("이 기기에 아이디 저장") input').count()) === 1 && !(await p6.locator('label:has-text("이 기기에 아이디 저장") input').isChecked()));
+    await p6.locator('label:has-text("이 기기에 아이디 저장") input').check();
+    await p6.locator('input[autocomplete="username"]').first().fill('100101');
+    await p6.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await p6.locator('input[autocomplete="current-password"]').first().press('Enter');
+    check('비밀번호 칸에서 Enter 만 눌러도 로그인됨', await p6.waitForSelector('text=가상환자1', { timeout: 15000 }).then(() => true, () => false));
+    const hint = await p6.evaluate(() => localStorage.getItem('smartcare.loginHint.v1'));
+    check('아이디만 저장되고 비밀번호는 저장되지 않음', !!hint && JSON.parse(hint).id === '100101' && !/pw|pass|1234/i.test(Object.keys(JSON.parse(hint)).join(',') + hint.replace('100101', '')), hint);
+    await p6.locator('button:has-text("로그아웃")').first().click();
+    await p6.waitForSelector('input[autocomplete="username"]', { timeout: 15000 }); await sleep(800);
+    check('로그아웃 후에도 아이디가 채워져 있고 비밀번호는 비어 있음', (await p6.locator('input[autocomplete="username"]').first().inputValue()) === '100101' && (await p6.locator('input[autocomplete="current-password"]').first().inputValue()) === '');
+    await p6.locator('label:has-text("이 기기에 아이디 저장") input').uncheck(); await sleep(300);
+    check('저장을 끄면 저장된 아이디가 지워짐', (await p6.evaluate(() => localStorage.getItem('smartcare.loginHint.v1'))) === null);
     check('화면 오류 없음', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) { check('시험 진행', false, e.message); }
   finally { await browser.close(); srv.kill(); }

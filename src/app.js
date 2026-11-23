@@ -113,7 +113,8 @@ class Component extends DCLogic {
       { id: 'ORG2', name: '효사랑전주요양병원' }
     ],
     orgId: 'ORG1',
-    lgOrg: 'ORG1', lgMode: 'emp', lgId: '', lgPw: '', lgShowPw: false, lgErr: '',
+    lgOrg: 'ORG1', lgMode: 'emp', lgId: '', lgPw: '', lgShowPw: false, lgErr: '', lgRemember: false,
+    ...Component.loginHintState(),
     // 개발 중 입력된 계정 목록 (2026-10-06 저장본) — 브라우저 저장본이 없을 때 기본값
     // 처음 설치용 시스템 관리자만 기본으로 둠 (초기 비밀번호 admin1234 → 첫 로그인 후 바로 변경)
     // 실제 직원 명부는 서버에서 불러옴
@@ -2821,6 +2822,14 @@ class Component extends DCLogic {
   // 로그인 방식: 'shared' = 기관 공용 서버 계정 + 화면 안 직원 확인, 'staff' = 직원마다 서버 계정 (서버가 권한 확인)
   static AUTH_MODE = '__SC_AUTH_MODE__';
   static isStaffMode() { return Component.AUTH_MODE === 'staff'; }
+  // '이 기기에 아이디 저장' (비밀번호는 저장하지 않음 — 비밀번호는 브라우저의 비밀번호 관리자가 안전하게 보관)
+  static loginHintState() {
+    try {
+      const h = JSON.parse(localStorage.getItem('smartcare.loginHint.v1') || 'null');
+      if (h && h.id) return { lgRemember: true, lgOrg: h.org || 'ORG1', lgMode: h.mode || 'emp', lgId: h.id };
+    } catch (e) {}
+    return { lgRemember: false };
+  }
   // 브라우저 저장 공간 구역: 운영 = '' · 새 서버 = 'next~' · 시험 = 'test~'
   // 같은 주소(data140.github.io)의 운영·새 서버 화면이 서로의 저장 데이터·로그인을 섞지 않게 함
   static STORE_NS = '__SC_STORE_NS__';
@@ -3596,7 +3605,7 @@ class Component extends DCLogic {
   }
   // ───── 개인정보 보호: 로그아웃하면 이 기기(브라우저)에 남은 환자·직원 데이터를 지움 ─────
   // 화면 설정(테마·열 너비 등)과 서버 주소만 남김. 서버에는 데이터가 그대로 있으므로 다시 로그인하면 불러옴
-  static PREF_KEEP = new Set(['smartcare.cloud.v1', 'smartcare.dev.v1', 'smartcare.viewMode.v1', 'smartcare.menu.v1', 'smartcare.menuCollapsed.v1', 'smartcare.menuMini.v1',
+  static PREF_KEEP = new Set(['smartcare.cloud.v1', 'smartcare.loginHint.v1', 'smartcare.dev.v1', 'smartcare.viewMode.v1', 'smartcare.menu.v1', 'smartcare.menuCollapsed.v1', 'smartcare.menuMini.v1',
     'smartcare.sbW.v1', 'smartcare.kpiView.v1', 'smartcare.flowView.v1', 'smartcare.ptCols.v1', 'smartcare.emrCols.v1', 'smartcare.calBg.v1', 'smartcare.cformMargin.v1', 'smartcare.theme.v1',
     'sc.theme', 'sc.uiScale', 'sc.aiFab.v1', 'sc.aiSize', 'sc.alThumbSize', 'sc.alTileSize', 'sc.albumLayout', 'sc.calPct', 'sc.cpPct', 'sc.server.v1']);
   wipeLocalData() {
@@ -4676,6 +4685,12 @@ class Component extends DCLogic {
       if (s.lgBusy) return;
       m = await this._staffLogin(id, pw);
       if (!m) return;
+      // 아이디 저장(선택) + 브라우저 비밀번호 관리자에 저장 제안 (앱은 비밀번호를 저장하지 않음)
+      try {
+        if (this.state.lgRemember) localStorage.setItem('smartcare.loginHint.v1', JSON.stringify({ org: s.lgOrg, mode: s.lgMode, id: id }));
+        else localStorage.removeItem('smartcare.loginHint.v1');
+      } catch (e) {}
+      try { if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) { const pr = navigator.credentials.store(new window.PasswordCredential({ id: id, password: pw, name: m.name || id })); if (pr && pr.catch) pr.catch(() => {}); } } catch (e) {}
       return this._loginTail(m, rl);
     }
     if (s.lgMode === 'sys') m = s.roster.find(x => x.org === '*' && x.empNo === id);
@@ -7280,6 +7295,9 @@ class Component extends DCLogic {
       lgAutoOrgName: ((s.orgs.find(o => o.id === s.lgAutoOrg) || {}).name) || '',
       onLgPw: (e) => this.setState({ lgPw: e.target.value, lgErr: '' }),
       lgKey: (e) => { if (e.key === 'Enter') this._doLogin(); },
+      lgRemember: !!s.lgRemember,
+      onLgRemember: (e) => { const on = !!e.target.checked; this.setState({ lgRemember: on }); if (!on) { try { localStorage.removeItem('smartcare.loginHint.v1'); } catch (er) {} } },
+      onLoginSubmit: (e) => { if (e && e.preventDefault) e.preventDefault(); this._doLogin(); },
       lgPwType: s.lgShowPw ? 'text' : 'password',
       lgPwIcon: s.lgShowPw ? 'ph ph-eye-slash' : 'ph ph-eye',
       lgPwToggleLabel: s.lgShowPw ? '비밀번호 숨기기' : '비밀번호 보기',
