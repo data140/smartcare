@@ -5612,7 +5612,8 @@ class Component extends DCLogic {
     const listSrc = plans.filter(p => (s.planDay ? p.date === s.planDay : pr ? (p.date >= pr.from && p.date <= pr.to) : p.date.slice(0, 7) === ym) && (statusF === '전체' || p.status === statusF))
       .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
     const fmtR = (v) => v.slice(5).replace('-', '.');
-    const staffAll = s.roster.filter(m => m.status === '활성' && this.validState(m) === 'active' && m.org === (s.orgId || 'ORG1'));
+    // 직책 '시스템(알림)' 계정(알림 발송용)은 담당자로 지정할 수 없게 목록에서 뺌
+    const staffAll = s.roster.filter(m => m.status === '활성' && this.validState(m) === 'active' && m.org === (s.orgId || 'ORG1') && m.type !== '시스템(알림)');
     const f = s.planForm || {};
     const setF = (k) => (e) => this.setState({ planForm: Object.assign({}, this.state.planForm, { [k]: e.target.value }), planErr: '' });
     const savedW = (s.wardsSaved || s.wards || []).map(w => w.name);
@@ -6819,7 +6820,7 @@ class Component extends DCLogic {
         }
       }))
     }));
-    const activeStaff = orgRoster.filter(m => m.status === '활성' && this.validState(m) === 'active' && rolesOf(m).some(r => r !== '조회'));
+    const activeStaff = orgRoster.filter(m => m.status === '활성' && this.validState(m) === 'active' && m.type !== '시스템(알림)' && rolesOf(m).some(r => r !== '조회'));
 
     // 업로드
     const readFileUrl = (file) => new Promise((resolve, reject) => {
@@ -10154,7 +10155,7 @@ class Component extends DCLogic {
       onAcctQ: (e) => this.setState({ acctQ: e.target.value }),
       acctScopeNote: isSys ? '시스템 관리자 · 전체 기관의 계정과 기능별 뷰/사용 권한 관리' : (meIsAdmin ? orgName + ' 기관 관리자 · 소속 기관 계정만 관리' : '조회 전용'),
       acctAddDisplay: (isSys || meIsAdmin) ? 'inline-flex' : 'none',
-      posOpts: ['실장', '팀장', '병동장', '수간호사', '주임간호사', '간호사', '사회복지사', '물리치료사', '임상병리사', '행정', '자원봉사자', '실습생', '본사', '기타'],
+      posOpts: ['실장', '팀장', '병동장', '수간호사', '주임간호사', '간호사', '사회복지사', '물리치료사', '임상병리사', '행정', '자원봉사자', '실습생', '본사', '시스템(알림)', '기타'],
       acctOrgChips: (isSys ? [{ id: 'ALL', name: '전체' }].concat(s.orgs) : s.orgs.filter(o => o.id === me.org)).map(o => ({
         name: o.name,
         count: s.roster.filter(m => m.org !== '*' && (o.id === 'ALL' || m.org === o.id)).length,
