@@ -58,7 +58,7 @@ const domClick = (page, txt) => page.evaluate((t) => { const el = [...document.q
     check('새 서버 직원 명부에는 비밀번호 없음', roster.length > 0 && roster.every(m => !('pw' in m) && !('tempPw' in m)));
     check('원본은 저장 멈춤 안 됨 (리허설)', !(await kvRows(SRC_URL, 'k,v')).some(r => /appver/.test(r.k) && r.v === '9999999999'));
     const text = await page.evaluate(() => document.body.innerText);
-    const m = text.match(/박체험\s+100102\s+([a-z0-9]{10})/);
+    const m = text.match(/박체험\s+100102\s+(\d{6})/);
     check('임시 비밀번호 목록 표시', !!m);
     const email = await (await fetch(DST_URL + '/rest/v1/rpc/smartcare_login_email', { method: 'POST', headers: { apikey: 'k', 'Content-Type': 'application/json' }, body: JSON.stringify({ p_ws: 'smartcare', p_mode: 'emp', p_org: 'ORG1', p_id: '100102' }) })).json();
     const tok = m ? await fetch(DST_URL + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: 'k', 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: m[1] }) }) : null;
@@ -80,7 +80,7 @@ const domClick = (page, txt) => page.evaluate((t) => { const el = [...document.q
     check('최종 이전: 새 서버에 모든 항목', srcKeys.every(k => (dstKeys.includes(k))) && (await kvRows(DST_URL)).length >= srcKeys.length);
     check('최종 이전: 저장 멈춤 표시는 새 서버로 복사 안 함', !(await kvRows(DST_URL, 'k,v')).some(r => /appver/.test(r.k) && r.v === '9999999999'));
     const text2 = await page.evaluate(() => document.body.innerText);
-    const m2 = text2.match(/박체험\s+100102\s+([a-z0-9]{10})/);
+    const m2 = text2.match(/박체험\s+100102\s+(\d{6})/);
     check('최종 이전: 임시 비밀번호 새로 발급', !!m2 && (!m || m2[1] !== m[1]));
     await page.click('button:has-text("원본 서버 저장 다시 허용")');
     await page.waitForTimeout(1000);

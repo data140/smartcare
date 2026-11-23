@@ -14,7 +14,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const DOMAIN = 'smartcare.invalid';
 const ROLES = ['관리자', '담당자', '보조', '조회', '시스템관리자'];
-const MIN_PW = 8;
+const MIN_PW = 6;   // 데이터 서버 로그인(Supabase)의 최소 길이와 같게 — 숫자 6자리(예: 123456)도 가능
 
 const cors = {
   'Access-Control-Allow-Origin': '*',

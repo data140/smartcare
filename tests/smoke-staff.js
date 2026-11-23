@@ -56,7 +56,11 @@ async function login(page, id, pw) {
     r = await fn(admin, { action: 'sync', staff: st(1, 'ORG1', ['관리자', '담당자']) });
     check('자기 계정은 관리 화면에서 못 바꿈', r.status === 403, r.body.error);
     r = await fn(admin, { action: 'sync', staff: st(50, 'ORG1', ['담당자']), password: 'short' });
-    check('8자 미만 비밀번호 → 거부', r.status === 400, r.body.error);
+    check('6자 미만 비밀번호 → 거부', r.status === 400, r.body.error);
+    r = await fn(admin, { action: 'sync', staff: st(50, 'ORG1', ['담당자']), password: '123456' });
+    check('숫자 6자리 비밀번호(123456) 허용', r.status === 200, r.body.error);
+    check('숫자 6자리 비밀번호로 로그인', !!(await token('emp', 'ORG1', 'E50', '123456')));
+    r = await fn(admin, { action: 'sync', staff: st(50, 'ORG1', ['담당자']), password: 'temp12345' });
     check('새 계정으로 로그인', !!(await token('emp', 'ORG1', 'E50', 'temp12345')));
     r = await fn(sys, { action: 'sync', create: true, staff: st(51, 'ORG2', ['관리자']), password: 'temp12345' });
     check('시스템 관리자: 다른 기관 계정 만들기', r.status === 200, r.body.error);
@@ -97,12 +101,12 @@ async function login(page, id, pw) {
     await page.locator('text=계정 · 권한').first().click(); await page.waitForTimeout(800);
     const before = (await staffRows()).map(x => x.roster_id);
     await page.click('button:has-text("사용자 추가")');
-    await page.waitForSelector('text=/임시 비밀번호 [a-z0-9]{10}/', { timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('text=/임시 비밀번호 \d{6}/', { timeout: 10000 }).catch(() => {});
     const after = (await staffRows()).map(x => x.roster_id);
     const added = after.filter(x => !before.includes(x));
     check('화면에서 사용자 추가 → 서버 계정 생성', added.length === 1, 'new=' + added.join(','));
     const flashTxt = await page.evaluate(() => document.body.innerText);
-    const tmp = (flashTxt.match(/임시 비밀번호\s*([a-z0-9]{10})/) || [])[1];
+    const tmp = (flashTxt.match(/임시 비밀번호\s*(\d{6})/) || [])[1];
     const tr = tmp && added[0] ? await fetch(BASE + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: 'k', 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 's' + added[0] + '.smartcare@smartcare.invalid', password: tmp }) }) : null;
     check('표시된 임시 비밀번호로 새 계정 로그인', !!(tr && tr.ok), tmp ? '' : '화면에서 임시 비밀번호를 찾지 못함');
     await page.locator('button:has-text("삭제"):not([disabled])').first().click();
