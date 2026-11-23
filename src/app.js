@@ -656,10 +656,17 @@ class Component extends DCLogic {
     const NS = Component.STORE_NS;
     const isLS = (o) => o === window.localStorage;
     // __scGet: 기관 구역은 부르는 쪽이 이미 붙인 키 그대로 (화면 구역만 붙임)
-    proto.__scGet = function (k) { return g.call(this, isLS(this) && NS ? NS + k : k); };
-    proto.getItem = function (k) { return g.call(this, isLS(this) ? NS + Component.nsKey(k) : k); };
-    proto.removeItem = function (k) { return r.call(this, isLS(this) ? NS + Component.nsKey(k) : k); };
-    proto.__scRemove = function (k) { return r.call(this, isLS(this) && NS ? NS + k : k); };
+    // 저장 공간이 부족해 브라우저에 넣지 못한 값은 메모리(Component.MEM)에 두고, 읽을 때 대신 돌려줌
+    const mem = Component.MEM;
+    const memGet = (k, v) => (v == null && Object.prototype.hasOwnProperty.call(mem, k)) ? mem[k] : v;
+    proto.__scGet = function (k) { const v = g.call(this, isLS(this) && NS ? NS + k : k); return isLS(this) ? memGet(k, v) : v; };
+    proto.getItem = function (k) {
+      if (!isLS(this)) return g.call(this, k);
+      const kk = Component.nsKey(k);
+      return memGet(kk, g.call(this, NS + kk));
+    };
+    proto.removeItem = function (k) { if (isLS(this)) delete mem[Component.nsKey(k)]; return r.call(this, isLS(this) ? NS + Component.nsKey(k) : k); };
+    proto.__scRemove = function (k) { if (isLS(this)) delete mem[k]; return r.call(this, isLS(this) && NS ? NS + k : k); };
     if (NS) proto.setItem = function (k, v) { return s0.call(this, isLS(this) ? NS + k : k, v); };
     // 이 기관의 키 목록 (화면에서 쓰는 이름으로)
     window.__scKeys = () => Component.lsKeys().map(k => Component.unKey(k)).filter(Boolean);
@@ -2681,6 +2688,9 @@ class Component extends DCLogic {
   // 이 화면 구역의 저장 키 목록 (구역 접두어를 뗀 이름)
   // 꼭 필요한 작은 값(로그인 정보·마지막 화면) 저장 — 공간이 부족하면 서버에서 다시 받을 수 있는 큰 화면 데이터부터 비우고 다시 저장
   // canEvict: 서버에 연결된 경우에만 (서버 미연결이면 이 기기 데이터가 원본이므로 지우지 않음)
+  static MEM = {};
+  // 저장 시도: 성공하면 메모리 보관본을 지우고, 실패하면 메모리에 보관 (읽기는 getItem 이 메모리까지 확인)
+  static memSet(k, v, ok) { if (ok) delete Component.MEM[k]; else Component.MEM[k] = v; }
   static lsSetCritical(k, v, canEvict) {
     const P = Storage.prototype;
     const set = P.__scOrig || P.setItem, get = P.__scGet || P.getItem, del = P.__scRemove || P.removeItem;
@@ -2695,7 +2705,7 @@ class Component extends DCLogic {
         if (n > size) { size = n; big = x; }
       });
       if (!big) return false;
-      try { del.call(window.localStorage, big); } catch (e) { return false; }
+      try { const bv = get.call(window.localStorage, big); del.call(window.localStorage, big); if (bv != null) Component.MEM[big] = bv; } catch (e) { return false; }
     }
     return false;
   }
@@ -3749,6 +3759,7 @@ class Component extends DCLogic {
         let err = null;
         const k = this === window.localStorage ? Component.nsKey(k0) : k0;
         try { orig.call(this, k, v); } catch (e) { err = e; }
+        if (this === window.localStorage) Component.memSet(k, v, !err);
         // 브라우저 저장 공간이 가득 차도 서버에는 올림 (사진·첨부가 큰 경우)
         if (this === window.localStorage && typeof k === 'string' && k.indexOf('smartcare.') === 0 && k !== 'smartcare.cloud.v1' && window.__scCloudPush) window.__scCloudPush(k, v);
         // 서버가 연결·동기화 준비된 경우에만 로컬 저장 실패를 삼킴 (그 외에는 기존처럼 오류 → 각 화면의 경고 표시)
@@ -3927,7 +3938,7 @@ class Component extends DCLogic {
       if (mk.length) {
         mk.forEach(k => {
           this._cloudApplying = true;
-          try { (Storage.prototype.__scOrig || Storage.prototype.setItem).call(localStorage, k, merged[k]); } catch (e) {}
+          try { (Storage.prototype.__scOrig || Storage.prototype.setItem).call(localStorage, k, merged[k]); Component.memSet(k, merged[k], true); } catch (e) { Component.memSet(k, merged[k], false); }
           this._cloudApplying = false;
           if (this._onStorage) this._onStorage({ key: k, newValue: merged[k] });
         });
@@ -4052,7 +4063,7 @@ class Component extends DCLogic {
         }
         if ((Storage.prototype.__scGet || Storage.prototype.getItem).call(localStorage, key) === row.v) return;
         this._cloudApplying = true;
-        try { orig.call(localStorage, key, row.v); } catch (e) {}
+        try { orig.call(localStorage, key, row.v); Component.memSet(key, row.v, true); } catch (e) { Component.memSet(key, row.v, false); }
         this._cloudApplying = false;
         changed++;
         if (this._onStorage) this._onStorage({ key: key, newValue: row.v });
