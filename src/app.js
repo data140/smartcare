@@ -425,9 +425,9 @@ class Component extends DCLogic {
       const ctx = this.aiContext(text);
       const c = this.cloudCfg && this.cloudCfg();
       const headers = c ? this.cloudHeaders(c, { 'Content-Type': 'application/json' }) : { 'Content-Type': 'application/json' };
-      const r = await fetch(cfg.url, { method: 'POST', headers: headers, body: JSON.stringify({ question: ctx.question, context: ctx.context, history: msgs.slice(-6).map(m => ({ role: m.role, text: m.text || [m.title].concat((m.lines || []).map(l => l.t)).join('\n') })) }) });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const j = await r.json();
+      const r = await fetch(cfg.url, { method: 'POST', headers: headers, body: JSON.stringify({ ws: (this.cloudBase() || {}).ws || 'smartcare', question: ctx.question, context: ctx.context, history: msgs.slice(-6).map(m => ({ role: m.role, text: m.text || [m.title].concat((m.lines || []).map(l => l.t)).join('\n') })) }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP ' + r.status));
       let ans = String(j.answer || j.text || '').trim();
       Object.keys(ctx.back).sort((a, b) => b.length - a.length).forEach(t => { ans = ans.split(t).join(ctx.back[t]); });
       if (!ans) throw new Error('빈 답변');
@@ -468,12 +468,12 @@ class Component extends DCLogic {
       aiModeLabel: cfg.url ? 'AI 연결됨 · 환자 이름은 가려서 전송' : '무료 규칙형 · 시스템 데이터로 답변',
       aiCanSetup: isSys,
       aiSetupOpen: !!s.aiSetupOpen && isSys,
-      aiSetupToggle: () => this.setState({ aiSetupOpen: !this.state.aiSetupOpen, aiUrlDraft: cfg.url || '' }),
+      aiSetupToggle: () => { const b = this.cloudBase(); this.setState({ aiSetupOpen: !this.state.aiSetupOpen, aiUrlDraft: cfg.url || (b ? b.url + '/functions/v1/smartcare-ai' : '') }); },
       aiUrlDraft: s.aiUrlDraft != null ? s.aiUrlDraft : (cfg.url || ''),
       onAiUrl: (e) => this.setState({ aiUrlDraft: e.target.value }),
       aiUrlSave: () => {
         const u = (this.state.aiUrlDraft || '').trim();
-        if (u && !/^https:\/\//.test(u)) { this.flash('https:// 로 시작하는 주소를 넣어 주세요'); return; }
+        if (u && !/^https:\/\//.test(u) && !/^http:\/\/localhost(:\d+)?\//.test(u)) { this.flash('https:// 로 시작하는 주소를 넣어 주세요'); return; }
         try { localStorage.setItem('smartcare.ai.v1', JSON.stringify({ url: u })); } catch (e) {}
         this.setState({ aiSetupOpen: false });
         this.flash(u ? 'AI 연결 주소 저장 — 모든 기기에 적용됩니다' : 'AI 연결을 해제했습니다 — 규칙형으로 동작');
