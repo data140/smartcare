@@ -3,10 +3,12 @@
 
 사용법
   python3 tools/build.py            운영용   → index.html
+  python3 tools/build.py next       새 서버  → next/index.html   (서울 새 서버 · 준비 중)
   python3 tools/build.py test       시험용   → test/index.html   (config/test.json 필요)
   python3 tools/build.py local      개발용   → dist/local.html   (tools/dev-server.js 로 실행)
+  python3 tools/build.py local-staff 개발용(직원별 계정) → dist/local-staff.html (dev-server.js --staff)
   python3 tools/build.py demo       체험용   → dist/demo.html    (서버 없이 가상 데이터로 동작)
-  python3 tools/build.py --check    index.html 이 src/ 와 일치하는지 확인 (CI용)
+  python3 tools/build.py --check    index.html · next/index.html 이 src/ 와 일치하는지 확인 (CI용)
 """
 import json, os, re, sys
 
@@ -29,8 +31,8 @@ def page_html():
 def config(env):
     name = 'prod' if env in ('prod', 'demo') else env
     path = P('config', name + '.json')
-    if env == 'local':
-        return {'url': None, 'key': 'local-dev-key', 'ws': 'smartcare'}
+    if env in ('local', 'local-staff'):
+        return {'url': None, 'key': 'local-dev-key', 'ws': 'smartcare', 'auth': 'staff' if env == 'local-staff' else 'shared'}
     if not os.path.exists(path):
         sys.exit('config/%s.json 이 없습니다 — config/%s.example.json 을 복사해 값을 넣으세요' % (name, name))
     return json.load(open(path, encoding='utf-8'))
@@ -47,12 +49,14 @@ def template(env):
     cfg = config(env)
     url_js = 'location.origin' if cfg['url'] is None else json.dumps(cfg['url']).replace('"', "'")
     for ph, val in (("'__SC_CLOUD_URL__'", url_js), ("'__SC_CLOUD_KEY__'", json.dumps(cfg['key']).replace('"', "'")),
-                    ("'__SC_CLOUD_WS__'", json.dumps(cfg.get('ws', 'smartcare')).replace('"', "'"))):
+                    ("'__SC_CLOUD_WS__'", json.dumps(cfg.get('ws', 'smartcare')).replace('"', "'")),
+                    ("'__SC_AUTH_MODE__'", "'%s'" % cfg.get('auth', 'shared'))):
         if html.count(ph) != 1:
             sys.exit('placeholder %s: %d개 (1개여야 함)' % (ph, html.count(ph)))
         html = html.replace(ph, val)
-    if env == 'test':
-        html = inject_head(html, '<script>' + read('tools/test-badge.js') + '</script>\n')
+    if env in ('test', 'next'):
+        label = '시험 서버' if env == 'test' else '새 서버 (준비 중)'
+        html = inject_head(html, '<script>' + read('tools/test-badge.js').replace('__SC_BADGE__', label) + '</script>\n')
     if env == 'demo':
         mock = read('tools/fake-data.js') + '\n' + read('tools/demo-mock.js').replace('__SC_CLOUD_URL__', cfg['url'])
         html = inject_head(html, '<script>' + mock + '</script>\n')
@@ -66,19 +70,27 @@ def bundle(env):
            + '\n' + enc + '\n  ' + read('src/bundle/shell-3.html'))
     if env == 'test':
         out = out.replace('<title>Bundled Page</title>', '<title>[시험] 스마트케어</title>', 1)
+    elif env == 'next':
+        out = out.replace('<title>Bundled Page</title>', '<title>[새 서버] 스마트케어</title>', 1)
     elif env == 'demo':
         out = out.replace('<title>Bundled Page</title>', '<title>스마트케어 체험용 화면</title>', 1)
     return out
 
 
-OUT = {'prod': 'index.html', 'test': 'test/index.html', 'local': 'dist/local.html', 'demo': 'dist/demo.html'}
+OUT = {'prod': 'index.html', 'next': 'next/index.html', 'test': 'test/index.html', 'local': 'dist/local.html', 'local-staff': 'dist/local-staff.html', 'demo': 'dist/demo.html'}
 
 if __name__ == '__main__':
     args = sys.argv[1:]
     if args == ['--check']:
-        ok = bundle('prod') == read('index.html')
-        print('index.html 이 src/ 와 일치합니다' if ok else 'index.html 이 src/ 와 다릅니다 — python3 tools/build.py 를 실행해 다시 만드세요')
-        sys.exit(0 if ok else 1)
+        bad = []
+        for env in ('prod', 'next'):
+            if env == 'next' and not os.path.exists(P('config', 'next.json')):
+                continue
+            ok = os.path.exists(P(OUT[env])) and bundle(env) == read(OUT[env])
+            print('%s 이 src/ 와 %s' % (OUT[env], '일치합니다' if ok else '다릅니다 — python3 tools/build.py %s 를 실행해 다시 만드세요' % ('' if env == 'prod' else env)))
+            if not ok:
+                bad.append(env)
+        sys.exit(1 if bad else 0)
     env = args[0] if args else 'prod'
     if env not in OUT:
         sys.exit(__doc__)

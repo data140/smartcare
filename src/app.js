@@ -910,6 +910,7 @@ class Component extends DCLogic {
       this._sbRo.observe(document.body);
     }
     this._onResize();
+    if (Component.isStaffMode() && !this.cloudCfg()) this.loadLoginOrgs();
     this.cloudInit();
     // 파일을 화면에 끌어다 놓아도 편집 모드로 넘어가지 않도록 가로채고, 업로드 영역으로만 전달
     this._dropGuard = (e) => {
@@ -2663,6 +2664,9 @@ class Component extends DCLogic {
   // ───── 서버 저장 (Supabase) — 모든 PC·기기에서 같은 데이터 ─────
   // 운영 배포 시 아래 기본값에 URL·키를 넣으면 모든 PC에 자동 적용됩니다.
   static CLOUD_DEFAULT = { url: '__SC_CLOUD_URL__', key: '__SC_CLOUD_KEY__', ws: '__SC_CLOUD_WS__' };
+  // 로그인 방식: 'shared' = 기관 공용 서버 계정 + 화면 안 직원 확인, 'staff' = 직원마다 서버 계정 (서버가 권한 확인)
+  static AUTH_MODE = '__SC_AUTH_MODE__';
+  static isStaffMode() { return Component.AUTH_MODE === 'staff'; }
 
   // 서버 설정(주소·공개 키·작업공간) — 로그인 여부와 관계없이
   cloudBase() {
@@ -2774,6 +2778,7 @@ class Component extends DCLogic {
     try {
       const v = JSON.parse(localStorage.getItem(Component.VIEW_KEY) || sessionStorage.getItem(Component.VIEW_KEY) || 'null');
       if (!v || !v.logged) return;
+      if (Component.isStaffMode() && !this.cloudCfg()) return;
       if (Date.now() - (v.at || 0) > 12 * 3600 * 1000) { localStorage.removeItem(Component.VIEW_KEY); return; }
       const m = this.state.roster.find(x => x.id === v.userId);
       if (!m || m.status !== '활성') return;
@@ -3342,14 +3347,14 @@ class Component extends DCLogic {
     let r;
     try {
       r = await fetch(b.url + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: b.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, password: password }) });
-    } catch (e) { throw new Error('서버에 연결할 수 없습니다 — 인터넷 연결을 확인하세요'); }
+    } catch (e) { throw Object.assign(new Error('서버에 연결할 수 없습니다 — 인터넷 연결을 확인하세요'), { code: 'network' }); }
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(r.status === 400 || r.status === 401 ? '서버 계정 이메일 또는 비밀번호가 맞지 않습니다' : '서버 로그인 실패 (HTTP ' + r.status + ')');
+    if (!r.ok) throw Object.assign(new Error(r.status === 400 || r.status === 401 ? '서버 계정 이메일 또는 비밀번호가 맞지 않습니다' : '서버 로그인 실패 (HTTP ' + r.status + ')'), { code: r.status === 400 || r.status === 401 ? 'bad_login' : 'server' });
     const a = this.authFrom(j, b.url, email);
     // 작업공간 구성원인지 확인 (등록 안 된 계정은 데이터가 비어 보이므로 미리 막음)
     const rm = await fetch(b.url + '/rest/v1/rpc/smartcare_is_member', { method: 'POST', headers: { apikey: b.key, Authorization: 'Bearer ' + a.access_token, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_ws: b.ws }) }).catch(() => null);
     if (!rm || !rm.ok) throw new Error(rm && rm.status === 404 ? '서버 보안 설정(SQL)이 아직 적용되지 않았습니다 — 관리자에게 문의하세요' : '작업공간 확인 실패' + (rm ? ' (HTTP ' + rm.status + ')' : ''));
-    if ((await rm.json().catch(() => false)) !== true) throw new Error('이 서버 계정은 작업공간 "' + b.ws + '"에 등록되지 않았습니다 — 관리자에게 문의하세요');
+    if ((await rm.json().catch(() => false)) !== true) throw Object.assign(new Error('이 서버 계정은 작업공간 "' + b.ws + '"에 등록되지 않았습니다 — 관리자에게 문의하세요'), { code: 'not_member' });
     this.authStore(a);
   }
   // 토큰 만료 5분 전이면 새로 받음 (동시에 여러 번 불러도 한 번만 요청)
@@ -3378,6 +3383,7 @@ class Component extends DCLogic {
     const email = (this._auth && this._auth.email) || '';
     this.authStore(null);
     this.authStopSync();
+    if (Component.isStaffMode()) { this.setState({ cloudStatus: 'off', logged: false, lgPw: '', lgErr: '로그인이 만료되었습니다 — 다시 로그인하세요' }); return; }
     this.setState({ cloudStatus: 'off', srvEmail: email, srvPw: '', srvErr: '서버 로그인이 만료되었습니다 — 다시 로그인하세요' });
   }
   async authSignOut() {
@@ -3388,7 +3394,8 @@ class Component extends DCLogic {
     this.authStopSync();
     try { localStorage.removeItem(Component.VIEW_KEY); sessionStorage.removeItem(Component.VIEW_KEY); } catch (e) {}
     this.setState({ logged: false, cloudStatus: 'off', srvEmail: (a && a.email) || '', srvPw: '', srvErr: '' });
-    this.flash('서버 로그아웃 — 이 기기에서 서버 데이터 사용을 멈췄습니다');
+    this._staffSnap = null;
+    this.flash(Component.isStaffMode() ? '로그아웃했습니다' : '서버 로그아웃 — 이 기기에서 서버 데이터 사용을 멈췄습니다');
   }
   async _srvLogin() {
     const email = (this.state.srvEmail || '').trim(), pw = this.state.srvPw || '';
@@ -3400,6 +3407,147 @@ class Component extends DCLogic {
     this.setState({ srvBusy: false, srvPw: '', srvErr: '' });
     this.flash('서버 로그인 — 데이터를 불러옵니다');
     this.cloudInit();
+  }
+
+  // ───── 직원별 서버 계정 (AUTH_MODE = 'staff') ─────
+  // 로그인 전: 기관 목록만 받음 (smartcare_login_orgs) · 로그인: 서버가 계정·비밀번호·사용 여부를 확인
+  // 계정 만들기·비밀번호·권한 변경은 서버 함수(smartcare-staff)가 처리 — 직원 명부에는 비밀번호를 저장하지 않음
+  waitCloudReady(ms) {
+    return new Promise(res => {
+      const t0 = Date.now();
+      const tick = () => { if (this._cloudReady) return res(true); if (Date.now() - t0 > ms) return res(false); setTimeout(tick, 150); };
+      tick();
+    });
+  }
+  async staffRpc(name, args, anon) {
+    const b = this.cloudBase();
+    if (!b) throw new Error('데이터 서버 설정이 없습니다');
+    if (!anon) await this.authEnsure();
+    const headers = anon ? { apikey: b.key, 'Content-Type': 'application/json' } : this.cloudHeaders(b);
+    const r = await fetch(b.url + '/rest/v1/rpc/' + name, { method: 'POST', headers: headers, body: JSON.stringify(Object.assign({ p_ws: b.ws }, args || {})) });
+    if (!r.ok) throw Object.assign(new Error('서버 요청 실패 (HTTP ' + r.status + ')'), { code: r.status === 404 ? 'no_sql' : 'server' });
+    return r.json();
+  }
+  async staffFn(payload) {
+    const b = this.cloudBase();
+    if (!b || !this._auth) throw new Error('로그인이 필요합니다');
+    await this.authEnsure();
+    let r;
+    try { r = await fetch(b.url + '/functions/v1/smartcare-staff', { method: 'POST', headers: this.cloudHeaders(b), body: JSON.stringify(Object.assign({ ws: b.ws }, payload)) }); }
+    catch (e) { throw new Error('서버에 연결할 수 없습니다'); }
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    if (!r.ok || !j.ok) throw new Error(j.error || (r.status === 404 ? '계정 관리 서버 함수가 아직 등록되지 않았습니다' : '서버 함수 오류 (HTTP ' + r.status + ')'));
+    return j;
+  }
+  static staffFields(m) {
+    const roles = Array.isArray(m.roles) ? m.roles : (m.role ? [m.role] : []);
+    return { roster_id: m.id, org: m.org, emp_no: m.empNo || '', gmail: m.email || '', name: m.name || '', roles: roles, status: m.status === '활성' ? '활성' : '중지', valid_from: m.validFrom || null, valid_to: m.validTo || null };
+  }
+  static tempPassword() {
+    const cs = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const buf = new Uint32Array(10);
+    try { crypto.getRandomValues(buf); } catch (e) { for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 4294967296); }
+    return Array.from(buf, n => cs[n % cs.length]).join('');
+  }
+  staffSnapSet(list) {
+    this._staffSnap = {};
+    (list || []).forEach(m => { if (m && m.id != null) this._staffSnap[m.id] = JSON.stringify(Component.staffFields(m)); });
+  }
+  myStaffRow() {
+    const me = (this.state.roster || []).find(x => x.id === this.state.userId);
+    const roles = me ? (Array.isArray(me.roles) ? me.roles : [me.role]) : [];
+    return { me: me, isSys: !!me && me.org === '*' && roles.indexOf('시스템관리자') >= 0, isAdmin: roles.indexOf('관리자') >= 0 || roles.indexOf('시스템관리자') >= 0 };
+  }
+  // 명부 변경 중 서버 계정에 영향 있는 항목(기관·사번·Gmail·이름·역할·사용 여부·기간)과 삭제를 서버 함수로 맞춤
+  async staffSyncRoster(list) {
+    if (!Component.isStaffMode() || !this._auth || !this.state.logged) return;
+    if (!this._staffSnap) { this.staffSnapSet(list); return; }
+    const who = this.myStaffRow();
+    if (!who.isAdmin) { this.staffSnapSet(list); return; }
+    const prev = this._staffSnap, next = {};
+    const jobs = [];
+    (list || []).forEach(m => {
+      if (!m || m.id == null) return;
+      const f = JSON.stringify(Component.staffFields(m));
+      next[m.id] = f;
+      if (m.id === this.state.userId || !(m.id in prev) || prev[m.id] === f) return;
+      if (m.org === '*' && !who.isSys) return;
+      jobs.push({ action: 'sync', staff: Component.staffFields(m), _name: m.name });
+    });
+    Object.keys(prev).forEach(id => { if (!(id in next) && Number(id) !== this.state.userId) jobs.push({ action: 'delete', roster_id: Number(id) }); });
+    this._staffSnap = next;
+    for (const j of jobs) {
+      const name = j._name; delete j._name;
+      try { await this.staffFn(j); }
+      catch (e) { this.flash('서버 계정 반영 실패' + (name ? ' (' + name + ')' : '') + ' — ' + e.message); }
+    }
+  }
+  // 새 직원 서버 계정 만들기 (임시 비밀번호 · 첫 로그인 때 변경)
+  async staffCreate(row) {
+    const t = Component.tempPassword();
+    try {
+      await this.staffFn({ action: 'sync', create: true, staff: Component.staffFields(row), password: t, must_change: true });
+      if (this._staffSnap) this._staffSnap[row.id] = JSON.stringify(Component.staffFields(row));
+      this.setState({ tempPws: Object.assign({}, this.state.tempPws || {}, { [row.id]: t }) });
+      return t;
+    } catch (e) {
+      this.flash('서버 계정을 만들지 못했습니다 — ' + e.message);
+      return null;
+    }
+  }
+  async loadLoginOrgs() {
+    try {
+      const orgs = await this.staffRpc('smartcare_login_orgs', {}, true);
+      if (Array.isArray(orgs) && orgs.length) {
+        const cur = this.state.orgs || [];
+        const merged = orgs.map(o => Object.assign({}, cur.find(c => c.id === o.id) || {}, o));
+        const patch = { orgs: merged };
+        if (!merged.some(o => o.id === this.state.lgOrg)) patch.lgOrg = merged[0].id;
+        this.setState(patch);
+      }
+    } catch (e) {}
+  }
+  // 본인 비밀번호 변경
+  async _pwcSave() {
+    const s = this.state;
+    const a = s.pwcNew || '', b2 = s.pwcNew2 || '';
+    if (a.length < 8) { this.setState({ pwcErr: '비밀번호는 8자 이상이어야 합니다' }); return; }
+    if (a !== b2) { this.setState({ pwcErr: '두 비밀번호가 같지 않습니다' }); return; }
+    if (s.pwcBusy) return;
+    this.setState({ pwcBusy: true, pwcErr: '' });
+    try { await this.staffFn({ action: 'self_password', password: a }); }
+    catch (e) { this.setState({ pwcBusy: false, pwcErr: e.message }); return; }
+    this.setState({ pwcBusy: false, pwcOpen: false, pwcForced: false, pwcNew: '', pwcNew2: '', pwcErr: '' });
+    this.flash('비밀번호를 바꿨습니다');
+  }
+  async _staffLogin(id, pw) {
+    const s = this.state;
+    this.setState({ lgBusy: true, lgErr: '' });
+    const idLabel = s.lgMode === 'gmail' ? 'Gmail' : '사번';
+    let me;
+    try {
+      const email = await this.staffRpc('smartcare_login_email', { p_mode: s.lgMode, p_org: s.lgMode === 'sys' ? '' : s.lgOrg, p_id: id }, true);
+      await this.authSignIn(email, pw);
+      me = await this.staffRpc('smartcare_me', {});
+      if (!me) throw Object.assign(new Error(''), { code: 'not_member' });
+    } catch (e) {
+      const msg = e.code === 'bad_login' ? '계정 정보가 일치하지 않습니다. 소속기관과 ' + idLabel + '을 확인하세요.'
+        : e.code === 'not_member' ? '사용할 수 없는 계정입니다 (중지 또는 사용 기간 밖). 기관 관리자에게 문의하세요.'
+        : e.code === 'no_sql' ? '서버 보안 설정(SQL)이 아직 적용되지 않았습니다 — 관리자에게 문의하세요'
+        : (e.message || '로그인 실패');
+      if (this._auth && e.code === 'not_member') { this.authStore(null); }
+      this.setState({ lgBusy: false, lgErr: msg });
+      return null;
+    }
+    this.cloudInit();
+    await this.waitCloudReady(15000);
+    this.staffRpc('smartcare_touch_login', {}).catch(() => {});
+    const local = (this.state.roster || []).find(x => x.id === me.roster_id) || { id: me.roster_id, name: me.name, status: '활성' };
+    // 기관·역할은 서버의 직원 정보를 따름
+    const m = Object.assign({}, local, { org: me.org, roles: me.roles, role: (me.roles || [])[0] || '조회', status: '활성', validFrom: '', validTo: '' });
+    this.staffSnapSet(this.state.roster);
+    this.setState({ lgBusy: false, pwcOpen: !!me.must_change, pwcForced: !!me.must_change, pwcNew: '', pwcNew2: '', pwcErr: '' });
+    return m;
   }
 
   cloudHeaders(c, extra) {
@@ -4020,8 +4168,13 @@ class Component extends DCLogic {
       let ok = true;
       const src = list || this.state.roster;
       let out = src;
-      try { out = await Component.hashRoster(src); } catch (e) { out = src; }
+      if (Component.isStaffMode()) {
+        if (src.some(m => m && (m.pw || m.tempPw))) out = src.map(m => { if (!m || !(m.pw || m.tempPw)) return m; const c = Object.assign({}, m); delete c.pw; delete c.tempPw; return c; });
+      } else {
+        try { out = await Component.hashRoster(src); } catch (e) { out = src; }
+      }
       if (out !== src && this.state.roster === src) this.setState({ roster: out });
+      if (Component.isStaffMode()) this.staffSyncRoster(out);
       try {
         localStorage.setItem('smartcare.roster.v1', JSON.stringify(out));
         localStorage.setItem('smartcare.orgs.v1', JSON.stringify(this.state.orgs));
@@ -4047,6 +4200,12 @@ class Component extends DCLogic {
     if (!id || !pw) { this.setState({ lgErr: (s.lgMode === 'gmail' ? 'Gmail 주소' : s.lgMode === 'sys' ? '관리자 ID' : '사번') + '와 비밀번호를 입력하세요' }); return; }
     const rl = (m) => Array.isArray(m.roles) ? m.roles : [m.role];
     let m;
+    if (Component.isStaffMode()) {
+      if (s.lgBusy) return;
+      m = await this._staffLogin(id, pw);
+      if (!m) return;
+      return this._loginTail(m, rl);
+    }
     if (s.lgMode === 'sys') m = s.roster.find(x => x.org === '*' && x.empNo === id);
     else if (s.lgMode === 'gmail') m = s.roster.find(x => x.org === s.lgOrg && x.email && x.email.toLowerCase() === id.toLowerCase());
     else m = s.roster.find(x => x.org === s.lgOrg && x.empNo === id);
@@ -4060,6 +4219,10 @@ class Component extends DCLogic {
     const rosterL = s.roster.map(x => x.id === m.id ? Object.assign({}, x, { lastLogin: stampL }) : x);
     this.setState({ roster: rosterL }); this.saveRoster(rosterL);
     if (m.mustChange) setTimeout(() => this.flash('임시 비밀번호로 로그인했습니다 — 비밀번호를 변경하세요'), 1800);
+    return this._loginTail(m, rl);
+  }
+  _loginTail(m, rl) {
+    const s = this.state;
     const roles = rl(m);
     const sys = roles.indexOf('시스템관리자') >= 0;
     // 기관마다 별도 운영: 시스템 관리자(전체 권한)는 마지막으로 고른 기관, 그 외는 소속 기관 데이터만
@@ -6237,14 +6400,28 @@ class Component extends DCLogic {
         pwSave: () => {
           const v = (this.state.pwDraft || '').trim();
           if (!v) { this.flash('비밀번호를 입력하세요'); return; }
+          if (Component.isStaffMode()) {
+            if (v.length < 8) { this.flash('비밀번호는 8자 이상이어야 합니다'); return; }
+            this.staffFn({ action: 'sync', staff: Component.staffFields(m), password: v, must_change: true })
+              .then(() => { const tp = Object.assign({}, this.state.tempPws || {}); delete tp[m.id]; this.setState({ pwEditId: null, pwDraft: '', tempPws: tp }); this.flash((m.name || '사용자') + ' 비밀번호를 지정했습니다 — 본인에게 전달하세요 (첫 로그인 때 변경)'); })
+              .catch(e => this.flash('비밀번호를 바꾸지 못했습니다 — ' + e.message));
+            return;
+          }
           setAcct(m.id, { pw: v, tempPw: '', mustChange: false }, (m.name || '사용자') + ' 비밀번호를 "' + v + '"(으)로 지정했습니다 — 본인에게 전달하세요');
           this.setState({ pwEditId: null, pwDraft: '' });
         },
         resetPw: () => {
+          if (Component.isStaffMode()) {
+            const t = Component.tempPassword();
+            this.staffFn({ action: 'sync', staff: Component.staffFields(m), password: t, must_change: true })
+              .then(() => { this.setState({ tempPws: Object.assign({}, this.state.tempPws || {}, { [m.id]: t }) }); this.flash(m.name + ' 비밀번호 초기화 — 임시 비밀번호 ' + t); })
+              .catch(e => this.flash('비밀번호를 초기화하지 못했습니다 — ' + e.message));
+            return;
+          }
           const t = String(100000 + Math.floor(Math.random() * 900000));
           setAcct(m.id, { pw: t, tempPw: t, mustChange: true }, m.name + ' 비밀번호 초기화 — 임시 비밀번호 ' + t);
         },
-        hasTemp: !!m.tempPw, tempPw: m.tempPw || '',
+        hasTemp: Component.isStaffMode() ? !!(s.tempPws || {})[m.id] : !!m.tempPw, tempPw: Component.isStaffMode() ? ((s.tempPws || {})[m.id] || '') : (m.tempPw || ''),
         lastLogin: m.lastLogin || '기록 없음',
         mailNote: !m.email ? 'Gmail 주소 필요' : (m.notify ? '알림 메일 수신' : '알림 메일 미수신'),
         mailColor: !m.email ? 'var(--color-accent-300)' : 'var(--color-neutral-400)',
@@ -6574,7 +6751,7 @@ class Component extends DCLogic {
       toggleLgPw: () => this.setState({ lgShowPw: !s.lgShowPw }),
       lgErr: s.lgErr,
       // 서버 로그인 (기관 공용 계정)
-      srvGate: !!this.cloudBase() && !this.cloudCfg(),
+      srvGate: !Component.isStaffMode() && !!this.cloudBase() && !this.cloudCfg(),
       srvEmail: s.srvEmail || '',
       srvPw: s.srvPw || '',
       onSrvEmail: (e) => this.setState({ srvEmail: e.target.value, srvErr: '' }),
@@ -6584,7 +6761,7 @@ class Component extends DCLogic {
       srvBusy: !!s.srvBusy,
       srvBtnLabel: s.srvBusy ? '로그인 중…' : '서버 로그인',
       srvErr: s.srvErr || '',
-      srvWho: (this._auth && this._auth.email) || '',
+      srvWho: Component.isStaffMode() ? '' : ((this._auth && this._auth.email) || ''),
       srvLogout: () => this.setState({ dialog: {
         title: '이 기기의 서버 로그인을 해제할까요?',
         body: '서버의 데이터는 그대로 남습니다. 다시 쓰려면 기관 공용 서버 계정으로 로그인해야 합니다.',
@@ -6592,13 +6769,29 @@ class Component extends DCLogic {
         confirm: () => { this.setState({ dialog: null }); this.authSignOut(); }
       } }),
       login: () => this._doLogin(),
+      lgBtnLabel: s.lgBusy ? '로그인 중…' : '로그인',
+      lgBusy: !!s.lgBusy,
+      // 본인 비밀번호 변경 (직원별 계정)
+      pwcAvail: Component.isStaffMode() && !!s.logged,
+      pwcOpen: Component.isStaffMode() && !!s.logged && !!s.pwcOpen,
+      pwcForced: !!s.pwcForced, pwcCanClose: !s.pwcForced,
+      pwcTitle: s.pwcForced ? '새 비밀번호를 정하세요' : '비밀번호 변경',
+      pwcDesc: s.pwcForced ? '임시 비밀번호로 로그인했습니다. 계속하려면 본인만 아는 새 비밀번호로 바꾸세요.' : '새 비밀번호를 두 번 입력하세요. 8자 이상이어야 합니다.',
+      pwcNew: s.pwcNew || '', pwcNew2: s.pwcNew2 || '', pwcErr: s.pwcErr || '',
+      pwcBusy: !!s.pwcBusy, pwcBtnLabel: s.pwcBusy ? '바꾸는 중…' : '비밀번호 바꾸기',
+      onPwcNew: (e) => this.setState({ pwcNew: e.target.value, pwcErr: '' }),
+      onPwcNew2: (e) => this.setState({ pwcNew2: e.target.value, pwcErr: '' }),
+      pwcKey: (e) => { if (e.key === 'Enter') this._pwcSave(); },
+      pwcSave: () => this._pwcSave(),
+      pwcShow: () => this.setState({ pwcOpen: true, pwcForced: false, pwcNew: '', pwcNew2: '', pwcErr: '' }),
+      pwcClose: () => { if (!this.state.pwcForced) this.setState({ pwcOpen: false, pwcNew: '', pwcNew2: '', pwcErr: '' }); },
       _legacyLogin: () => {
         const dev = s.role === '보조' ? 'mobile' : 'pc';
         const view = s.role === '조회' ? 'stats' : 'patients';
         this.setState({ logged: true, userId: roleOfId[s.role] || 2, device: dev, pcView: view, mobileView: 'today' });
         this.flash(s.role + ' 권한으로 로그인했습니다');
       },
-      logout: () => { try { localStorage.removeItem(Component.VIEW_KEY); sessionStorage.removeItem(Component.VIEW_KEY); } catch (e) {} this.setState({ logged: false, device: Component.detectDevice() }); },
+      logout: () => { if (Component.isStaffMode()) { this.authSignOut(); return; } try { localStorage.removeItem(Component.VIEW_KEY); sessionStorage.removeItem(Component.VIEW_KEY); } catch (e) {} this.setState({ logged: false, device: Component.detectDevice() }); },
 
       role: myRoles.join(' · '), userName: userName, userInitial: userName.slice(0, 1),
       pcUrl: 'smartcare.hospital.kr/' + s.pcView,
@@ -9574,6 +9767,13 @@ class Component extends DCLogic {
         const t = String(100000 + Math.floor(Math.random() * 900000));
         const perms = { pt: { v: true, u: false }, lg: { v: true, u: true }, st: { v: true, u: false } };
         const row = { id: id, name: '', type: '사회복지사', dept: '사회사업실', org: org, empNo: '', email: '', notify: false, perms: perms, roles: rolesFrom(perms, false), role: rolesFrom(perms, false)[0], status: '활성', revokedAt: '', pw: t, tempPw: t, mustChange: true };
+        if (Component.isStaffMode()) {
+          delete row.pw; delete row.tempPw;
+          const list = [row].concat(s.roster);
+          this.setState({ roster: list, acctQ: '' });
+          this.staffCreate(row).then(tp => { this.saveRoster(this.state.roster); if (tp) this.flash(orgNm(org) + ' 계정 추가 — 맨 위 행에 사번·이름을 입력하세요 (임시 비밀번호 ' + tp + ')'); });
+          return;
+        }
         const list = [row].concat(s.roster);
         this.setState({ roster: list, acctQ: '' }); this.saveRoster(list);
         this.flash(orgNm(org) + ' 계정 추가 — 맨 위 행에 사번·이름을 입력하세요 (임시 비밀번호 ' + t + ')');
@@ -9603,6 +9803,12 @@ class Component extends DCLogic {
         const picked = Array.isArray(s.newStaffRole) ? s.newStaffRole : [s.newStaffRole];
         if (picked.length === 0) { this.flash('권한을 하나 이상 선택하세요'); return; }
         const id = Math.max.apply(null, s.roster.map(m => m.id)) + 1;
+        if (Component.isStaffMode()) {
+          const row = { id: id, name: name, type: (s.newStaffType || '').trim() || '기타', roles: picked, role: picked[0], status: '활성', revokedAt: '', org: staffOrg, empNo: emp, email: email };
+          this.setState({ roster: s.roster.concat([row]), newStaffName: '', newStaffType: '', newStaffEmp: '', newStaffEmail: '' });
+          this.staffCreate(row).then(tp => { if (tp) this.flash(staffOrgName + ' · ' + name + ' 추가 — 임시 비밀번호 ' + tp + ' (첫 로그인 때 변경)'); });
+          return;
+        }
         this.setState({
           roster: s.roster.concat([{ id: id, name: name, type: (s.newStaffType || '').trim() || '기타', roles: picked, role: picked[0], status: '활성', revokedAt: '', org: staffOrg, empNo: emp, email: email, pw: '1234' }]),
           newStaffName: '', newStaffType: '', newStaffEmp: '', newStaffEmail: ''
