@@ -1517,6 +1517,50 @@ class Component extends DCLogic {
   }
 
   // 작은 얼굴을 크게 키울 때: 단계적으로 키우고(계단 현상 줄임) 살짝 선명하게 보정
+  // 선택한 얼굴만 남기기: 잘라낸 사진 안에 다른 사람 얼굴이 보이면 배경색으로 지움 (인식률↑)
+  async maskOtherFaces(cv) {
+    try {
+      const fa = await this.loadFaceApi();
+      const W = cv.width, H = cv.height;
+      const dets = await fa.detectAllFaces(cv, new fa.SsdMobilenetv1Options({ minConfidence: 0.3 }));
+      try {
+        if (fa.nets.tinyFaceDetector && fa.nets.tinyFaceDetector.isLoaded) {
+          const t2 = await fa.detectAllFaces(cv, new fa.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.35 }));
+          t2.forEach(d => {
+            const dup = dets.some(o => { const a = o.box, b = d.box, ix = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)), iy = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)); return ix * iy > 0.3 * Math.min(a.width * a.height, b.width * b.height); });
+            if (!dup) dets.push(d);
+          });
+        }
+      } catch (e) {}
+      if (dets.length < 2) return cv;
+      const bx = dets.map(d => d.box);
+      // 대상 얼굴: 사진 중앙을 포함하는 얼굴, 없으면 가장 큰 얼굴
+      let ti = bx.findIndex(b => W / 2 >= b.left && W / 2 <= b.right && H / 2 >= b.top && H / 2 <= b.bottom);
+      if (ti < 0) ti = bx.reduce((m, b, i) => (b.width * b.height > bx[m].width * bx[m].height ? i : m), 0);
+      const t = bx[ti];
+      const g = cv.getContext('2d');
+      const orig = document.createElement('canvas'); orig.width = W; orig.height = H; orig.getContext('2d').drawImage(cv, 0, 0);
+      // 배경색: 사진 테두리 평균 (얼굴 주변 제외)
+      const px = g.getImageData(0, 0, W, H).data; let r = 0, gg = 0, b2 = 0, n = 0;
+      const inFace = (x, y) => bx.some(f => x >= f.left - f.width * .3 && x <= f.right + f.width * .3 && y >= f.top - f.height * .4 && y <= f.bottom + f.height * .8);
+      for (let y = 0; y < H; y += 3) for (let x = 0; x < W; x += 3) {
+        if (x > W * .08 && x < W * .92 && y > H * .08 && y < H * .92) continue;
+        if (inFace(x, y)) continue;
+        const i = (y * W + x) * 4; r += px[i]; gg += px[i + 1]; b2 += px[i + 2]; n++;
+      }
+      g.fillStyle = n ? 'rgb(' + Math.round(r / n) + ',' + Math.round(gg / n) + ',' + Math.round(b2 / n) + ')' : '#d8d8dc';
+      bx.forEach((f, i) => {
+        if (i === ti) return;
+        g.beginPath(); g.ellipse(f.left + f.width / 2, f.top + f.height * 0.55, f.width * 0.85, f.height * 1.15, 0, 0, Math.PI * 2); g.fill();
+      });
+      // 대상 얼굴은 원본으로 되돌림
+      g.save(); g.beginPath();
+      g.ellipse(t.left + t.width / 2, t.top + t.height * 0.5, t.width * 0.8, t.height * 1.05, 0, 0, Math.PI * 2); g.clip();
+      g.drawImage(orig, 0, 0); g.restore();
+      return cv;
+    } catch (e) { return cv; }
+  }
+
   upscaleSharp(im, sx, sy, sw, sh, minLong, maxLong) {
     const long = Math.max(sw, sh);
     const k = Math.min(maxLong / long, Math.max(1, minLong / long));
@@ -1688,14 +1732,14 @@ class Component extends DCLogic {
           const bx = fc2.box;
           const sx = bx.x * im.naturalWidth, sy = bx.y * im.naturalHeight, sw = bx.w * im.naturalWidth, sh = bx.h * im.naturalHeight;
           // 증명사진 크기로 크게: 긴 변 최소 800px · 최대 1200px (작은 얼굴도 크게 보이게)
-          const c = this.upscaleSharp(im, sx, sy, sw, sh, 800, 1200);
-          c.toBlob((blob) => {
+          const c0 = this.upscaleSharp(im, sx, sy, sw, sh, 800, 1200);
+          this.maskOtherFaces(c0).then((c) => c.toBlob((blob) => {
             if (!blob) { this.flash('잘라내지 못했습니다 — 다른 사진으로 다시 시도하세요'); return; }
             const d = new Date(), p2 = (n) => String(n).padStart(2, '0');
             const f = new File([blob], (fc2.editMode ? '증명사진_편집_' : '단체사진_얼굴_') + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes()) + '.jpg', { type: 'image/jpeg' });
             this.setState({ faceCrop: null, upload: 'idle', idPhoto: null });
             setTimeout(() => { if (this._acceptIdPhoto) this._acceptIdPhoto(f); }, 30);
-          }, 'image/jpeg', 0.9);
+          }, 'image/jpeg', 0.9));
         };
         im.onerror = () => this.flash('사진을 읽지 못했습니다');
         im.src = fc2.src;
@@ -3299,10 +3343,11 @@ class Component extends DCLogic {
     im.onload = () => {
       const sx = c.x * im.naturalWidth, sy = c.y * im.naturalHeight, sw = c.w * im.naturalWidth, sh = c.h * im.naturalHeight;
       // 증명사진 크기로 크게 (긴 변 800~1200px) + 선명 보정
-      const cv = this.upscaleSharp(im, sx, sy, sw, sh, 800, 1200);
-      const url = cv.toDataURL('image/jpeg', 0.95);
-      this.setState({ crop: null, idPrompt: Object.assign({}, this.state.idPrompt, { face: url, srcPx: Math.round(sw), how: ip.how || '' , cropped: true }) });
-      this.flash('자르기 적용 — 확인 후 [증명사진 등록]을 누르세요');
+      this.maskOtherFaces(this.upscaleSharp(im, sx, sy, sw, sh, 800, 1200)).then((cv) => {
+        const url = cv.toDataURL('image/jpeg', 0.95);
+        this.setState({ crop: null, idPrompt: Object.assign({}, this.state.idPrompt, { face: url, srcPx: Math.round(sw), how: ip.how || '' , cropped: true }) });
+        this.flash('자르기 적용 — 확인 후 [증명사진 등록]을 누르세요');
+      });
     };
     im.src = ip.face;
   }
