@@ -36,10 +36,10 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     const info = await p.evaluate(() => [...document.querySelectorAll('span[title="끌어서 순서 변경"]')].filter(g => g.offsetParent !== null).map(g => {
       const card = g.parentElement.parentElement; const t = card.innerText.replace(/\s+/g, ' ');
       const pos = (k) => t.indexOf(k);
-      return { n: t.slice(0, 12), order: [pos('사번'), pos('알림 수신 Gmail'), pos('권한 · 뷰 / 사용'), pos('비밀번호 지정'), pos('최근 접속')], mine: (t.match(/본인/g) || []).length };
+      return { n: t.slice(0, 12), order: [pos('기본 정보'), pos('알림 수신 Gmail'), pos('기능 보기 사용'), pos('비밀번호 지정'), pos('최근 접속')], mine: (t.match(/본인/g) || []).length };
     }));
     check('계정 3개가 같은 카드 구성으로 표시', info.length === 3, info.map(c => c.n).join(' / '));
-    check('카드마다 순서 일정: 기본 정보 → Gmail → 권한 → 비밀번호 → 접속 기록', info.every(c => c.order.every((v, i, a) => v >= 0 && (i === 0 || v > a[i - 1]))), JSON.stringify(info.map(c => c.order)));
+    check('카드마다 구역 순서 일정: 기본 정보 → Gmail → 권한 → 비밀번호 → 접속 기록', info.every(c => c.order.every((v, i, a) => v >= 0 && (i === 0 || v > a[i - 1]))), JSON.stringify(info.map(c => c.order)));
     check('"본인" 표시는 한 번만', info.every(c => c.mine <= 1));
 
     // 비밀번호 지정 규칙 (두 번째 계정 = 박체험)

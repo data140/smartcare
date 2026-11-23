@@ -3409,7 +3409,10 @@
                           </div>
                           <sc-if value="{{ a.open }}" hint-placeholder-val="{{ false }}">
                           <div style="display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3) var(--space-4);">
+                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--space-4); align-items: start;">
+                          <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); min-width: 0;">
+                          <div style="font-size: 12.5px; letter-spacing: 0.08em; color: var(--color-neutral-500); font-weight: 500;">기본 정보</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3) var(--space-4);">
                           <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">사번</span>
                           <input class="input" value="{{ a.empNo }}" sc-camel-on-change="{{ a.onEmp }}" sc-camel-on-blur="{{ a.checkEmp }}" disabled="{{ a.locked }}" placeholder="사번" aria-label="사번" style="min-height: 38px; font-variant-numeric: tabular-nums;"></label>
                           <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">이름</span>
@@ -3432,20 +3435,28 @@
                             <button sc-camel-on-click="{{ a.notifyT }}" disabled="{{ a.mailLocked }}" aria-pressed="{{ a.notify }}" title="알림 메일 수신" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ a.notifyBd }}; background: {{ a.notifyBg }}; color: {{ a.notifyFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">수신</button>
                           </span></span>
                           </div>
-                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--space-3) var(--space-5, 18px); align-items: center; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900);">
-                            <span style="grid-column: 1 / -1; font-size: 12px; letter-spacing: 0.06em; color: var(--color-neutral-500);">권한 · 뷰 / 사용</span>
+                          
+                          </div>
+                          <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); min-width: 0;">
+                          <div style="font-size: 12.5px; letter-spacing: 0.08em; color: var(--color-neutral-500); font-weight: 500;">권한</div>
+                          <div style="display: grid; grid-template-columns: 1fr 64px 64px; gap: var(--space-2) var(--space-3); align-items: center;">
+                            <span style="font-size: 12px; color: var(--color-neutral-600);">기능</span><span style="font-size: 12px; color: var(--color-neutral-600); text-align: center;">보기</span><span style="font-size: 12px; color: var(--color-neutral-600); text-align: center;">사용</span>
                             <sc-for list="{{ a.feats }}" as="ft" hint-placeholder-count="3">
-                              <span style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);"><span style="font-size: 13.5px; color: var(--color-neutral-300); white-space: nowrap;">{{ ft.fname }}</span>
-                            <span style="display: inline-flex; gap: 4px; align-items: center;">
-                              <button sc-camel-on-click="{{ ft.vT }}" disabled="{{ a.locked }}" aria-pressed="{{ ft.v }}" title="{{ ft.vTitle }}" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ ft.vBd }}; background: {{ ft.vBg }}; color: {{ ft.vFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">뷰</button>
-                              <button sc-camel-on-click="{{ ft.uT }}" disabled="{{ a.locked }}" aria-pressed="{{ ft.u }}" title="{{ ft.uTitle }}" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ ft.uBd }}; background: {{ ft.uBg }}; color: {{ ft.uFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">사용</button>
-                            </span>
+                              <span style="display: contents;">
+                                <span style="font-size: 14px; color: var(--color-text);">{{ ft.fname }}</span>
+                                <span style="display: flex; justify-content: center;"><button sc-camel-on-click="{{ ft.vT }}" disabled="{{ a.locked }}" aria-pressed="{{ ft.v }}" title="{{ ft.vTitle }}" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ ft.vBd }}; background: {{ ft.vBg }}; color: {{ ft.vFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">뷰</button></span>
+                                <span style="display: flex; justify-content: center;"><button sc-camel-on-click="{{ ft.uT }}" disabled="{{ a.locked }}" aria-pressed="{{ ft.u }}" title="{{ ft.uTitle }}" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ ft.uBd }}; background: {{ ft.uBg }}; color: {{ ft.uFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">사용</button></span>
                               </span>
                             </sc-for>
                           </div>
-                          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-                        <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">
-                          <button sc-camel-on-click="{{ a.adminT }}" disabled="{{ a.locked }}" aria-pressed="{{ a.admin }}" style="display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid {{ a.adminBd }}; background: {{ a.adminBg }}; color: {{ a.adminFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">{{ a.adminLabel }}</button>
+                          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding-top: var(--space-3); border-top: 1px solid var(--color-divider); font-size: 12.5px; color: var(--color-neutral-500);"><button sc-camel-on-click="{{ a.adminT }}" disabled="{{ a.locked }}" aria-pressed="{{ a.admin }}" style="display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid {{ a.adminBd }}; background: {{ a.adminBg }}; color: {{ a.adminFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">{{ a.adminLabel }}</button><span>기관 관리자는 이 기관의 계정·권한을 관리할 수 있습니다</span></div>
+                          <div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.6;">사용을 켜면 보기도 함께 켜집니다. 보기를 끄면 사용도 꺼집니다.</div>
+                          </div>
+                          </div>
+                          <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); min-width: 0;">
+                          <div style="font-size: 12.5px; letter-spacing: 0.08em; color: var(--color-neutral-500); font-weight: 500;">계정 관리</div>
+                          <div style="display: flex; align-items: center; gap: var(--space-3) var(--space-5, 18px); flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;"><span style="color: var(--color-neutral-400); min-width: 56px;">비밀번호</span>
                           <span style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                             <button sc-camel-on-click="{{ a.resetPw }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 30px; padding: 0 10px; font-size: 13px; border-radius: 999px; white-space: nowrap;"><i class="ph ph-key"></i> 비밀번호 초기화</button>
                             <sc-if value="{{ a.hasTemp }}" hint-placeholder-val="{{ false }}">
@@ -3463,7 +3474,8 @@
                           <sc-if value="{{ a.pwNotEditing }}" hint-placeholder-val="{{ true }}">
                             <button sc-camel-on-click="{{ a.pwOpen }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 30px; padding: 0 10px; font-size: 13px; border-radius: 999px; white-space: nowrap;"><i class="ph ph-password"></i> 비밀번호 지정</button>
                           </sc-if>
-                          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 10px; border-radius: 999px; background: var(--color-neutral-900); box-shadow: 0 0 0 1px {{ a.validRing }};">
+                          </span>
+                            <span style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;"><span style="color: var(--color-neutral-400); min-width: 56px;">사용 기간</span><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 10px; border-radius: 999px; background: var(--color-neutral-900); box-shadow: 0 0 0 1px {{ a.validRing }};">
                             <i class="ph ph-calendar-check" style="font-size: 15px; color: var(--color-accent-400);"></i>
                             <span style="white-space: nowrap;">유효기간</span>
                             <span style="position: relative; display: inline-flex;"><input type="date" class="input date-cal" value="{{ a.validFrom }}" sc-camel-on-change="{{ a.onValidFrom }}" disabled="{{ a.locked }}" aria-label="사용 시작일" style="min-height: 28px; padding: 0 30px 0 6px; font-size: 13px; width: 136px;"><button sc-camel-on-click="{{ openDateCal }}" disabled="{{ a.locked }}" aria-label="달력에서 사용 시작일 선택" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 4px; background: transparent; color: var(--color-accent-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-calendar-blank" style="font-size: 15px;"></i></button></span>
@@ -3471,16 +3483,15 @@
                             <span style="position: relative; display: inline-flex;"><input type="date" class="input date-cal" value="{{ a.validTo }}" sc-camel-on-change="{{ a.onValidTo }}" disabled="{{ a.locked }}" aria-label="사용 종료일" style="min-height: 28px; padding: 0 30px 0 6px; font-size: 13px; width: 136px;"><button sc-camel-on-click="{{ openDateCal }}" disabled="{{ a.locked }}" aria-label="달력에서 사용 종료일 선택" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 4px; background: transparent; color: var(--color-accent-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-calendar-blank" style="font-size: 15px;"></i></button></span>
                             <sc-if value="{{ a.hasValid }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ a.clearValid }}" disabled="{{ a.locked }}" aria-label="유효기간 해제" title="기간 제한 없음" style="width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: var(--color-neutral-500); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button></sc-if>
                             <span class="tag {{ a.validTagCls }}" style="font-size: 12px; white-space: nowrap;">{{ a.validLabel }}</span>
-                          </span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: 12.5px; color: var(--color-neutral-500);">
-                          <span style="white-space: nowrap;"><i class="ph ph-clock-counter-clockwise" style="font-size: 13px;"></i> 최근 접속 {{ a.lastLogin }}</span>
-                          <span style="color: {{ a.mailColor }}; white-space: nowrap;"><i class="ph ph-envelope-simple" style="font-size: 13px;"></i> {{ a.mailNote }}</span>
-                          <span style="margin-left: auto;"><button sc-camel-on-click="{{ a.del }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;">삭제</button></span>
-                        </div>
+                          </span></span>
                           </div>
-                        </div>
-                        </sc-if>
+                          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: 12.5px; color: var(--color-neutral-500); padding-top: var(--space-3); border-top: 1px solid var(--color-divider);">
+                            <span style="white-space: nowrap;"><i class="ph ph-clock-counter-clockwise" style="font-size: 13px;"></i> 최근 접속 {{ a.lastLogin }}</span>
+                          <span style="color: {{ a.mailColor }}; white-space: nowrap;"><i class="ph ph-envelope-simple" style="font-size: 13px;"></i> {{ a.mailNote }}</span>
+                            <span style="margin-left: auto;"><button sc-camel-on-click="{{ a.del }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;">삭제</button></span>
+                          </div>
+                          </div>
+                          </sc-if>
                         </div>
                       </sc-if>
                     </sc-for>
