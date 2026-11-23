@@ -688,14 +688,16 @@
             <div style="display: flex; align-items: center; gap: var(--space-4); font-size: 13.5px; color: var(--color-neutral-500);">
               <span style="font-variant-numeric: tabular-nums;">{{ pageLabel }}</span>
               <span style="margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                <button sc-camel-on-click="{{ firstPage }}" class="btn btn-secondary" style="min-height: 40px; width: 40px; padding: 0; justify-content: center;" aria-label="처음"><i class="ph ph-caret-double-left"></i></button>
-                <button sc-camel-on-click="{{ prevPage }}" class="btn btn-secondary" style="min-height: 40px; width: 40px; padding: 0; justify-content: center;" aria-label="이전"><i class="ph ph-caret-left"></i></button>
+                <button sc-camel-on-click="{{ firstPage }}" class="btn btn-ghost" style="min-height: 40px; width: 40px; padding: 0; justify-content: center; border-radius: 50%; border: 1px solid var(--color-accent-700); background: transparent; color: var(--color-accent-300); box-shadow: none;" aria-label="처음"><i class="ph ph-caret-double-left"></i></button>
+                <button sc-camel-on-click="{{ prevPage }}" class="btn btn-ghost" style="min-height: 40px; width: 40px; padding: 0; justify-content: center; border-radius: 50%; border: 1px solid var(--color-accent-700); background: transparent; color: var(--color-accent-300); box-shadow: none;" aria-label="이전"><i class="ph ph-caret-left"></i></button>
+                <span aria-hidden="true" style="width: 1px; height: 26px; margin: 0 6px; background: var(--color-divider);"></span>
                 <sc-for list="{{ pageNums }}" as="pn" hint-placeholder-count="3">
                   <sc-if value="{{ pn.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ pn.go }}" class="btn btn-primary" aria-current="page" style="min-height: 40px; min-width: 40px; padding: 0 10px; justify-content: center; font-variant-numeric: tabular-nums;">{{ pn.n }}</button></sc-if>
                   <sc-if value="{{ pn.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ pn.go }}" class="btn btn-secondary" style="min-height: 40px; min-width: 40px; padding: 0 10px; justify-content: center; font-variant-numeric: tabular-nums;">{{ pn.n }}</button></sc-if>
                 </sc-for>
-                <button sc-camel-on-click="{{ nextPage }}" class="btn btn-secondary" style="min-height: 40px; width: 40px; padding: 0; justify-content: center;" aria-label="다음"><i class="ph ph-caret-right"></i></button>
-                <button sc-camel-on-click="{{ lastPage }}" class="btn btn-secondary" style="min-height: 40px; width: 40px; padding: 0; justify-content: center;" aria-label="마지막"><i class="ph ph-caret-double-right"></i></button>
+                <span aria-hidden="true" style="width: 1px; height: 26px; margin: 0 6px; background: var(--color-divider);"></span>
+                <button sc-camel-on-click="{{ nextPage }}" class="btn btn-ghost" style="min-height: 40px; width: 40px; padding: 0; justify-content: center; border-radius: 50%; border: 1px solid var(--color-accent-700); background: transparent; color: var(--color-accent-300); box-shadow: none;" aria-label="다음"><i class="ph ph-caret-right"></i></button>
+                <button sc-camel-on-click="{{ lastPage }}" class="btn btn-ghost" style="min-height: 40px; width: 40px; padding: 0; justify-content: center; border-radius: 50%; border: 1px solid var(--color-accent-700); background: transparent; color: var(--color-accent-300); box-shadow: none;" aria-label="마지막"><i class="ph ph-caret-double-right"></i></button>
               </span>
             </div>
           </sc-if>
