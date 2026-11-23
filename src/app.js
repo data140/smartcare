@@ -795,6 +795,8 @@ class Component extends DCLogic {
     window.addEventListener('keydown', this._onNavKey);
     Component.installOrgNs();
     if (this.state.orgId !== window.__scOrg) this.setState({ orgId: window.__scOrg });
+    this.idleStart();
+    try { if (sessionStorage.getItem('sc.idleOut')) { sessionStorage.removeItem('sc.idleOut'); setTimeout(() => this.flash('환자 개인정보 보호를 위해 장시간 사용이 없어 자동 로그아웃되었습니다'), 800); } } catch (e) {}
     setTimeout(() => this.componentDidUpdate(), 0);
     try {
       const w = JSON.parse(localStorage.getItem('smartcare.work.v1') || 'null');
@@ -3642,16 +3644,66 @@ class Component extends DCLogic {
     if (Component.isStaffMode()) { this.setState({ cloudStatus: 'off', logged: false, lgPw: '', lgErr: '로그인이 만료되었습니다 — 다시 로그인하세요' }); return; }
     this.setState({ cloudStatus: 'off', srvEmail: email, srvPw: '', srvErr: '서버 로그인이 만료되었습니다 — 다시 로그인하세요' });
   }
-  async authSignOut() {
+  // ───── 개인정보 보호: 로그아웃하면 이 기기(브라우저)에 남은 환자·직원 데이터를 지움 ─────
+  // 화면 설정(테마·열 너비 등)과 서버 주소만 남김. 서버에는 데이터가 그대로 있으므로 다시 로그인하면 불러옴
+  static PREF_KEEP = new Set(['smartcare.cloud.v1', 'smartcare.dev.v1', 'smartcare.viewMode.v1', 'smartcare.menu.v1', 'smartcare.menuCollapsed.v1', 'smartcare.menuMini.v1',
+    'smartcare.sbW.v1', 'smartcare.kpiView.v1', 'smartcare.flowView.v1', 'smartcare.ptCols.v1', 'smartcare.emrCols.v1', 'smartcare.calBg.v1', 'smartcare.cformMargin.v1', 'smartcare.theme.v1',
+    'sc.theme', 'sc.uiScale', 'sc.aiFab.v1', 'sc.aiSize', 'sc.alThumbSize', 'sc.alTileSize', 'sc.albumLayout', 'sc.calPct', 'sc.cpPct', 'sc.server.v1']);
+  wipeLocalData() {
+    try {
+      const keys = []; for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach(k => {
+        const base = String(k).replace(/^(next~|test~)/, '');
+        if (!/^(smartcare\.|sc\.)/.test(base) || Component.PREF_KEEP.has(base)) return;
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
+      sessionStorage.clear();
+    } catch (e) {}
+    try { Component.MEM = {}; } catch (e) {}
+    this._idphCache = {}; this._signCache = {}; this._wphCache = {}; this._kvSeen = {}; this._kvBase = {};
+  }
+  async authSignOut(reason) {
     const a = this._auth, b = this.cloudBase();
     if (this._cloudReady && this._cloudPending && Object.keys(this._cloudPending).length) { try { await this.cloudFlush(); } catch (e) {} }
+    // 서버에 올리지 못한 변경이 남아 있으면 그 데이터는 지우지 않음 (잃어버리지 않게)
+    const unsent = !!(this._cloudPending && Object.keys(this._cloudPending).length);
     if (a && b) { try { await fetch(b.url + '/auth/v1/logout', { method: 'POST', headers: { apikey: b.key, Authorization: 'Bearer ' + a.access_token } }); } catch (e) {} }
     this.authStore(null);
     this.authStopSync();
     try { localStorage.removeItem(Component.VIEW_KEY); sessionStorage.removeItem(Component.VIEW_KEY); } catch (e) {}
-    this.setState({ logged: false, cloudStatus: 'off', srvEmail: (a && a.email) || '', srvPw: '', srvErr: '' });
     this._staffSnap = null;
-    this.flash(Component.isStaffMode() ? '로그아웃했습니다' : '서버 로그아웃 — 이 기기에서 서버 데이터 사용을 멈췄습니다');
+    if (Component.isStaffMode() && !unsent) {
+      this.wipeLocalData();
+      if (reason === 'idle') { try { sessionStorage.setItem('sc.idleOut', '1'); } catch (e) {} }
+      this.setState({ logged: false, cloudStatus: 'off', srvEmail: (a && a.email) || '', srvPw: '', srvErr: '' });
+      // 화면에 남은 환자 정보까지 완전히 비우도록 새로 시작
+      setTimeout(() => { try { window.location.reload(); } catch (e) {} }, 150);
+      return;
+    }
+    this.setState({ logged: false, cloudStatus: 'off', srvEmail: (a && a.email) || '', srvPw: '', srvErr: '' });
+    this.flash(Component.isStaffMode() ? '로그아웃했습니다 — 서버에 올리지 못한 변경이 있어 이 기기에 보관 중입니다 (같은 계정으로 다시 로그인해 동기화하세요)' : '서버 로그아웃 — 이 기기에서 서버 데이터 사용을 멈췄습니다');
+  }
+  // ───── 개인정보 보호: 일정 시간 사용이 없으면 자동 로그아웃 ─────
+  static IDLE_MS = 15 * 60 * 1000;
+  static IDLE_WARN_MS = 60 * 1000;
+  idleStart() {
+    if (this._idleOn) return;
+    this._idleOn = true; this._lastActive = Date.now(); this._idleWarned = false;
+    const touch = () => {
+      this._lastActive = Date.now();
+      if (this._idleWarned) { this._idleWarned = false; if (this.state.dialog && this.state.dialog.idleWarn) this.setState({ dialog: null }); }
+    };
+    ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(ev => window.addEventListener(ev, touch, { passive: true, capture: true }));
+    this._idleT = setInterval(() => {
+      const st = this.state;
+      if (!st.logged || !Component.isStaffMode()) { this._idleWarned = false; return; }
+      const idle = Date.now() - this._lastActive;
+      if (idle >= Component.IDLE_MS) { this._idleWarned = false; this.setState({ dialog: null }); this.authSignOut('idle'); }
+      else if (idle >= Component.IDLE_MS - Component.IDLE_WARN_MS && !this._idleWarned) {
+        this._idleWarned = true;
+        this.setState({ dialog: { idleWarn: true, title: '곧 자동 로그아웃됩니다', body: '환자 개인정보 보호를 위해 일정 시간 사용이 없으면 자동으로 로그아웃됩니다. 계속 사용하려면 화면을 눌러 주세요.', cta: '계속 사용', confirm: () => { this._lastActive = Date.now(); this._idleWarned = false; this.setState({ dialog: null }); } } });
+      }
+    }, 5000);
   }
   async _srvLogin() {
     const email = (this.state.srvEmail || '').trim(), pw = this.state.srvPw || '';
