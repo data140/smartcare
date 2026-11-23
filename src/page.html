@@ -4385,7 +4385,7 @@
   <!-- AI 비서 (오른쪽 아래 떠 있는 버튼 → 대화창) -->
   <sc-if value="{{ aiShow }}" hint-placeholder-val="{{ false }}">
     <sc-if value="{{ aiBriefShow }}" hint-placeholder-val="{{ false }}">
-      <div style="position: fixed; right: 22px; bottom: 96px; z-index: 121; max-width: min(320px, calc(100vw - 44px)); display: flex; align-items: flex-start; gap: 8px; padding: 12px 12px 12px 14px; border-radius: 14px; background: #ffffff; color: #111827; box-shadow: 0 12px 30px rgba(20, 30, 50, 0.22), 0 0 0 1px rgba(20, 30, 50, 0.06);">
+      <div style="position: fixed; right: 22px; bottom: {{ aiBriefBottom }}; z-index: 121; max-width: min(320px, calc(100vw - 44px)); display: flex; align-items: flex-start; gap: 8px; padding: 12px 12px 12px 14px; border-radius: 14px; background: #ffffff; color: #111827; box-shadow: 0 12px 30px rgba(20, 30, 50, 0.22), 0 0 0 1px rgba(20, 30, 50, 0.06);">
         <button sc-camel-on-click="{{ aiBriefOpen }}" style="flex: 1; min-width: 0; border: 0; background: transparent; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px;">
           <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #1e3a8a;"><i class="ph-fill ph-sun-horizon" style="font-size: 16px;"></i>오늘의 브리핑</span>
           <span style="font-size: 14px; line-height: 1.5;">{{ aiBriefText }}</span>
@@ -4394,12 +4394,12 @@
         <button sc-camel-on-click="{{ aiBriefClose }}" aria-label="브리핑 닫기" style="width: 26px; height: 26px; border: 0; border-radius: 50%; background: #eef1f5; color: #4a5568; cursor: pointer; display: grid; place-items: center; flex: none;"><i class="ph ph-x"></i></button>
       </div>
     </sc-if>
-    <button sc-camel-on-click="{{ aiToggle }}" aria-label="AI 비서 열기" title="AI 비서" style="position: fixed; right: 22px; bottom: 22px; z-index: 122; width: 60px; height: 60px; border-radius: 50%; border: 0; cursor: pointer; background: linear-gradient(180deg, #2a4aa3, #1e3a8a); color: #ffffff; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(30, 58, 138, 0.40), inset 0 1px 0 rgba(255,255,255,0.25);" style-hover="transform: translateY(-2px);" style-active="transform: translateY(1px);">
+    <button sc-camel-on-click="{{ aiToggle }}" aria-label="AI 비서 열기" title="AI 비서" style="position: fixed; right: 22px; bottom: {{ aiFabBottom }}; z-index: 122; width: {{ aiFabSize }}; height: {{ aiFabSize }}; border-radius: 50%; border: 0; cursor: pointer; background: linear-gradient(180deg, #2a4aa3, #1e3a8a); color: #ffffff; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(30, 58, 138, 0.40), inset 0 1px 0 rgba(255,255,255,0.25);" style-hover="transform: translateY(-2px);" style-active="transform: translateY(1px);">
       <i class="{{ aiFabIcon }}" style="font-size: 27px;"></i>
       <sc-if value="{{ aiHasBadge }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; top: -2px; right: -2px; min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #e03131; color: #ffffff; font-size: 12px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px #ffffff;">{{ aiBadge }}</span></sc-if>
     </button>
     <sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
-      <div role="dialog" aria-label="AI 비서" style="position: fixed; right: {{ aiRight }}; bottom: 94px; z-index: 123; width: {{ aiW }}; height: {{ aiH }}; display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; background: #f6f8fb; color: #111827; box-shadow: 0 24px 60px rgba(20, 30, 50, 0.30), 0 0 0 1px rgba(20, 30, 50, 0.06);">
+      <div role="dialog" aria-label="AI 비서" style="position: fixed; right: {{ aiRight }}; bottom: {{ aiDlgBottom }}; z-index: 123; width: {{ aiW }}; height: {{ aiH }}; display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; background: #f6f8fb; color: #111827; box-shadow: 0 24px 60px rgba(20, 30, 50, 0.30), 0 0 0 1px rgba(20, 30, 50, 0.06);">
         <!-- 크기 조절: 왼쪽 가장자리 · 위쪽 가장자리 · 왼쪽 위 모서리 (두 번 누르면 기본 크기) -->
         <div sc-camel-on-pointer-down="{{ aiRsW }}" sc-camel-on-double-click="{{ aiRsReset }}" title="끌어서 너비 조절" style="position: absolute; left: 0; top: 18px; bottom: 18px; width: 8px; cursor: ew-resize; z-index: 5; touch-action: none;"></div>
         <div sc-camel-on-pointer-down="{{ aiRsH }}" sc-camel-on-double-click="{{ aiRsReset }}" title="끌어서 높이 조절" style="position: absolute; left: 18px; right: 120px; top: 0; height: 7px; cursor: ns-resize; z-index: 5; touch-action: none;"></div>

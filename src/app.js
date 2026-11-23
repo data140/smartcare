@@ -524,7 +524,8 @@ class Component extends DCLogic {
         const z = (s.logged && s.device === 'pc') ? this.uiZoom() : 1;
         const vh = (typeof window !== 'undefined' ? window.innerHeight : 800) / z;
         const vw = (typeof window !== 'undefined' ? window.innerWidth : 1200) / z;
-        const maxH = Math.max(260, Math.floor(vh - 94 - 16));
+        const botOff = s.phoneOnly ? 150 : 94;   // 휴대폰·태블릿은 하단 탭 막대 위로
+        const maxH = Math.max(260, Math.floor(vh - botOff - 16));
         const maxW = Math.max(280, Math.floor(vw - (narrow ? 24 : 44)));
         // 사용자가 조절한 크기 (기기마다 기억) — 화면 밖으로 넘치지 않게 제한
         let size = s.aiSize;
@@ -554,6 +555,11 @@ class Component extends DCLogic {
         return {
           aiW: W + 'px', aiH: H + 'px',
           aiRight: narrow ? '12px' : '22px',
+          // 하단 탭 막대(오늘·일정…)를 가리지 않도록 휴대폰·태블릿에서는 탭 막대 위에 띄움
+          aiFabBottom: s.phoneOnly ? 'calc(92px + env(safe-area-inset-bottom))' : '22px',
+          aiFabSize: s.phoneOnly ? '50px' : '60px',
+          aiBriefBottom: s.phoneOnly ? 'calc(152px + env(safe-area-inset-bottom))' : '96px',
+          aiDlgBottom: s.phoneOnly ? 'calc(150px + env(safe-area-inset-bottom))' : '94px',
           aiRsW: start('w'), aiRsH: start('h'), aiRsWH: start('wh'),
           aiRsReset: () => { try { localStorage.removeItem('sc.aiSize'); } catch (e) {} this.setState({ aiSize: null }); }
         };
