@@ -25,7 +25,7 @@ insert into smartcare_kv (k, v) values
   ('smartcare:smartcare.orgs.v1', '[{"id":"ORG1","name":"가기관","extra":"x"},{"id":"ORG2","name":"나기관"}]');
 
 create temp table results (name text, got text, want text);
-grant all on results to anon, authenticated;
+grant all on results to anon, authenticated, service_role;
 
 create function pg_temp.as_user(uid text) returns void language plpgsql as $$
 begin
@@ -95,6 +95,14 @@ reset role; select pg_temp.as_user('00000000-0000-0000-0000-000000000001');
 insert into results select '감사 기록: 관리자는 봄(쓰기 1 + 로그인 1 이상)', (count(*) >= 2)::text, 'true' from smartcare_audit;
 reset role;
 insert into results select '감사 기록에 작성자 남음', (count(*) = 1)::text, 'true' from smartcare_audit where action = 'insert' and k = 'smartcare:smartcare.plans.v1' and user_id = '00000000-0000-0000-0000-000000000001';
+
+-- 서버 함수(service_role): 직원 정보·감사 기록을 읽고 쓸 수 있어야 함
+reset role; set role service_role;
+insert into results select '서버 함수: 직원 정보 읽기', count(*)::text, '5' from smartcare_staff;
+update smartcare_staff set must_change = false where roster_id = 1;
+insert into smartcare_audit (ws, action) values ('smartcare', 'staff.test');
+insert into results select '서버 함수: 직원 정보 수정·감사 기록 추가', (count(*) = 1)::text, 'true' from smartcare_audit where action = 'staff.test';
+reset role;
 
 \set QUIET off
 select case when got is not distinct from want then '✓' else '✗' end as "결과", name as "항목", got as "실제", want as "기대" from results;

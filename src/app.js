@@ -652,12 +652,16 @@ class Component extends DCLogic {
     const proto = Storage.prototype;
     if (proto.__scNs) return;
     proto.__scNs = true;
-    const g = proto.getItem, r = proto.removeItem;
-    proto.__scGet = g;
-    proto.getItem = function (k) { return g.call(this, this === window.localStorage ? Component.nsKey(k) : k); };
-    proto.removeItem = function (k) { return r.call(this, this === window.localStorage ? Component.nsKey(k) : k); };
+    const g = proto.getItem, r = proto.removeItem, s0 = proto.setItem;
+    const NS = Component.STORE_NS;
+    const isLS = (o) => o === window.localStorage;
+    // __scGet: 기관 구역은 부르는 쪽이 이미 붙인 키 그대로 (화면 구역만 붙임)
+    proto.__scGet = function (k) { return g.call(this, isLS(this) && NS ? NS + k : k); };
+    proto.getItem = function (k) { return g.call(this, isLS(this) ? NS + Component.nsKey(k) : k); };
+    proto.removeItem = function (k) { return r.call(this, isLS(this) ? NS + Component.nsKey(k) : k); };
+    if (NS) proto.setItem = function (k, v) { return s0.call(this, isLS(this) ? NS + k : k, v); };
     // 이 기관의 키 목록 (화면에서 쓰는 이름으로)
-    window.__scKeys = () => Object.keys(window.localStorage).map(k => Component.unKey(k)).filter(Boolean);
+    window.__scKeys = () => Component.lsKeys().map(k => Component.unKey(k)).filter(Boolean);
   }
 
   componentDidMount() {
@@ -2667,6 +2671,22 @@ class Component extends DCLogic {
   // 로그인 방식: 'shared' = 기관 공용 서버 계정 + 화면 안 직원 확인, 'staff' = 직원마다 서버 계정 (서버가 권한 확인)
   static AUTH_MODE = '__SC_AUTH_MODE__';
   static isStaffMode() { return Component.AUTH_MODE === 'staff'; }
+  // 브라우저 저장 공간 구역: 운영 = '' · 새 서버 = 'next~' · 시험 = 'test~'
+  // 같은 주소(data140.github.io)의 운영·새 서버 화면이 서로의 저장 데이터·로그인을 섞지 않게 함
+  static STORE_NS = '__SC_STORE_NS__';
+  // 이 화면 구역의 저장 키 목록 (구역 접두어를 뗀 이름)
+  static lsKeys() {
+    const NS = Component.STORE_NS, out = [];
+    try {
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (!k) continue;
+        if (NS) { if (k.indexOf(NS) === 0) out.push(k.slice(NS.length)); }
+        else if (!/^[a-z]+~/.test(k)) out.push(k);
+      }
+    } catch (e) {}
+    return out;
+  }
 
   // 서버 설정(주소·공개 키·작업공간) — 로그인 여부와 관계없이
   cloudBase() {
@@ -3894,12 +3914,12 @@ class Component extends DCLogic {
         if (!rows.length) {
           // 서버가 비어 있으면 이 PC의 데이터를 처음으로 올림
           this._cloudPending = {};
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
+          Component.lsKeys().forEach(k => {
+            if (Component.isStaffMode()) return; // 직원별 계정 서버는 데이터 이전 도구로만 채움 (이 기기 데이터를 올리지 않음)
             if (k && k.indexOf('smartcare.') === 0 && k !== 'smartcare.cloud.v1' && Component.unKey(k)) this._cloudPending[k] = (Storage.prototype.__scGet || Storage.prototype.getItem).call(localStorage, k);
-          }
+          });
           await this.cloudFlush();
-          this.flash('서버에 처음 연결 — 이 PC의 데이터를 서버에 올렸습니다');
+          this.flash(Component.isStaffMode() ? '서버에 아직 데이터가 없습니다' : '서버에 처음 연결 — 이 PC의 데이터를 서버에 올렸습니다');
         } else this.flash('서버 데이터를 불러왔습니다 (' + rows.length + '개 항목)');
         // 동기화 전에 저장된 변경(환자 등록 등)을 이제 서버에 올림
         const early = this._cloudEarly || {};
