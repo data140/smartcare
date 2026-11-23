@@ -49,6 +49,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     // 새 소식: 밀린 일지(어제 프로그램)가 있으면 배지 숫자와 같은 수의 소식이 창을 열자마자 보여야 함
     const p2 = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
     p2.on('pageerror', e => errors.push(e.message));
+    p2.on('request', r => { if (/anthropic|supabase\.co|functions\/v1\/smartcare-ai/.test(r.url())) external.push(r.url()); });
     await p2.goto(BASE + '/'); await p2.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     await p2.locator('input[autocomplete="username"]').first().fill('100101');
     await p2.locator('input[autocomplete="current-password"]').first().fill('1234');
@@ -66,19 +67,13 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     await p2.click('button[aria-label="AI 비서 열기"]');
     const first = await p2.locator('[role="dialog"][aria-label="AI 비서"]').innerText();
     check('배지 숫자(' + badge + ')만큼 새 소식이 창을 열자마자 보임', badge >= 2 && first.includes('새 소식 ' + badge + '건') && first.includes('작업치료') && first.includes('산책치료'), first.replace(/\s+/g, ' ').slice(0, 110));
-    check('개발 빌드에서는 AI 연결 상태가 보임', first.includes('무료 규칙형'));
-    // 운영 빌드(개발용 표시를 끈 상태)에서는 숨김
-    const ctx3 = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
-    await ctx3.route('**/*', async (route) => { if (route.request().resourceType() !== 'document') return route.continue(); const r = await route.fetch(); route.fulfill({ response: r, body: (await r.text()).replace("'1' === '1'", "'0' === '1'") }); });
-    const p3 = await ctx3.newPage();
-    await p3.goto(BASE + '/'); await p3.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
-    await p3.locator('input[autocomplete="username"]').first().fill('100101');
-    await p3.locator('input[autocomplete="current-password"]').first().fill('1234');
-    await p3.locator('button:has-text("로그인")').last().click();
-    await p3.waitForSelector('text=가상환자1', { timeout: 20000 });
-    await p3.click('button[aria-label="AI 비서 열기"]');
-    const prodTxt = await p3.locator('[role="dialog"][aria-label="AI 비서"]').innerText();
-    check('운영 빌드에서는 AI 연결 설정 버튼·연결 상태가 숨겨짐', (await p3.locator('button[aria-label="AI 연결 설정"]').count()) === 0 && !prodTxt.includes('무료 규칙형') && !prodTxt.includes('AI 연결됨'));
+    check('AI 창에 "환자 정보는 이 시스템 안에서만 처리" 안내가 보임', first.includes('이 시스템 안에서만'));
+    check('AI 연결 설정 버튼이 없음', (await p2.locator('button[aria-label="AI 연결 설정"]').count()) === 0);
+    // 규칙에 없는 자유 질문도 외부로 보내지 않고 이 시스템 안에서 안내로만 답함
+    await p2.fill('input[aria-label="질문 입력"]', '병원 경영 개선 방안을 자세히 분석해서 알려줘');
+    await p2.click('button[aria-label="보내기"]'); await p2.waitForTimeout(900);
+    const free = await p2.locator('[role="dialog"][aria-label="AI 비서"]').innerText();
+    check('자유 질문도 외부 요청 없이 이 시스템 안에서만 답함', free.includes('이렇게 물어보세요') && external.length === 0, external.slice(0, 2).join(', '));
   } catch (e) {
     check('시험 진행', false, e.message);
   } finally {

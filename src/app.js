@@ -205,7 +205,6 @@ class Component extends DCLogic {
   // ───── AI 비서 ─────
   // 기본: 무료 규칙형 (시스템 데이터로 직접 답함) · AI 연결 주소가 있으면 진짜 AI (환자 이름은 가려서 전송)
   _aiScroll = React.createRef();
-  aiCfg() { try { return JSON.parse(localStorage.getItem('smartcare.ai.v1') || '{}') || {}; } catch (e) { return {}; } }
   aiMe() { const s = this.state; return (s.roster || []).find(m => m.id === s.userId) || {}; }
   aiYmd(d) { return this.planIso(d); }
   aiRange(q) {
@@ -427,54 +426,18 @@ class Component extends DCLogic {
     return {
       title: '이렇게 물어보세요',
       lines: [L('"오늘 할 일" · "미비사항 점검" · "일지 미작성 프로그램 목록"'), L('"3병동 동의 미완료 환자는 누구야?" · "증명사진 없는 환자 몇 명이야?"'), L('"이번 주 담당자별 일정 알려 줘"'), L('"이번 달 미술치료 참여 몇 명?" · "지난달 3병동 통계"'), L('"홍길동 참여 이력" (환자 이름)'), L('"일지 작성 방법" · "동의서 어떻게 받아?"')],
-      note: this.aiCfg().url ? '' : '지금은 무료 규칙형이라 정해진 질문 위주로 답합니다. 시스템 관리자가 AI를 연결하면 자유롭게 물어볼 수 있습니다.'
+      note: '정해진 질문 위주로 답합니다. 환자 정보는 이 시스템 밖으로 나가지 않습니다.'
     };
   }
   // 진짜 AI용 요약 (환자 이름은 '환자A'로 가림)
-  aiContext(q) {
-    const s = this.state, today = this.todayIso();
-    const map = {}, back = {}; let n = 0;
-    const tag = (name) => { if (!name) return ''; if (!map[name]) { const i = n++; const t = '환자' + (i < 26 ? String.fromCharCode(65 + i) : 'Z' + (i - 25)); map[name] = t; back[t] = name; } return map[name]; };
-    const att = this.aiAttendance();
-    const iss = this.aiIssues();
-    const lines = ['오늘: ' + today, '기관: ' + (((s.orgs || []).find(o => o.id === (s.orgId || 'ORG1')) || {}).name || '')];
-    lines.push('오늘 일정: ' + (iss.todayPlans.map(p => p.start + ' ' + p.program + ' 일지 ' + this.planBadges(p, s).logShort).join(' / ') || '없음'));
-    lines.push('일지 미작성 ' + iss.unwritten.length + '건, 검수 필요 ' + iss.review.length + '건, 동의 미완료 ' + iss.noConsent.length + '명, 증명사진 없음 ' + iss.noPhoto.length + '명');
-    lines.push('일정(최근·예정 40건): ' + (s.plans || []).slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40).map(p => p.date + ' ' + p.start + ' ' + p.program + ' ' + p.status + ' 일지' + this.planBadges(p, s).logShort).join(' | '));
-    const pts = PATIENTS.slice(0, 200).map(p => { const mine = att.filter(r => r.id === p.id); return tag(p.name) + '(' + (p.room || '') + ',' + (p.stay || '재원') + ',동의' + (p.consent || '확인전') + ',사진' + ((s.photoUrls || {})[p.id] ? 'O' : 'X') + ',참여' + mine.length + (mine.length ? ',최근' + mine.map(r => r.date).sort().pop() : '') + ')'; });
-    lines.push('환자: ' + pts.join(' '));
-    lines.push('출석(확정): ' + att.slice(-400).map(r => r.date + ' ' + r.program + ' ' + tag((PATIENTS.find(x => x.id === r.id) || {}).name)).join(' | '));
-    let aq = q; Object.keys(map).sort((a, b) => b.length - a.length).forEach(nm => { aq = aq.split(nm).join(map[nm]); });
-    return { context: lines.join('\n'), question: aq, back: back };
-  }
+  // AI 비서는 이 시스템 안에서 규칙으로만 답함 — 환자 정보를 외부 AI·해외 서버로 보내지 않음
   async aiAsk(q) {
     const text = (q || '').trim();
     if (!text) return;
     const msgs = (this.state.aiMsgs || []).concat([{ role: 'user', text: text }]);
     this.setState({ aiMsgs: msgs, aiInput: '', aiOpen: true }, () => this.aiScrollEnd());
-    const cfg = this.aiCfg();
     const rule = this.aiReply(text);
-    // 규칙형으로 확실히 답할 수 있는 질문(오늘·점검·통계·환자·사용법)은 바로 답함
-    const known = rule.title !== '이렇게 물어보세요';
-    if (!cfg.url || known) {
-      this.setState({ aiMsgs: msgs.concat([Object.assign({ role: 'bot' }, rule)]) }, () => this.aiScrollEnd());
-      return;
-    }
-    this.setState({ aiBusy: true });
-    try {
-      const ctx = this.aiContext(text);
-      const c = this.cloudCfg && this.cloudCfg();
-      const headers = c ? this.cloudHeaders(c, { 'Content-Type': 'application/json' }) : { 'Content-Type': 'application/json' };
-      const r = await fetch(cfg.url, { method: 'POST', headers: headers, body: JSON.stringify({ ws: (this.cloudBase() || {}).ws || 'smartcare', question: ctx.question, context: ctx.context, history: msgs.slice(-6).map(m => ({ role: m.role, text: m.text || [m.title].concat((m.lines || []).map(l => l.t)).join('\n') })) }) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP ' + r.status));
-      let ans = String(j.answer || j.text || '').trim();
-      Object.keys(ctx.back).sort((a, b) => b.length - a.length).forEach(t => { ans = ans.split(t).join(ctx.back[t]); });
-      if (!ans) throw new Error('빈 답변');
-      this.setState({ aiBusy: false, aiMsgs: (this.state.aiMsgs || []).concat([{ role: 'bot', title: '', lines: ans.split('\n').filter(x => x.trim()).map(t => ({ t: t, c: '' })), note: 'AI 답변 · 환자 이름은 가려서 보냈습니다' }]) }, () => this.aiScrollEnd());
-    } catch (e) {
-      this.setState({ aiBusy: false, aiMsgs: (this.state.aiMsgs || []).concat([Object.assign({ role: 'bot' }, rule, { note: 'AI 연결에 실패해 규칙형으로 답했습니다 (' + (e.message || '오류') + ')' })]) }, () => this.aiScrollEnd());
-    }
+    this.setState({ aiMsgs: msgs.concat([Object.assign({ role: 'bot' }, rule)]) }, () => this.aiScrollEnd());
   }
   aiScrollEnd() { setTimeout(() => { const el = this._aiScroll.current; if (el) el.scrollTop = el.scrollHeight; }, 30); }
   aiVals(s) {
@@ -487,7 +450,6 @@ class Component extends DCLogic {
     let seen = ''; try { seen = localStorage.getItem(bKey) || ''; } catch (e) {}
     const today = this.todayIso();
     const markSeen = () => { try { localStorage.setItem(bKey, today); } catch (e) {} };
-    const cfg = this.aiCfg();
     const me = this.aiMe();
     const isSys = (Array.isArray(me.roles) ? me.roles : [me.role]).indexOf('시스템관리자') >= 0;
     const narrow = (s.vw || 1600) < 700;
@@ -513,21 +475,9 @@ class Component extends DCLogic {
       aiBriefText: '오늘 일정 ' + iss.todayPlans.length + '건 · 밀린 일지 ' + past.length + '건 · 검수 ' + iss.review.length + '건',
       aiBriefOpen: () => { markSeen(); this.setState({ aiBriefClosed: true }); this.aiAsk('오늘 할 일'); },
       aiBriefClose: () => { markSeen(); this.setState({ aiBriefClosed: true }); },
-      // AI 연결 설정·연결 상태 표시는 개발자용 — 운영 화면에서는 숨김 (주소 끝에 ?dev=1 을 붙이면 보임)
-      aiModeLabel: Component.DEV_BAR ? (cfg.url ? 'AI 연결됨 · 환자 이름은 가려서 전송' : '무료 규칙형 · 시스템 데이터로 답변') : '업무를 도와드려요',
-      aiCanSetup: isSys && Component.DEV_BAR,
-      aiSetupOpen: !!s.aiSetupOpen && isSys && Component.DEV_BAR,
-      aiSetupToggle: () => { const b = this.cloudBase(); this.setState({ aiSetupOpen: !this.state.aiSetupOpen, aiUrlDraft: cfg.url || (b ? b.url + '/functions/v1/smartcare-ai' : '') }); },
-      aiUrlDraft: s.aiUrlDraft != null ? s.aiUrlDraft : (cfg.url || ''),
-      onAiUrl: (e) => this.setState({ aiUrlDraft: e.target.value }),
-      aiUrlSave: () => {
-        const u = (this.state.aiUrlDraft || '').trim();
-        if (u && !/^https:\/\//.test(u) && !/^http:\/\/localhost(:\d+)?\//.test(u)) { this.flash('https:// 로 시작하는 주소를 넣어 주세요'); return; }
-        try { localStorage.setItem('smartcare.ai.v1', JSON.stringify({ url: u })); } catch (e) {}
-        this.setState({ aiSetupOpen: false });
-        this.flash(u ? 'AI 연결 주소 저장 — 모든 기기에 적용됩니다' : 'AI 연결을 해제했습니다 — 규칙형으로 동작');
-      },
-      aiUrlClear: () => { try { localStorage.setItem('smartcare.ai.v1', JSON.stringify({ url: '' })); } catch (e) {} this.setState({ aiSetupOpen: false, aiUrlDraft: '' }); this.flash('AI 연결을 해제했습니다 — 규칙형으로 동작'); },
+      aiModeLabel: '환자 정보는 이 시스템 안에서만 처리돼요',
+      aiCanSetup: false,
+      aiSetupOpen: false,
       // 화면 배율(zoom)이 걸려 있어도 대화창이 위로 잘리지 않게, 배율을 나눈 실제 높이로 계산
       ...(() => {
         const z = (s.logged && s.device === 'pc') ? this.uiZoom() : 1;
@@ -612,7 +562,7 @@ class Component extends DCLogic {
             lines: (m.lines || []).map(l => ({ t: l.t, dotShow: l.c ? 'inline' : 'none', dotColor: dotC[l.c] || '#9aa3b2' })),
             note: m.note || '', hasNote: !!m.note,
             actions: m.actions || [], hasActions: !!(m.actions && m.actions.length) }),
-      aiBusy: !!s.aiBusy,
+      aiBusy: false,
       aiChips: chipQ.map(t => ({ label: t, go: () => this.aiAsk(t) })),
       aiInput: s.aiInput || '',
       onAiInput: (e) => this.setState({ aiInput: e.target.value }),
@@ -5794,7 +5744,7 @@ class Component extends DCLogic {
       .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
     const fmtR = (v) => v.slice(5).replace('-', '.');
     // 직책 '시스템(알림)' 계정(알림 발송용)은 담당자로 지정할 수 없게 목록에서 뺌
-    const staffAll = s.roster.filter(m => m.status === '활성' && this.validState(m) === 'active' && m.org === (s.orgId || 'ORG1') && m.type !== '시스템(알림)');
+    const staffAll = s.roster.filter(m => m.status === '활성' && this.validState(m) === 'active' && m.org === (s.orgId || 'ORG1') && m.type !== '시스템(알림)' && m.assignable !== false);
     const f = s.planForm || {};
     const setF = (k) => (e) => this.setState({ planForm: Object.assign({}, this.state.planForm, { [k]: e.target.value }), planErr: '' });
     const savedW = (s.wardsSaved || s.wards || []).map(w => w.name);
@@ -5973,6 +5923,37 @@ class Component extends DCLogic {
       pf: {
         program: f.program, date: f.date, start: f.start, end: f.end, place: f.place, ward: f.ward, capacity: f.capacity, status: f.status, repeat: f.repeat, until: f.until, memo: f.memo,
         onProgram: setF('program'), onDate: setF('date'), onStart: setF('start'), onEnd: setF('end'), onPlace: setF('place'),
+        ...(() => {
+          // 시작·종료 시각: 시/분을 골라 맞추고, 빠른 선택(시작 시각·소요 시간) 한 번 누르면 끝남. 시작을 바꾸면 종료도 같은 소요 시간으로 따라감
+          const toMin = (t) => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+          const fmt = (m) => { m = Math.max(0, Math.min(23 * 60 + 55, m)); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+          const sM = toMin(f.start), eM = toMin(f.end);
+          const dur = sM != null && eM != null ? eM - sM : null;
+          const put = (patch) => this.setState({ planForm: Object.assign({}, this.state.planForm, patch), planErr: '' });
+          const setStart = (t) => {
+            const cur = this.state.planForm || {}; const a = toMin(cur.start), b = toMin(cur.end);
+            const d = a != null && b != null && b > a ? b - a : 60;
+            const ns = toMin(t); put({ start: t, end: fmt(ns + d) });
+          };
+          const setEnd = (t) => put({ end: t });
+          const hh = (t) => (t || '00:00').split(':')[0], mm = (t) => (t || '00:00').split(':')[1];
+          const hourLabel = (h) => (h < 12 ? '오전 ' + (h === 0 ? 12 : h) : '오후 ' + (h === 12 ? 12 : h - 12)) + '시';
+          const hourOpts = Array.from({ length: 24 }, (_, h) => ({ v: String(h).padStart(2, '0'), label: hourLabel(h) }));
+          const minSet = new Set(['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']);
+          [mm(f.start), mm(f.end)].forEach(x => { if (x) minSet.add(x); });
+          const minuteOpts = Array.from(minSet).sort().map(v => ({ v: v, label: v + '분' }));
+          const fmtDur = (d) => d == null ? '' : d <= 0 ? '' : (Math.floor(d / 60) ? Math.floor(d / 60) + '시간' : '') + (d % 60 ? (Math.floor(d / 60) ? ' ' : '') + (d % 60) + '분' : '');
+          const chip = (on) => ({ bd: on ? 'var(--color-accent)' : 'var(--color-neutral-700)', bg: on ? 'var(--color-accent-900)' : 'var(--color-neutral-900)', fg: on ? 'var(--color-accent-100)' : 'var(--color-neutral-300)' });
+          return {
+            sh: hh(f.start), sm: mm(f.start), eh: hh(f.end), em: mm(f.end), hourOpts: hourOpts, minuteOpts: minuteOpts,
+            onSH: (e) => setStart(e.target.value + ':' + mm(this.state.planForm.start)), onSM: (e) => setStart(hh(this.state.planForm.start) + ':' + e.target.value),
+            onEH: (e) => setEnd(e.target.value + ':' + mm(this.state.planForm.end)), onEM: (e) => setEnd(hh(this.state.planForm.end) + ':' + e.target.value),
+            startChips: ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'].map(t => Object.assign({ label: String(Number(t.slice(0, 2)) % 12 || 12) + ':' + t.slice(3), ap: Number(t.slice(0, 2)) < 12 ? '오전' : '오후', go: () => setStart(t) }, chip(f.start === t))),
+            durChips: [30, 60, 90, 120].map(d => Object.assign({ label: fmtDur(d), go: () => { if (sM != null) put({ end: fmt(sM + d) }); } }, chip(dur === d))),
+            durLabel: dur == null ? '' : dur > 0 ? '소요 ' + fmtDur(dur) : '종료 시각이 시작보다 빨라요',
+            durBad: dur != null && dur <= 0, durOk: !(dur != null && dur <= 0)
+          };
+        })(),
         onWard: setF('ward'), onCapacity: setF('capacity'), onStatus: setF('status'), onRepeat: setF('repeat'), onUntil: setF('until'), onMemo: setF('memo'),
         programOpts: s.programs.indexOf(f.program) >= 0 || !f.program ? s.programs : s.programs.concat([f.program]),
         wardOpts: ['전체'].concat(savedW),
@@ -6928,6 +6909,16 @@ class Component extends DCLogic {
         active: m.status === '활성', activeBd: tA.Bd, activeBg: tA.Bg, activeFg: tA.Fg,
         statusLabel: m.status !== '활성' ? '중지' : (vs === 'pending' ? '예약' : (vs === 'expired' ? '만료' : '활성')),
         activeT: () => setAcct(m.id, { status: m.status === '활성' ? '중지' : '활성', revokedAt: '' }, m.name + ' 계정 ' + (m.status === '활성' ? '중지 — 로그인 차단' : '활성')),
+        // 일정 담당자로 표시할지 (끄면 일정 등록의 담당자 목록에서 빠짐 — 계정·시스템만 관리하는 사람용)
+        assignable: m.assignable !== false && m.type !== '시스템(알림)',
+        assignBd: tg(m.assignable !== false && m.type !== '시스템(알림)').Bd, assignBg: tg(m.assignable !== false && m.type !== '시스템(알림)').Bg, assignFg: tg(m.assignable !== false && m.type !== '시스템(알림)').Fg,
+        assignLabel: (m.assignable !== false && m.type !== '시스템(알림)') ? '일정 담당자로 표시 ✓' : '일정 담당자로 표시 안 함',
+        assignLocked: locked && !(m.id === me.id && m.org !== '*'),
+        assignT: () => {
+          if (m.type === '시스템(알림)') { this.flash('직책이 시스템(알림)인 계정은 항상 담당자 목록에서 빠집니다'); return; }
+          const on = m.assignable !== false;
+          setAcct(m.id, { assignable: !on }, (m.name || '계정') + ' · 일정 담당자 목록에 ' + (on ? '표시하지 않음' : '표시'));
+        },
         admin: admin, adminBd: tAd.Bd, adminBg: tAd.Bg, adminFg: tAd.Fg,
         adminLabel: admin ? '기관 관리자 ✓' : '기관 관리자 지정',
         adminT: () => {
@@ -7019,7 +7010,7 @@ class Component extends DCLogic {
         }
       }))
     }));
-    const activeStaff = orgRoster.filter(m => m.status === '활성' && this.validState(m) === 'active' && m.type !== '시스템(알림)' && rolesOf(m).some(r => r !== '조회'));
+    const activeStaff = orgRoster.filter(m => m.status === '활성' && this.validState(m) === 'active' && m.type !== '시스템(알림)' && m.assignable !== false && rolesOf(m).some(r => r !== '조회'));
 
     // 업로드
     const readFileUrl = (file) => new Promise((resolve, reject) => {

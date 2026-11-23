@@ -10,7 +10,8 @@
   python3 tools/build.py demo       체험용   → dist/demo.html    (서버 없이 가상 데이터로 동작)
   python3 tools/build.py --check    index.html · next/index.html 이 src/ 와 일치하는지 확인 (CI용)
 """
-import json, os, re, sys
+import json
+import re, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 P = lambda *a: os.path.join(ROOT, *a)
@@ -81,6 +82,18 @@ def bundle(env):
     enc = json.dumps(t, ensure_ascii=False).replace('</', '<\\u002F')
     out = (read('src/bundle/shell-1.html') + read('src/bundle/manifest.json') + read('src/bundle/shell-2.html')
            + '\n' + enc + '\n  ' + read('src/bundle/shell-3.html'))
+    # 환자 정보가 허용 목록 밖의 주소로 나가지 못하게 하는 브라우저 보안 규칙(CSP): 서울 데이터 서버 + 화면 도구(CDN)만 허용
+    if env != 'demo':
+        cfg = config(env)
+        host = ''
+        if env.startswith('local'):
+            host = ' http://localhost:* http://127.0.0.1:*'   # 개발 PC 시험용 (운영·새 서버 빌드에는 넣지 않음)
+        if cfg.get('url'):
+            m = re.match(r'^(https://[^/]+)', cfg['url'])
+            host += (' ' + m.group(1)) if m else ''
+        csp = ("connect-src 'self' blob: data: https://cdn.jsdelivr.net%s; img-src 'self' data: blob:%s; "
+               "object-src 'none'; base-uri 'none'; form-action 'none'") % (host, host)
+        out = out.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n  <meta http-equiv="Content-Security-Policy" content="%s">' % csp, 1)
     if env == 'test':
         out = out.replace('<title>Bundled Page</title>', '<title>[시험] 스마트케어</title>', 1)
     elif env == 'next':

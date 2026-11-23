@@ -21,7 +21,7 @@ function scFakeData(today) {
     P('PT-D005', '4병동 403호', '가상환자5', '여', '1945-09-30', 81, '동의', '미동의', '재원'),
     P('PT-D006', '4병동 405호', '가상환자6', '남', '1937-01-08', 89, '동의', '동의', '퇴원')
   ];
-  var pl = function (id, date, start, end, program, place, staff) { return { id: id, date: date, start: start, end: end, program: program, place: place, staff: staff, status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' }; };
+  var pl = function (id, date, start, end, program, place, staff) { return { id: id, date: date, start: start, end: end, program: program, place: place, ward: '전체', staff: staff, status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' }; };
   var plans = [
     pl('pl-d1', today, '10:00', '11:00', '미술치료', '3층 프로그램실', ['박체험']),
     pl('pl-d2', today, '14:00', '15:00', '음악치료', '4층 휴게실', ['김체험']),
