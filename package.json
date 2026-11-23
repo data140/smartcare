@@ -8,7 +8,7 @@
     "check": "python3 tools/build.py --check && node --check src/app.js",
     "dev": "python3 tools/build.py local && node tools/dev-server.js",
     "dev:staff": "python3 tools/build.py local-staff && node tools/dev-server.js --staff",
-    "test": "python3 tools/build.py local && node tests/smoke.js && python3 tools/build.py local-staff && node tests/smoke-staff.js && node tests/migrate.js && node tests/quota.js && node tests/server-switch.js && node tests/face-crop.js && node tests/ai.js",
+    "test": "python3 tools/build.py local && node tests/smoke.js && python3 tools/build.py local-staff && node tests/smoke-staff.js && node tests/migrate.js && node tests/quota.js && node tests/server-switch.js && node tests/face-crop.js && node tests/ai.js && node tests/ai-rules.js",
     "test:sql": "bash supabase/tests/run.sh"
   },
   "devDependencies": {
