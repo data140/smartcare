@@ -20,6 +20,24 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     for (let i = 0; i < 456; i++) big.push({ id: 'PT-B' + i, room: '3병동 30' + (i % 9) + '호', name: i === 0 ? '가상환자1' : '가상환자' + i, sex: '여', birth: '1940-01-01', age: 86, consent: '동의', face: '동의', stay: '재원', faceId: '—', last: '참여 이력 없음', photo: false, guardians: [], memo: 'x'.repeat(200) });
     await fetch('http://localhost:' + SRC + '/rest/v1/smartcare_kv?on_conflict=k', { method: 'POST', headers: { apikey: 'k', Authorization: 'Bearer dev-token', 'Content-Type': 'application/json' }, body: JSON.stringify([{ k: 'smartcare:smartcare.patients.v1', v: JSON.stringify(big), updated_at: new Date().toISOString() }]) });
 
+    // ① 저장 공간이 꽉 찬 상태에서 로그인 → 새로고침해도 로그인 유지 (로그인 정보는 반드시 저장)
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+      const q = await ctx.newPage();
+      await q.goto('http://localhost:' + DST + '/'); await q.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+      // 같은 주소의 화면 데이터처럼 'smartcare.' 키로 꽉 채움 (서버에서 다시 받을 수 있는 캐시라 비워도 됨)
+      await q.evaluate(() => new Promise(res => { const f = document.createElement('iframe'); f.srcdoc = '<p>x</p>'; f.onload = () => {
+        const ls = f.contentWindow.localStorage; let chunk = 'x'.repeat(256 * 1024), i = 0;
+        while (chunk.length >= 16) { try { ls.setItem('smartcare.o.ORG2.cache' + (i++), chunk); } catch (e) { chunk = chunk.slice(0, chunk.length / 2); } }
+        res(); }; document.body.appendChild(f); }));
+      await q.click('button:has-text("시스템 관리자")');
+      await q.locator('input[autocomplete="username"]').first().fill('admin'); await q.locator('input[autocomplete="current-password"]').first().fill('demo1234');
+      await q.locator('button:has-text("로그인")').last().click(); await q.waitForTimeout(4000);
+      await q.reload(); await q.waitForTimeout(5000);
+      check('저장 공간이 꽉 차도 새로고침 후 로그인 유지', !(await q.isVisible('input[autocomplete="current-password"]')) && await q.isVisible('text=로그아웃'));
+      await ctx.close();
+    }
+
     const p = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = []; p.on('pageerror', e => errors.push(e.message));
     await p.goto('http://localhost:' + DST + '/'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
