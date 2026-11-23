@@ -62,12 +62,30 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
       list.push({ id: 'pl-past2', date: ymd, start: '13:00', end: '14:00', program: '산책치료', place: '정원', staff: ['김체험'], status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' });
       localStorage.setItem(k, JSON.stringify(list));
     });
+    await p2.waitForTimeout(1800);
     await p2.reload(); await p2.waitForSelector('button[aria-label="AI 비서 열기"]', { timeout: 20000 }); await p2.waitForTimeout(1200);
     const badge = await p2.evaluate(() => { const b = document.querySelector('button[aria-label="AI 비서 열기"]'); const m = b && /(\d+)/.exec(b.innerText); return m ? Number(m[1]) : 0; });
     await p2.click('button[aria-label="AI 비서 열기"]');
     const first = await p2.locator('[role="dialog"][aria-label="AI 비서"]').innerText();
     check('배지 숫자(' + badge + ')만큼 새 소식이 창을 열자마자 보임', badge >= 2 && first.includes('새 소식 ' + badge + '건') && first.includes('작업치료') && first.includes('산책치료'), first.replace(/\s+/g, ' ').slice(0, 110));
-    check('AI 창에 "환자 정보는 이 시스템 안에서만 처리" 안내가 보임', first.includes('이 시스템 안에서만'));
+    // 확인하면 배지 숫자가 사라지고, 새로 생긴 소식만 다시 숫자로 나타남
+    await p2.click('button[aria-label="닫기"]'); await p2.waitForTimeout(500);
+    const badgeAfter = await p2.evaluate(() => { const b = document.querySelector('button[aria-label="AI 비서 열기"]'); const m = b && /(\d+)/.exec(b.innerText); return m ? Number(m[1]) : 0; });
+    check('새 소식을 확인하면 배지 숫자가 사라짐', badgeAfter === 0, '확인 전 ' + badge + ' → 확인 후 ' + badgeAfter);
+    await p2.reload(); await p2.waitForSelector('button[aria-label="AI 비서 열기"]', { timeout: 20000 }); await p2.waitForTimeout(1200);
+    check('새로고침해도 확인한 소식은 다시 숫자로 나타나지 않음', (await p2.evaluate(() => { const b = document.querySelector('button[aria-label="AI 비서 열기"]'); const m = b && /(\d+)/.exec(b.innerText); return m ? Number(m[1]) : 0; })) === 0);
+    await p2.evaluate(() => {
+      const d = new Date(Date.now() - 2 * 86400000), q = (n) => String(n).padStart(2, '0'), ymd = d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate());
+      const k = 'smartcare.plans.v1', list = JSON.parse(localStorage.getItem(k) || '[]');
+      list.push({ id: 'pl-past3', date: ymd, start: '09:00', end: '10:00', program: '원예치료2', place: '정원', staff: ['박체험'], status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' });
+      localStorage.setItem(k, JSON.stringify(list));
+    });
+    await p2.waitForTimeout(1800);
+    await p2.reload(); await p2.waitForSelector('button[aria-label="AI 비서 열기"]', { timeout: 20000 }); await p2.waitForTimeout(1200);
+    check('새로 생긴 소식만 다시 배지 숫자(1)로 나타남', (await p2.evaluate(() => { const b = document.querySelector('button[aria-label="AI 비서 열기"]'); const m = b && /(\d+)/.exec(b.innerText); return m ? Number(m[1]) : 0; })) === 1);
+    await p2.click('button[aria-label="AI 비서 열기"]'); await p2.waitForTimeout(500);
+    const first2 = await p2.locator('[role="dialog"][aria-label="AI 비서"]').innerText();
+    check('AI 창에 "환자 정보는 이 시스템 안에서만 처리" 안내가 보임', first2.includes('이 시스템 안에서만'));
     check('AI 연결 설정 버튼이 없음', (await p2.locator('button[aria-label="AI 연결 설정"]').count()) === 0);
     // 규칙에 없는 자유 질문도 외부로 보내지 않고 이 시스템 안에서 안내로만 답함
     await p2.fill('input[aria-label="질문 입력"]', '병원 경영 개선 방안을 자세히 분석해서 알려줘');

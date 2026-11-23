@@ -26,7 +26,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     // 1) 화면 모드
     const bg = () => p.evaluate(() => getComputedStyle(document.body).backgroundColor);
     const before = await bg();
-    const light = p.locator('[aria-label="화면 모드"] button:has-text("라이트")').first(), dark = p.locator('[aria-label="화면 모드"] button:has-text("다크")').first();
+    const light = p.locator('[aria-label="화면 모드"] button[aria-label="라이트"]').first(), dark = p.locator('[aria-label="화면 모드"] button[aria-label="다크"]').first();
     check('사이드바 아래쪽에 화면 모드(라이트/다크) 선택이 있음', (await light.isVisible()) && (await dark.isVisible()));
     await light.click(); await sleep(400); const lb = await bg();
     await dark.click(); await sleep(400); const db = await bg();
@@ -77,6 +77,31 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p5.locator('input[autocomplete="current-password"]').first().fill('틀린비밀번호');
     await p5.locator('button:has-text("로그인")').last().click(); await sleep(1500);
     check('Gmail 로그인도 비밀번호가 틀리면 들어가지 못함', !(await p5.evaluate(() => document.body.innerText.includes('가상환자1'))) && await p5.evaluate(() => /일치하지|확인|틀|실패/.test(document.body.innerText)));
+    // 4-2) 브라우저 자동 채우기처럼 입력 이벤트 없이 값만 채워져도 로그인됨
+    const p7 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
+    p7.on('pageerror', e => errors.push(e.message));
+    await p7.goto(BASE + '/'); await p7.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await p7.evaluate(() => { document.querySelector('input[autocomplete="username"]').value = '100101'; document.querySelector('input[autocomplete="current-password"]').value = '1234'; });
+    await p7.locator('button:has-text("로그인")').last().click();
+    check('자동 채우기(입력 이벤트 없음)로 채워진 아이디·비밀번호로도 로그인됨', await p7.waitForSelector('text=가상환자1', { timeout: 15000 }).then(() => true, () => false));
+    // 4-3) 휴대폰: '내 설정' 탭에 계정·화면 모드/색상(한 줄)·비밀번호 변경·로그아웃
+    const ctxm = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+    const pm = await ctxm.newPage(); pm.on('pageerror', e => errors.push(e.message));
+    await pm.goto(BASE + '/'); await pm.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await pm.locator('input[autocomplete="username"]').first().fill('100101'); await pm.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await pm.locator('button:has-text("로그인")').last().tap(); await pm.waitForSelector('text=오늘', { timeout: 20000 }); await sleep(800);
+    await pm.locator('button:has-text("내 설정")').last().tap(); await sleep(500);
+    const mtxt = await pm.evaluate(() => document.body.innerText);
+    check('휴대폰 "내 설정": 계정 · 화면 모드/색상 · 로그아웃이 있음', mtxt.includes('김체험') && mtxt.includes('화면 모드') && mtxt.includes('로그아웃'));
+    const rowOk = await pm.evaluate(() => { const g = document.querySelector('[aria-label="화면 모드"]'), c = document.querySelector('[aria-label="강조 색상"]'); if (!g || !c) return false; const a = g.getBoundingClientRect(), b = c.getBoundingClientRect(); return Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 12; });
+    check('화면 모드와 강조 색상이 한 줄에 있음', rowOk);
+    const bb = await pm.evaluate(() => { const d = [...document.querySelectorAll('[aria-label="다크"],[aria-label="라이트"]')].map(e => e.getAttribute('aria-pressed')); return d.join(','); });
+    await pm.locator('[aria-label="화면 모드"] button[aria-pressed="false"]').first().tap(); await sleep(400);
+    check('휴대폰에서도 라이트/다크가 바뀜', (await pm.evaluate(() => [...document.querySelectorAll('[aria-label="다크"],[aria-label="라이트"]')].map(e => e.getAttribute('aria-pressed')).join(','))) !== bb);
+    await pm.locator('button:has-text("로그아웃")').last().tap();
+    check('휴대폰에서 로그아웃하면 로그인 화면으로 돌아감', await pm.waitForSelector('input[autocomplete="username"]', { timeout: 15000 }).then(() => true, () => false));
+    await ctxm.close();
+
     // 5) 아이디 저장 (비밀번호는 저장하지 않음) · Enter 로 로그인
     const p6 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
     p6.on('pageerror', e => errors.push(e.message));

@@ -431,12 +431,22 @@ class Component extends DCLogic {
     };
   }
   // 진짜 AI용 요약 (환자 이름은 '환자A'로 가림)
+  // 지금 있는 새 소식(밀린 일지·검수 필요)을 모두 확인한 것으로 기록 (이 기기, 계정별)
+  aiMarkSeen() {
+    try {
+      const iss = this.aiIssues(), today = this.todayIso();
+      const keys = iss.unwritten.filter(p => p.date < today).map(p => p.id + ':w').concat(iss.review.map(p => p.id + ':r'));
+      localStorage.setItem('sc.aiSeen.' + (this.state.userId || 'u'), JSON.stringify(keys));
+      this.setState({ aiSeenTick: (this.state.aiSeenTick || 0) + 1 });
+    } catch (e) {}
+  }
   // AI 비서는 이 시스템 안에서 규칙으로만 답함 — 환자 정보를 외부 AI·해외 서버로 보내지 않음
   async aiAsk(q) {
     const text = (q || '').trim();
     if (!text) return;
     const msgs = (this.state.aiMsgs || []).concat([{ role: 'user', text: text }]);
     this.setState({ aiMsgs: msgs, aiInput: '', aiOpen: true }, () => this.aiScrollEnd());
+    this.aiMarkSeen();
     const rule = this.aiReply(text);
     this.setState({ aiMsgs: msgs.concat([Object.assign({ role: 'bot' }, rule)]) }, () => this.aiScrollEnd());
   }
@@ -445,7 +455,10 @@ class Component extends DCLogic {
     if (!s.logged) return { aiShow: false };
     const iss = this.aiIssues();
     const past = iss.unwritten.filter(p => p.date < this.todayIso());
-    const badge = past.length + iss.review.length;
+    // 배지 숫자 = 아직 확인하지 않은 소식 수. AI 창을 열어 보면 확인한 것으로 처리되고, 새로 생긴 것만 다시 숫자로 나타남
+    const newsKeys = past.map(p => p.id + ':w').concat(iss.review.map(p => p.id + ':r'));
+    let seenKeys = []; try { seenKeys = JSON.parse(localStorage.getItem('sc.aiSeen.' + (s.userId || 'u')) || '[]') || []; } catch (e) { seenKeys = []; }
+    const badge = newsKeys.filter(k => seenKeys.indexOf(k) < 0).length;
     const uid = s.userId || 'u';
     const bKey = 'sc.aiBrief.' + uid;
     let seen = ''; try { seen = localStorage.getItem(bKey) || ''; } catch (e) {}
@@ -462,7 +475,7 @@ class Component extends DCLogic {
     if (news.length > newsShown.length) newsShown.push({ t: '… 외 ' + (news.length - newsShown.length) + '건 (“미비사항 점검”으로 전체 보기)', c: '' });
     const hint = { t: '오늘 할 일, 미비사항 점검, 미작성 일지 목록, 담당자별 일정, 동의·증명사진 미완료 환자, 통계, 환자 참여 이력, 사용법을 물어보세요.', c: '' };
     const welcome = news.length
-      ? { role: 'bot', title: '새 소식 ' + news.length + '건이 있어요', lines: newsShown.concat([hint]), actions: [{ label: '일지 목록 · 검수', go: this.aiGo({ pcView: 'logs', logTab: 'list' }) }] }
+      ? { role: 'bot', title: ((s.aiNewAtOpen || 0) > 0 ? '새 소식 ' : '확인할 일 ') + news.length + '건이 있어요', lines: newsShown.concat([hint]), actions: [{ label: '일지 목록 · 검수', go: this.aiGo({ pcView: 'logs', logTab: 'list' }) }] }
       : { role: 'bot', title: '무엇을 도와드릴까요?', lines: [hint] };
     const msgs = (s.aiMsgs && s.aiMsgs.length) ? s.aiMsgs : [welcome];
     const chipQ = ['오늘 할 일', '내일 일정', '이번 주 일정', '미비사항 점검', '일지 미작성 목록', '이번 주 담당자별 일정', '증명사진 없는 환자 몇 명', '이번 달 통계', '일지 작성 방법'];
@@ -471,7 +484,7 @@ class Component extends DCLogic {
       aiOpen: !!s.aiOpen,
       aiFabIcon: s.aiOpen ? 'ph ph-x' : 'ph-fill ph-sparkle',
       aiHasBadge: !s.aiOpen && badge > 0, aiBadge: badge > 99 ? '99+' : String(badge),
-      aiToggle: () => { if (this._aiFabDragged) return; const o = !this.state.aiOpen; this.setState({ aiOpen: o }); if (o) this.aiScrollEnd(); },
+      aiToggle: () => { if (this._aiFabDragged) return; const o = !this.state.aiOpen; this.setState({ aiOpen: o, aiNewAtOpen: o ? badge : 0 }); if (o) { this.aiMarkSeen(); this.aiScrollEnd(); } },
       aiBriefShow: !s.aiOpen && !s.aiBriefClosed && seen !== today,
       aiBriefText: '오늘 일정 ' + iss.todayPlans.length + '건 · 밀린 일지 ' + past.length + '건 · 검수 ' + iss.review.length + '건',
       aiBriefOpen: () => { markSeen(); this.setState({ aiBriefClosed: true }); this.aiAsk('오늘 할 일'); },
@@ -3613,7 +3626,7 @@ class Component extends DCLogic {
       const keys = []; for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(k => {
         const base = String(k).replace(/^(next~|test~)/, '');
-        if (!/^(smartcare\.|sc\.)/.test(base) || Component.PREF_KEEP.has(base)) return;
+        if (!/^(smartcare\.|sc\.)/.test(base) || Component.PREF_KEEP.has(base) || base.indexOf('sc.aiSeen.') === 0) return;
         try { localStorage.removeItem(k); } catch (e) {}
       });
       sessionStorage.clear();
@@ -3679,6 +3692,14 @@ class Component extends DCLogic {
   // ───── 직원별 서버 계정 (AUTH_MODE = 'staff') ─────
   // 로그인 전: 기관 목록만 받음 (smartcare_login_orgs) · 로그인: 서버가 계정·비밀번호·사용 여부를 확인
   // 계정 만들기·비밀번호·권한 변경은 서버 함수(smartcare-staff)가 처리 — 직원 명부에는 비밀번호를 저장하지 않음
+  // 환자·직원·일정 같은 핵심 데이터를 받으면(전체 동기화가 끝나기 전이라도) 먼저 진행
+  waitCloudCore(ms) {
+    return new Promise(res => {
+      const t0 = Date.now();
+      const tick = () => { if (this._cloudReady || this._cloudCore) return res(true); if (Date.now() - t0 > ms) return res(false); setTimeout(tick, 120); };
+      tick();
+    });
+  }
   waitCloudReady(ms) {
     return new Promise(res => {
       const t0 = Date.now();
@@ -3808,7 +3829,7 @@ class Component extends DCLogic {
       return null;
     }
     this.cloudInit();
-    await this.waitCloudReady(15000);
+    await this.waitCloudCore(20000);
     this.staffRpc('smartcare_touch_login', {}).catch(() => {});
     const local = (this.state.roster || []).find(x => x.id === me.roster_id) || { id: me.roster_id, name: me.name, status: '활성' };
     // 기관·역할은 서버의 직원 정보를 따름
@@ -3983,7 +4004,7 @@ class Component extends DCLogic {
     }
     window.__scCloudPush = (k, v) => this.cloudQueue(k, v);
     clearInterval(this._cloudPoll);
-    this._cloudReady = false; this._cloudSince = null;
+    this._cloudReady = false; this._cloudCore = false; this._cloudSince = null;
     window.__scCloudReady = false;
     const c = this.cloudCfg();
     if (!c) { this.setState({ cloudStatus: 'off' }); return; }
@@ -4182,70 +4203,11 @@ class Component extends DCLogic {
         const since = new Date(new Date(this._cloudSince).getTime() - 10 * 60 * 1000).toISOString();
         q += '&updated_at=gt.' + encodeURIComponent(since);
       }
-      let rows;
-      // 첫 동기화도 '이름·시각 목록 → 내용 나눠 받기' 방식 (한 번에 전체를 받으면 서버 시간 초과(HTTP 500 57014)로 계속 실패함)
-      if (true) {
-        // 전송량 절약: 먼저 '어떤 항목이 바뀌었는지'(이름·시각)만 받고, 이 기기에 없는 새 값만 내용을 받음
-        // (예전에는 3초마다 최근 10분 내 바뀐 사진·데이터 전체를 반복해서 받아 무료 전송 한도를 초과함)
-        const rm = await fetch(q.replace('select=k,v,updated_at', 'select=k,updated_at'), { headers: this.cloudHeaders(c) });
-        if (!rm.ok) throw new Error('HTTP ' + rm.status + ' ' + (await rm.text()).slice(0, 120));
-        const meta = await rm.json();
-        // 이전에 받은 항목 기록을 기기에 보관 → 새로고침해도 바뀐 것만 받음 (예전에는 열 때마다 전체를 다시 받아 느렸음)
-        if (!this._kvSeen) { try { this._kvSeen = JSON.parse((Storage.prototype.__scGet || Storage.prototype.getItem).call(localStorage, 'sc.kvSeen.v1') || '{}') || {}; } catch (e) { this._kvSeen = {}; } }
-        const seen = this._kvSeen;
-        const getL = Storage.prototype.__scGet || Storage.prototype.getItem;
-        const need = meta.filter(m => {
-          const key = m.k.slice(c.ws.length + 1);
-          // 증명사진·서명을 뒤에서 받는 중이면 주기 동기화가 같은 것을 또 받지 않음
-          if (!initial && this._heavyLoading) { const u0 = Component.unKey(key) || ''; if (u0.indexOf(Component.IDPH_PREFIX) === 0 || u0.indexOf(Component.SIGN_PREFIX) === 0) return false; }
-          if (!(seen[key] && m.updated_at && m.updated_at <= seen[key])) return true;
-          // 받은 기록은 있어도 실제 값이 이 기기에 없으면 다시 받음
-          const uk = Component.unKey(key);
-          if (uk && uk.indexOf(Component.WPH_PREFIX) === 0) return !this._wphCache[uk.slice(Component.WPH_PREFIX.length)];
-          // 증명사진·서명도 메모리에만 두므로, 메모리에 없으면 다시 받음
-          if (uk && uk.indexOf(Component.IDPH_PREFIX) === 0) return !this._idphCache[uk.slice(Component.IDPH_PREFIX.length)];
-          if (uk && uk.indexOf(Component.SIGN_PREFIX) === 0) return !this._signCache[uk.slice(Component.SIGN_PREFIX.length)];
-          return getL.call(localStorage, key) == null;
-        }).map(m => m.k);
-        rows = [];
-        // 첫 동기화: 환자·일정 같은 작은 데이터만 먼저 받아 화면을 바로 보여주고, 증명사진·서명(용량 큼)은 화면이 뜬 뒤 뒤에서 받음
-        let needNow = need;
-        this._heavyKeys = [];
-        if (initial) {
-          const isHeavyKey = (k) => { const uk = Component.unKey(k.slice(c.ws.length + 1)) || ''; return uk.indexOf(Component.IDPH_PREFIX) === 0 || uk.indexOf(Component.SIGN_PREFIX) === 0; };
-          this._heavyKeys = need.filter(isHeavyKey);
-          needNow = need.filter(k => !isHeavyKey(k));
-          if (this._heavyKeys.length) this._heavyLoading = true;
-        }
-        if (initial) this.setState({ cloudErr: '서버 데이터 받는 중… (' + needNow.length + '개 항목)' });
-        // 작은 데이터 먼저, 사진은 뒤로 · 4개 요청을 동시에 (한 줄로 기다리지 않게)
-        const isPh = (k) => k.indexOf(Component.WPH_PREFIX) >= 0;
-        const ordered = needNow.filter(k => !isPh(k)).concat(needNow.filter(isPh));
-        const parts = [];
-        for (let i = 0; i < ordered.length; i += 8) parts.push(ordered.slice(i, i + 8));
-        let pi = 0, failed = null;
-        const worker = async () => {
-          while (pi < parts.length && !failed) {
-            const my = parts[pi++];
-            const part = my.map(k => encodeURIComponent('"' + k.replace(/"/g, '\\"') + '"')).join(',');
-            const ri = await fetch(c.url + '/rest/v1/smartcare_kv?select=k,v,updated_at&k=in.(' + part + ')', { headers: this.cloudHeaders(c) });
-            if (!ri.ok) { failed = new Error('HTTP ' + ri.status + ' ' + (await ri.text()).slice(0, 120)); return; }
-            rows = rows.concat(await ri.json());
-          }
-        };
-        await Promise.all([worker(), worker(), worker(), worker()]);
-        if (failed) throw failed;
-      } else {
-        const r = await fetch(q, { headers: this.cloudHeaders(c) });
-        if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 120));
-        rows = await r.json();
-      }
-      this._cloudBackoff = 0;
       const orig = Storage.prototype.__scOrig || Storage.prototype.setItem;
       let changed = 0;
       this._cloudQuiet = initial;
       this._kvSeen = this._kvSeen || {};
-      rows.forEach(row => {
+      const applyRow = (row) => {
         const key = row.k.slice(c.ws.length + 1);
         if (row.updated_at && (!this._cloudSince || row.updated_at > this._cloudSince)) this._cloudSince = row.updated_at;
         // 이 기기에서 아직 올리는 중이거나, 이미 받은(또는 올린) 것보다 오래된 서버 값은 적용하지 않음
@@ -4254,7 +4216,7 @@ class Component extends DCLogic {
         // 첫 동기화 전에 이 기기에서 바꾼 값(환자 등록·삭제 등)은 서버 값으로 덮지 않음 — 곧 서버로 올림
         const uk = Component.unKey(key);
         if (!uk) return; // 다른 기관 데이터
-        if (initial && this._cloudEarly && key in this._cloudEarly && uk !== 'smartcare.work.v1' && uk.indexOf(Component.WSESS_PREFIX) !== 0) return;
+        if (initial && !this._freshSync && this._cloudEarly && key in this._cloudEarly && uk !== 'smartcare.work.v1' && uk.indexOf(Component.WSESS_PREFIX) !== 0) return;
         const memOnly = (uk.indexOf(Component.IDPH_PREFIX) === 0 && !this._idphCache[uk.slice(Component.IDPH_PREFIX.length)]) || (uk.indexOf(Component.SIGN_PREFIX) === 0 && !this._signCache[uk.slice(Component.SIGN_PREFIX.length)]);
         // 이미 받은 항목이어도 이 기기에 값이 없으면(저장 공간이 가득 차 저장 실패 등) 다시 반영
         const haveLocal = (Storage.prototype.__scGet || Storage.prototype.getItem).call(localStorage, key) != null;
@@ -4292,7 +4254,98 @@ class Component extends DCLogic {
         this._cloudApplying = false;
         changed++;
         if (this._onStorage) this._onStorage({ key: key, newValue: row.v });
-      });
+      };
+      let rows, corePending = new Set();
+      // 첫 동기화도 '이름·시각 목록 → 내용 나눠 받기' 방식 (한 번에 전체를 받으면 서버 시간 초과(HTTP 500 57014)로 계속 실패함)
+      if (true) {
+        // 전송량 절약: 먼저 '어떤 항목이 바뀌었는지'(이름·시각)만 받고, 이 기기에 없는 새 값만 내용을 받음
+        // (예전에는 3초마다 최근 10분 내 바뀐 사진·데이터 전체를 반복해서 받아 무료 전송 한도를 초과함)
+        const rm = await fetch(q.replace('select=k,v,updated_at', 'select=k,updated_at'), { headers: this.cloudHeaders(c) });
+        if (!rm.ok) throw new Error('HTTP ' + rm.status + ' ' + (await rm.text()).slice(0, 120));
+        const meta = await rm.json();
+        // 이전에 받은 항목 기록을 기기에 보관 → 새로고침해도 바뀐 것만 받음 (예전에는 열 때마다 전체를 다시 받아 느렸음)
+        if (!this._kvSeen) { try { this._kvSeen = JSON.parse((Storage.prototype.__scGet || Storage.prototype.getItem).call(localStorage, 'sc.kvSeen.v1') || '{}') || {}; } catch (e) { this._kvSeen = {}; } }
+        const seen = this._kvSeen;
+        const getL = Storage.prototype.__scGet || Storage.prototype.getItem;
+        if (initial) this._freshSync = getL.call(localStorage, 'sc.kvSeen.v1') == null;   // 이 기기에 받은 기록이 없으면(새 기기·로그아웃 직후) 서버 값이 항상 우선
+        const need = meta.filter(m => {
+          const key = m.k.slice(c.ws.length + 1);
+          // 증명사진·서명을 뒤에서 받는 중이면 주기 동기화가 같은 것을 또 받지 않음
+          if (!initial && this._heavyLoading) { const u0 = Component.unKey(key) || ''; if (u0.indexOf(Component.IDPH_PREFIX) === 0 || u0.indexOf(Component.SIGN_PREFIX) === 0) return false; }
+          if (!(seen[key] && m.updated_at && m.updated_at <= seen[key])) return true;
+          // 받은 기록은 있어도 실제 값이 이 기기에 없으면 다시 받음
+          const uk = Component.unKey(key);
+          if (uk && uk.indexOf(Component.WPH_PREFIX) === 0) return !this._wphCache[uk.slice(Component.WPH_PREFIX.length)];
+          // 증명사진·서명도 메모리에만 두므로, 메모리에 없으면 다시 받음
+          if (uk && uk.indexOf(Component.IDPH_PREFIX) === 0) return !this._idphCache[uk.slice(Component.IDPH_PREFIX.length)];
+          if (uk && uk.indexOf(Component.SIGN_PREFIX) === 0) return !this._signCache[uk.slice(Component.SIGN_PREFIX.length)];
+          return getL.call(localStorage, key) == null;
+        }).map(m => m.k);
+        rows = [];
+        // 첫 동기화: 환자·일정 같은 작은 데이터만 먼저 받아 화면을 바로 보여주고, 증명사진·서명(용량 큼)은 화면이 뜬 뒤 뒤에서 받음
+        let needNow = need;
+        this._heavyKeys = [];
+        if (initial) {
+          const isHeavyKey = (k) => { const uk = Component.unKey(k.slice(c.ws.length + 1)) || ''; return uk.indexOf(Component.IDPH_PREFIX) === 0 || uk.indexOf(Component.SIGN_PREFIX) === 0; };
+          this._heavyKeys = need.filter(isHeavyKey);
+          needNow = need.filter(k => !isHeavyKey(k));
+          if (this._heavyKeys.length) this._heavyLoading = true;
+        }
+        if (initial) this.setState({ cloudErr: '서버 데이터 받는 중… (' + needNow.length + '개 항목)' });
+        // 작은 데이터 먼저, 사진은 뒤로 · 4개 요청을 동시에 (한 줄로 기다리지 않게)
+        const isPh = (k) => k.indexOf(Component.WPH_PREFIX) >= 0;
+        // 핵심(환자·직원·기관·병동·일정)을 맨 먼저, 용량 큰 첨부·기록은 맨 뒤로
+        const PRIO = ['smartcare.patients.v1', 'smartcare.roster.v1', 'smartcare.orgs.v1', 'smartcare.wards.v1', 'smartcare.plans.v1'].map(x => c.ws + ':' + Component.nsKey(x));
+        const isBig = (k) => { const uk = Component.unKey(k.slice(c.ws.length + 1)) || ''; return uk === Component.CF_KEY || uk === 'smartcare.signs.v1' || uk === 'smartcare.mconsent.v1' || uk === 'smartcare.emrUndo.v1' || uk.indexOf('smartcare.wsessbak.') === 0; };
+        const top = needNow.filter(k => PRIO.indexOf(k) >= 0).sort((a, b) => PRIO.indexOf(a) - PRIO.indexOf(b));
+        const rest = needNow.filter(k => PRIO.indexOf(k) < 0 && !isPh(k) && !isBig(k));
+        const big = needNow.filter(k => PRIO.indexOf(k) < 0 && !isPh(k) && isBig(k));
+        const ordered = top.concat(rest, big, needNow.filter(isPh));
+        corePending = new Set(top);
+        if (initial && !corePending.size) this._cloudCore = true;
+        const parts = [];
+        // 핵심 항목은 한 건씩 따로 (가장 먼저 도착하도록), 나머지는 8개씩
+        top.forEach(k => parts.push([k]));
+        const others = ordered.filter(k => top.indexOf(k) < 0);
+        for (let i = 0; i < others.length; i += 8) parts.push(others.slice(i, i + 8));
+        let pi = 0, failed = null;
+        const fetchPart = async (my) => {
+          const part = my.map(k => encodeURIComponent('"' + k.replace(/"/g, '\\"') + '"')).join(',');
+          let lastErr = null;
+          for (let a = 0; a < 3; a++) {
+            try {
+              const ri = await fetch(c.url + '/rest/v1/smartcare_kv?select=k,v,updated_at&k=in.(' + part + ')', { headers: this.cloudHeaders(c) });
+              if (ri.ok) return await ri.json();
+              lastErr = new Error('HTTP ' + ri.status + ' ' + (await ri.text()).slice(0, 120));
+              if (ri.status === 401 || ri.status === 402 || ri.status === 403) break;
+            } catch (e) { lastErr = e; }
+            await new Promise(r => setTimeout(r, 400 * (a + 1)));
+          }
+          // 여러 항목 묶음이 계속 실패하면 한 건씩 나눠서 다시 시도
+          if (my.length > 1) { let out = []; for (const k of my) out = out.concat(await fetchPart([k])); return out; }
+          throw lastErr || new Error('서버 응답 없음');
+        };
+        const worker = async () => {
+          while (pi < parts.length && !failed) {
+            const my = parts[pi++];
+            try {
+              const got = await fetchPart(my);
+              rows = rows.concat(got);
+              // 받은 즉시 화면에 반영 (전부 받을 때까지 기다리지 않음)
+              got.forEach(applyRow);
+              if (initial && corePending.size) { got.forEach(r => corePending.delete(r.k)); if (!corePending.size) this._cloudCore = true; }
+              if (initial && my.length >= 1) this.setState({ cloudErr: '서버 데이터 받는 중… (' + rows.length + '/' + needNow.length + ')' });
+            } catch (e) { failed = e; return; }
+          }
+        };
+        await Promise.all([worker(), worker(), worker(), worker()]);
+        if (failed) throw failed;
+      } else {
+        const r = await fetch(q, { headers: this.cloudHeaders(c) });
+        if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 120));
+        rows = await r.json();
+      }
+      this._cloudBackoff = 0;
       this._cloudQuiet = false;
       // 받은 항목 기록 저장 (사진 제외 — 사진은 메모리에만 있으므로 새로고침 후 다시 받아야 함)
       try {
@@ -4324,10 +4377,10 @@ class Component extends DCLogic {
           this.flash(Component.isStaffMode() ? '서버에 아직 데이터가 없습니다' : '서버에 처음 연결 — 이 PC의 데이터를 서버에 올렸습니다');
         } else this.flash('서버 데이터를 불러왔습니다 (' + rows.length + '개 항목)');
         // 동기화 전에 저장된 변경(환자 등록 등)을 이제 서버에 올림
-        const early = this._cloudEarly || {};
-        this._cloudEarly = {};
+        const early = this._freshSync ? {} : (this._cloudEarly || {});
+        this._cloudEarly = {}; this._freshSync = false;
         // 일지·업무 묶음은 제외 — 동기화 전 값은 오래된 값일 수 있음 (사용자가 바꾸면 그때 다시 올라감)
-        Object.keys(early).forEach(k => { const uk = Component.unKey(k) || ''; if (uk === 'smartcare.work.v1' || uk.indexOf(Component.WSESS_PREFIX) === 0) return; this.cloudQueue(k, early[k]); });
+        Object.keys(early).forEach(k => { const uk = Component.unKey(k) || ''; if (early[k] === '[]' || early[k] === '{}' || early[k] === 'null' || early[k] === '') return; if (uk === 'smartcare.work.v1' || uk.indexOf(Component.WSESS_PREFIX) === 0) return; this.cloudQueue(k, early[k]); });
         this.compactIdPhotos();
         // 증명사진·서명은 화면이 뜬 뒤 뒤에서 받음 (환자 목록이 사진을 기다리지 않게)
         this.cloudPullHeavy();
@@ -4339,6 +4392,12 @@ class Component extends DCLogic {
     } catch (e) {
       this._pullBusy = false;
       this._cloudQuiet = false;
+      // 이미 받아 반영한 항목은 기록해 둠 → 다음 시도에서는 못 받은 것만 이어서 받음
+      try {
+        const keep = {};
+        Object.keys(this._kvSeen || {}).forEach(k => { const uk = Component.unKey(k); if (uk && uk.indexOf(Component.WPH_PREFIX) !== 0 && uk.indexOf(Component.IDPH_PREFIX) !== 0 && uk.indexOf(Component.SIGN_PREFIX) !== 0) keep[k] = this._kvSeen[k]; });
+        (Storage.prototype.__scOrig || Storage.prototype.setItem).call(localStorage, 'sc.kvSeen.v1', JSON.stringify(keep));
+      } catch (e2) {}
       // 실패가 이어지면 재시도 간격을 늘림 (3초 → 최대 5분). 한도 초과(402)는 바로 5분 간격
       const quota = /HTTP 402|exceed_/.test(e.message || '');
       this._cloudBackoff = quota ? 300000 : Math.min(300000, Math.max(6000, (this._cloudBackoff || 3000) * 2));
@@ -4677,7 +4736,13 @@ class Component extends DCLogic {
 
   async _doLogin() {
     const s = this.state;
-    const id = (s.lgId || '').trim(), pw = s.lgPw || '';
+    // 브라우저가 저장된 아이디·비밀번호를 자동으로 채운 경우 입력 이벤트가 앱에 전달되지 않을 수 있어, 화면에 입력된 값을 직접 읽어 보완
+    let domId = '', domPw = '';
+    try {
+      const ui = document.querySelector('form input[autocomplete="username"]'), pi = document.querySelector('form input[autocomplete="current-password"]');
+      domId = ui ? ui.value : ''; domPw = pi ? pi.value : '';
+    } catch (e) {}
+    const id = ((s.lgId || '') || domId).trim(), pw = (s.lgPw || '') || domPw;
     if (!id || !pw) { this.setState({ lgErr: (s.lgMode === 'gmail' ? 'Gmail 주소' : s.lgMode === 'sys' ? '관리자 ID' : '사번') + '와 비밀번호를 입력하세요' }); return; }
     const rl = (m) => Array.isArray(m.roles) ? m.roles : [m.role];
     let m;
@@ -10430,13 +10495,13 @@ class Component extends DCLogic {
       // 모바일
       mToday: s.mobileView === 'today', mNewLog: s.mobileView === 'newLog',
       mReview: s.mobileView === 'review', mLogs: s.mobileView === 'logs',
-      mConsent: s.mobileView === 'consent',
+      mConsent: s.mobileView === 'consent', mMe: s.mobileView === 'me',
       reviewMeta: this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', '),
       reviewHead: this.curKey(s).split('|')[0] + ' · ' + (this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', ')),
       mobileBack: s.mobileView !== 'today',
       mobileTitle: s.mobileView === 'newLog' ? '일지 작성'
         : (s.mobileView === 'review' ? '판독 결과 · ' + this.curKey(s).split('|')[1] + ' ' + this.curKey(s).split('|')[0].slice(5).replace('-', '/')
-        : (s.mobileView === 'consent' ? '동의서 작성' : '프로그램 일지')),
+        : (s.mobileView === 'consent' ? '동의서 작성' : (s.mobileView === 'me' ? '내 설정' : '프로그램 일지'))),
       goConsentMobile: () => this.setState({ mobileView: 'consent' }),
       // 휴대폰·태블릿: 바로 전 단계로 (기록이 없으면 오늘 화면)
       mobileGoBack: () => { if (!this.navGoBack()) this.setState({ mobileView: 'today' }); },
@@ -10589,7 +10654,8 @@ class Component extends DCLogic {
         { key: 'today', label: '오늘', icon: 'ph ph-house' },
         { key: 'logs', label: '일지', icon: 'ph ph-note-pencil' },
         { key: 'review', label: '검수', icon: 'ph ph-scan-smiley' },
-        { key: 'consent', label: '동의서', icon: 'ph ph-signature' }
+        { key: 'consent', label: '동의서', icon: 'ph ph-signature' },
+        { key: 'me', label: '내 설정', icon: 'ph ph-user-circle' }
       ].map(t => ({
         label: t.label, icon: t.icon,
         active: s.mobileView === t.key, inactive: s.mobileView !== t.key,
