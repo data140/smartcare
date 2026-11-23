@@ -9807,7 +9807,9 @@ class Component extends DCLogic {
         const dayTxt = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + '일월화수목금토'[d.getDay()] + ')';
         const code = [
           '// 스마트케어 — 오늘 프로그램 일정 알림 (Gmail 무료 발송)',
-          '// 1) 저장  2) 프로젝트 설정(⚙) › 스크립트 속성에 SB_EMAIL, SB_PASSWORD(데이터 서버 공용 계정) 추가',
+          Component.isStaffMode()
+            ? '// 1) 저장  2) 프로젝트 설정(⚙) › 스크립트 속성에 SB_ID(알림 전용 계정의 직원 번호), SB_PASSWORD 추가'
+            : '// 1) 저장  2) 프로젝트 설정(⚙) › 스크립트 속성에 SB_EMAIL, SB_PASSWORD(데이터 서버 공용 계정) 추가',
           '// 3) 함수 setup 실행 → 권한 허용  (이후 매일 자동 발송)',
           '// 비밀번호는 이 코드에 넣지 말고 스크립트 속성에만 넣으세요.',
           'const CFG = ' + JSON.stringify({ url: cfg ? cfg.url : base0.url, key: cfg ? cfg.key : base0.key, ws: (cfg || base0).ws || 'smartcare', org: orgIdCur, plansKey: orgIdCur === 'ORG1' ? 'smartcare.plans.v1' : 'smartcare.o.' + orgIdCur + '.plans.v1', hour: hh, minute: mm, sender: nt.sender, adminSummary: !!nt.admin, orgName: orgName }, null, 2) + ';',
@@ -9817,10 +9819,16 @@ class Component extends DCLogic {
           'function token_() {',
           '  if (TOKEN_) return TOKEN_;',
           '  const p = PropertiesService.getScriptProperties();',
-          "  const email = p.getProperty('SB_EMAIL'), password = p.getProperty('SB_PASSWORD');",
-          "  if (!email || !password) throw new Error('프로젝트 설정 › 스크립트 속성에 SB_EMAIL, SB_PASSWORD를 넣으세요');",
+          ...(Component.isStaffMode() ? [
+            "  const id = String(p.getProperty('SB_ID') || '').trim(), password = p.getProperty('SB_PASSWORD');",
+            "  if (!id || !password) throw new Error('프로젝트 설정 › 스크립트 속성에 SB_ID(직원 번호), SB_PASSWORD를 넣으세요');",
+            "  const email = 's' + id + '.' + CFG.ws + '@smartcare.invalid';"
+          ] : [
+            "  const email = p.getProperty('SB_EMAIL'), password = p.getProperty('SB_PASSWORD');",
+            "  if (!email || !password) throw new Error('프로젝트 설정 › 스크립트 속성에 SB_EMAIL, SB_PASSWORD를 넣으세요');"
+          ]),
           "  const r = UrlFetchApp.fetch(CFG.url + '/auth/v1/token?grant_type=password', { method: 'post', contentType: 'application/json', headers: { apikey: CFG.key }, payload: JSON.stringify({ email: email, password: password }), muteHttpExceptions: true });",
-          "  if (r.getResponseCode() !== 200) throw new Error('데이터 서버 로그인 실패 (HTTP ' + r.getResponseCode() + ') — SB_EMAIL·SB_PASSWORD를 확인하세요');",
+          "  if (r.getResponseCode() !== 200) throw new Error('데이터 서버 로그인 실패 (HTTP ' + r.getResponseCode() + ') — 스크립트 속성의 로그인 정보를 확인하세요');",
           '  TOKEN_ = JSON.parse(r.getContentText()).access_token;',
           '  return TOKEN_;',
           '}',
@@ -9834,7 +9842,7 @@ class Component extends DCLogic {
           '',
           'function kv(k) {',
           "  const r = UrlFetchApp.fetch(CFG.url + '/rest/v1/smartcare_kv?select=v&k=eq.' + encodeURIComponent(CFG.ws + ':' + k), { headers: { apikey: CFG.key, Authorization: 'Bearer ' + token_() }, muteHttpExceptions: true });",
-          "  if (r.getResponseCode() !== 200) throw new Error('데이터를 읽지 못했습니다 (HTTP ' + r.getResponseCode() + ') — 공용 계정이 작업공간에 등록됐는지 확인하세요');",
+          "  if (r.getResponseCode() !== 200) throw new Error('데이터를 읽지 못했습니다 (HTTP ' + r.getResponseCode() + ') — 알림 전용 계정의 기관·역할(또는 공용 계정 등록)을 확인하세요');",
           '  const a = JSON.parse(r.getContentText() || "[]");',
           '  if (!a.length) return null;',
           "  return typeof a[0].v === 'string' ? JSON.parse(a[0].v) : a[0].v;",
@@ -9887,6 +9895,7 @@ class Component extends DCLogic {
             const url = 'https://mail.google.com/mail/?view=cm&fs=1&bcc=' + encodeURIComponent(to.join(',')) + '&su=' + encodeURIComponent('[' + orgName + '] ' + dayTxt + ' 프로그램 일정') + '&body=' + encodeURIComponent(body);
             window.open(url, '_blank', 'noopener');
           },
+          ntStaffMode: Component.isStaffMode(), ntSharedMode: !Component.isStaffMode(),
           ntCode: code,
           ntCodeOpen: !!s.ntCodeOpen,
           ntCodeLabel: s.ntCodeOpen ? '스크립트 닫기' : '스크립트 보기',
