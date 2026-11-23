@@ -10,12 +10,14 @@
  *     직원 로그인 100101 / 1234 (관리자) · 100102 / 1234 (담당자) · 시스템 관리자 admin / demo1234
  *     권한 규칙은 supabase/schema-next.sql 과 같은 규칙을 흉내 내고,
  *     계정 관리는 supabase/functions/smartcare-staff/index.ts 를 그대로 실행합니다.
+ *     --empty 를 붙이면 빈 새 서버(시스템 관리자만)로 시작 — 데이터 이전 시험용
  *
  * 실제 Supabase 에는 접속하지 않습니다. 서버를 끄면 데이터는 사라집니다. */
 const http = require('http'), fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const ROOT = path.join(__dirname, '..');
 const args = process.argv.slice(2);
 const STAFF = args.includes('--staff');
+const EMPTY = args.includes('--empty');   // 직원별 계정 방식에서 빈 서버로 시작 (시스템 관리자 admin / demo1234 만)
 const PORT = +(args.find(a => /^\d+$/.test(a)) || 8080);
 const PAGE = path.join(ROOT, 'dist', STAFF ? 'local-staff.html' : 'local.html');
 const BASE = 'http://localhost:' + PORT;
@@ -42,6 +44,7 @@ if (STAFF) {
   // 직원별 계정 방식: 명부의 직원마다 서버 계정 + 직원 정보, 명부에서는 비밀번호를 뺌
   const roster = JSON.parse(seed['smartcare:smartcare.roster.v1']);
   roster.forEach(m => {
+    if (EMPTY && m.org !== '*') return;
     const uid = newUser(staffEmail(WS, m.id), m.pw);
     staff.push({ user_id: uid, ws: WS, roster_id: m.id, org: m.org, emp_no: m.empNo || '', gmail: (m.email || '').toLowerCase(), name: m.name, roles: m.roles || [m.role],
       status: m.status, valid_from: null, valid_to: null, must_change: false, last_login: null });
@@ -49,6 +52,7 @@ if (STAFF) {
   });
   seed['smartcare:smartcare.roster.v1'] = JSON.stringify(roster);
   seed['smartcare:smartcare.orgs.v1'] = JSON.stringify([{ id: 'ORG1', name: '가상요양병원' }, { id: 'ORG2', name: '나상요양병원' }]);
+  if (EMPTY) Object.keys(seed).forEach(k => delete seed[k]);
 }
 Object.keys(seed).forEach(k => kv.set(k, { k, v: seed[k], updated_at: now0 }));
 
@@ -87,7 +91,7 @@ function cond(expr) {
   return r => (neg ? !f(r[col]) : f(r[col]));
 }
 function splitTop(s) { const out = []; let d = 0, cur = ''; for (const ch of s) { if (ch === '(') d++; if (ch === ')') d--; if (ch === ',' && d === 0) { out.push(cur); cur = ''; } else cur += ch; } if (cur) out.push(cur); return out; }
-const SKIP = ['select', 'order', 'limit', 'on_conflict'];
+const SKIP = ['select', 'order', 'limit', 'offset', 'on_conflict'];
 function filters(sp) {
   const fs_ = [];
   for (const [key, val] of sp) {
@@ -109,7 +113,8 @@ function loadFunction() {
 if (STAFF) loadFunction();
 
 // ───── HTTP ─────
-const send = (res, s, o, h) => { res.writeHead(s, Object.assign({ 'Content-Type': 'application/json' }, h || {})); res.end(o === undefined ? '' : JSON.stringify(o)); };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, prefer, x-client-info', 'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS' };
+const send = (res, s, o, h) => { res.writeHead(s, Object.assign({ 'Content-Type': 'application/json' }, CORS, h || {})); res.end(o === undefined ? '' : JSON.stringify(o)); };
 function caller(req) {
   const a = (req.headers.authorization || '').replace(/^Bearer /, '');
   if (a === SERVICE_KEY) return 'service';
@@ -124,6 +129,7 @@ function issue(uid) {
 
 async function route(req, res, body) {
   const u = new URL(req.url, BASE), p = u.pathname, who = caller(req);
+  if (req.method === 'OPTIONS') return send(res, 204);
   if (p === '/' || p === '/index.html') {
     if (!fs.existsSync(PAGE)) { res.writeHead(500); return res.end(path.relative(ROOT, PAGE) + ' 이 없습니다 — python3 tools/build.py ' + (STAFF ? 'local-staff' : 'local') + ' 을 먼저 실행하세요'); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -158,7 +164,7 @@ async function route(req, res, body) {
     if (!STAFF) return send(res, 404, {});
     const r = await fnHandler(new Request(BASE + p, { method: req.method, headers: req.headers, body: req.method === 'POST' ? body : undefined }));
     const txt = await r.text();
-    res.writeHead(r.status, { 'Content-Type': 'application/json' }); return res.end(txt);
+    res.writeHead(r.status, Object.assign({ 'Content-Type': 'application/json' }, CORS)); return res.end(txt);
   }
 
   // REST
@@ -190,7 +196,9 @@ async function route(req, res, body) {
     if (req.method === 'DELETE') { rows.filter(r => who === 'service' || canWrite(who, r.k)).forEach(r => { kv.delete(r.k); logAudit(who, r.k.split(':')[0], 'delete', r.k, 0); }); return send(res, 204); }
     if (who !== 'service') rows = rows.filter(r => canRead(who, r.k));
     rows.sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1));
-    const lim = +u.searchParams.get('limit'); if (lim) rows = rows.slice(0, lim);
+    if (u.searchParams.get('order') === 'k') rows.sort((a, b) => (a.k < b.k ? -1 : 1));
+    const off = +u.searchParams.get('offset') || 0, lim = +u.searchParams.get('limit');
+    rows = rows.slice(off, lim ? off + lim : undefined);
     return send(res, 200, pick(rows, u.searchParams.get('select') || 'k,v,updated_at'));
   }
   if (p === '/rest/v1/smartcare_staff') {

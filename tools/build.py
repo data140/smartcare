@@ -38,6 +38,11 @@ def config(env):
     return json.load(open(path, encoding='utf-8'))
 
 
+def prod_cfg():
+    path = P('config', 'prod.json')
+    return json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {}
+
+
 def inject_head(html, snippet):
     anchor = '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
     assert html.count(anchor) >= 1, 'head anchor not found'
@@ -51,7 +56,9 @@ def template(env):
     for ph, val in (("'__SC_CLOUD_URL__'", url_js), ("'__SC_CLOUD_KEY__'", json.dumps(cfg['key']).replace('"', "'")),
                     ("'__SC_CLOUD_WS__'", json.dumps(cfg.get('ws', 'smartcare')).replace('"', "'")),
                     ("'__SC_AUTH_MODE__'", "'%s'" % cfg.get('auth', 'shared')),
-                    ("'__SC_STORE_NS__'", "'%s'" % {'next': 'next~', 'test': 'test~'}.get(env, ''))):
+                    ("'__SC_STORE_NS__'", "'%s'" % {'next': 'next~', 'test': 'test~'}.get(env, '')),
+                    ("'__SC_MIG_SRC_URL__'", "'%s'" % prod_cfg().get('url', '')),
+                    ("'__SC_MIG_SRC_KEY__'", "'%s'" % prod_cfg().get('key', ''))):
         if html.count(ph) != 1:
             sys.exit('placeholder %s: %d개 (1개여야 함)' % (ph, html.count(ph)))
         html = html.replace(ph, val)

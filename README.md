@@ -16,7 +16,7 @@
 | `supabase/functions/smartcare-staff/` | 계정 관리 서버 함수 (직원 계정 만들기·비밀번호·권한) |
 | `supabase/tests/` | 서버 권한 규칙 시험 (로컬 PostgreSQL) |
 | `tools/` | 빌드·개발 서버·가상 데이터 |
-| `tests/smoke.js` · `tests/smoke-staff.js` | 화면 동작 시험 (공용 계정 방식 · 직원별 계정 방식) |
+| `tests/smoke.js` · `tests/smoke-staff.js` · `tests/migrate.js` | 화면 동작 시험 (공용 계정 방식 · 직원별 계정 방식 · 데이터 이전) |
 | `index.html` · `next/index.html` | **빌드 결과물** (운영 · 새 서버 배포 파일 — 직접 고치지 않음) |
 
 ## 고치는 순서
@@ -66,3 +66,15 @@
 2. 서버 함수 등록: Edge Functions › Deploy a new function › Via Editor → 이름 `smartcare-staff`, 내용은 `supabase/functions/smartcare-staff/index.ts`
 3. 첫 시스템 관리자: Authentication › Users › Add user 로 `s99.smartcare@smartcare.invalid` 생성(Auto Confirm) 후 `schema-next.sql` 맨 아래 문장 다시 실행
 4. `https://data140.github.io/smartcare/next/` 에서 시스템 관리자(`admin`)로 로그인 → 비밀번호 변경
+
+## 데이터 이전 (운영 서버 → 새 서버)
+
+새 서버 화면에서 시스템 관리자로 로그인 → **설정 › 데이터 이전**
+
+1. 원본 서버(운영) 공용 계정으로 연결 → 옮길 데이터·직원 수 미리 보기
+2. **리허설 이전**: 원본은 그대로 두고 옮겨 본 뒤 확인 → **새 서버 데이터 비우기**
+3. **최종 이전**: 원본 서버에 저장 멈춤 표시(`smartcare.appver.v1` = 9999999999)를 기록 → 원본 화면은 1분 안에 저장을 멈춤 → 70초 뒤 복사
+4. 직원마다 새 서버 계정과 임시 비밀번호 발급 → 목록 복사 후 각자 전달 (첫 로그인 때 변경)
+5. 중단해야 하면 **원본 서버 저장 다시 허용**
+
+데이터는 브라우저에서 원본 → 새 서버로 바로 옮기며 파일로 내려받지 않습니다. 새 서버 직원 명부에는 비밀번호를 옮기지 않습니다.

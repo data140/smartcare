@@ -3248,6 +3248,77 @@
               </div>
             </sc-if>
 
+            <sc-if value="{{ setMigrateTab }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-6); max-width: 880px;">
+                <div>
+                  <h3 style="margin: 0; font-size: 23px; font-weight: 500;">데이터 이전</h3>
+                  <p style="margin: var(--space-2) 0 0; font-size: 14.5px; line-height: 1.7; color: var(--color-neutral-400);">지금 운영 중인 서버(원본)의 데이터를 이 서버로 옮기고, 직원마다 이 서버의 계정과 임시 비밀번호를 만듭니다. 브라우저에서 바로 옮기므로 데이터가 파일로 남지 않습니다.</p>
+                </div>
+
+                <div style="padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: var(--space-4);">
+                  <div style="font-size: 12px; letter-spacing: 0.1em; color: var(--color-neutral-600);">1 · 원본 서버 연결 (기관 공용 계정)</div>
+                  <div class="field"><label for="sc-mig-url">원본 서버 주소</label><input id="sc-mig-url" class="input" value="{{ migSrcUrl }}" sc-camel-on-change="{{ onMigSrcUrl }}" style="min-height: 44px; font-family: ui-monospace, monospace;"></div>
+                  <div class="field"><label for="sc-mig-key">원본 서버 공개 키</label><input id="sc-mig-key" class="input" type="password" value="{{ migSrcKey }}" sc-camel-on-change="{{ onMigSrcKey }}" autocomplete="off" style="min-height: 44px; font-family: ui-monospace, monospace;"></div>
+                  <div class="field"><label for="sc-mig-email">공용 계정 이메일</label><input id="sc-mig-email" class="input" type="email" value="{{ migSrcEmail }}" sc-camel-on-change="{{ onMigSrcEmail }}" autocomplete="off" style="min-height: 44px;"></div>
+                  <div class="field"><label for="sc-mig-pw">공용 계정 비밀번호</label><input id="sc-mig-pw" class="input" type="password" value="{{ migSrcPw }}" sc-camel-on-change="{{ onMigSrcPw }}" autocomplete="off" style="min-height: 44px;"></div>
+                  <div><button sc-camel-on-click="{{ migConnect }}" disabled="{{ migBusy }}" class="btn btn-primary" style="min-height: 44px;"><i class="ph ph-plugs-connected"></i> 원본 서버 연결 · 미리 보기</button></div>
+                  <sc-if value="{{ migErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font-size: 13.5px; color: var(--color-accent-300);">{{ migErr }}</div></sc-if>
+                </div>
+
+                <sc-if value="{{ migConnected }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: var(--space-4);">
+                    <div style="font-size: 12px; letter-spacing: 0.1em; color: var(--color-neutral-600);">2 · 옮길 데이터</div>
+                    <div style="font-size: 15px;">데이터 <b style="font-weight: 600;">{{ migTotal }}</b>개 항목 · 직원 <b style="font-weight: 600;">{{ migStaffCount }}</b>명</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                      <sc-for list="{{ migKinds }}" as="mk" hint-placeholder-count="4"><span class="tag tag-outline" style="font-size: 13px;">{{ mk.kind }} {{ mk.n }}</span></sc-for>
+                    </div>
+                    <sc-if value="{{ migFrozen }}" hint-placeholder-val="{{ false }}">
+                      <div role="status" style="font-size: 13.5px; color: var(--color-accent-300);"><i class="ph ph-lock"></i> 원본 서버는 지금 저장이 멈춘 상태입니다 (원본 화면에서 저장 불가).</div>
+                    </sc-if>
+                  </div>
+
+                  <div style="padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: var(--space-4);">
+                    <div style="font-size: 12px; letter-spacing: 0.1em; color: var(--color-neutral-600);">3 · 이전</div>
+                    <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: var(--space-2); font-size: 14px; line-height: 1.7; color: var(--color-neutral-300);">
+                      <li><b style="font-weight: 500; color: var(--color-text);">리허설</b>: 원본은 그대로 두고 옮겨 봅니다. 이 서버 화면에서 데이터를 확인한 뒤 [새 서버 데이터 비우기]로 정리하세요.</li>
+                      <li><b style="font-weight: 500; color: var(--color-text);">최종 이전</b>: 원본 서버의 저장을 멈추고(직원 화면은 1분 안에 저장이 막힘) 옮깁니다. 직원들이 쓰지 않는 시간에 진행하세요.</li>
+                    </ol>
+                    <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                      <button sc-camel-on-click="{{ migRehearse }}" disabled="{{ migBusy }}" class="btn btn-secondary" style="min-height: 44px;"><i class="ph ph-play"></i> 리허설 이전</button>
+                      <button sc-camel-on-click="{{ migFinal }}" disabled="{{ migBusy }}" class="btn btn-primary" style="min-height: 44px;"><i class="ph ph-arrow-fat-lines-right"></i> 최종 이전</button>
+                      <sc-if value="{{ migFrozen }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ migUnfreeze }}" disabled="{{ migBusy }}" class="btn btn-ghost" style="min-height: 44px;">원본 서버 저장 다시 허용</button></sc-if>
+                      <button sc-camel-on-click="{{ migWipe }}" disabled="{{ migBusy }}" class="btn btn-ghost" style="min-height: 44px; color: var(--color-neutral-500);">새 서버 데이터 비우기</button>
+                    </div>
+                    <sc-if value="{{ migProgress }}" hint-placeholder-val="{{ false }}"><div role="status" style="font-size: 14px;">진행: {{ migProgress }}</div></sc-if>
+                    <sc-if value="{{ migHasLog }}" hint-placeholder-val="{{ false }}">
+                      <pre aria-label="이전 기록" style="margin: 0; padding: var(--space-4); max-height: 260px; overflow: auto; border-radius: var(--radius-md); background: var(--color-bg); box-shadow: 0 0 0 1px var(--color-neutral-800); font-family: ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; color: var(--color-neutral-200); white-space: pre-wrap;">{{ migLogText }}</pre>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ migHasTemps }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-accent-800); display: flex; flex-direction: column; gap: var(--space-4);">
+                    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+                      <div style="font-size: 16px;">직원 임시 비밀번호</div>
+                      <button sc-camel-on-click="{{ migCopyTemps }}" class="btn btn-secondary" style="min-height: 36px;"><i class="ph ph-copy"></i> 목록 복사</button>
+                      <button sc-camel-on-click="{{ migReload }}" class="btn btn-ghost" style="min-height: 36px;"><i class="ph ph-arrows-clockwise"></i> 새로고침해 데이터 보기</button>
+                    </div>
+                    <div style="font-size: 13.5px; color: var(--color-neutral-400); line-height: 1.7;">이 목록은 이 화면을 떠나면 다시 볼 수 없습니다. 각 직원에게 따로 전달하세요 (첫 로그인 때 본인 비밀번호로 바뀝니다).</div>
+                    <div role="table" aria-label="직원 임시 비밀번호" style="overflow-x: auto; font-size: 14px;">
+                      <div role="row" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.2fr 0.8fr; min-width: 560px; font-weight: 500;">
+                        <span role="columnheader" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">기관</span><span role="columnheader" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">이름</span><span role="columnheader" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">사번/ID</span><span role="columnheader" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">임시 비밀번호</span><span role="columnheader" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">상태</span>
+                      </div>
+                      <sc-for list="{{ migTemps }}" as="tp" hint-placeholder-count="3">
+                        <div role="row" style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.2fr 0.8fr; min-width: 560px;">
+                          <span role="cell" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">{{ tp.org }}</span><span role="cell" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">{{ tp.name }}</span><span role="cell" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">{{ tp.id }}</span><span role="cell" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider); font-family: ui-monospace, monospace;">{{ tp.pw }}</span><span role="cell" style="padding: 6px 8px; border-bottom: 1px solid var(--color-divider);">{{ tp.status }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
             <sc-if value="{{ setOrgTab }}" hint-placeholder-val="{{ false }}">
               <div style="display: flex; flex-direction: column; gap: var(--space-4);">
                 <div style="display: flex; align-items: baseline; gap: var(--space-4);">

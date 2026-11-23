@@ -2674,6 +2674,9 @@ class Component extends DCLogic {
   // 브라우저 저장 공간 구역: 운영 = '' · 새 서버 = 'next~' · 시험 = 'test~'
   // 같은 주소(data140.github.io)의 운영·새 서버 화면이 서로의 저장 데이터·로그인을 섞지 않게 함
   static STORE_NS = '__SC_STORE_NS__';
+  // 데이터 이전 도구의 기본 원본 서버 (운영 서버 주소·공개 키)
+  static MIG_SRC = { url: '__SC_MIG_SRC_URL__', key: '__SC_MIG_SRC_KEY__' };
+  static MIG_FREEZE = '9999999999';
   // 이 화면 구역의 저장 키 목록 (구역 접두어를 뗀 이름)
   static lsKeys() {
     const NS = Component.STORE_NS, out = [];
@@ -3568,6 +3571,146 @@ class Component extends DCLogic {
     this.staffSnapSet(this.state.roster);
     this.setState({ lgBusy: false, pwcOpen: !!me.must_change, pwcForced: !!me.must_change, pwcNew: '', pwcNew2: '', pwcErr: '' });
     return m;
+  }
+
+  // ───── 데이터 이전 (운영 서버 → 새 서버 · 시스템 관리자 · 직원별 계정 방식) ─────
+  // 브라우저에서 원본 서버에 공용 계정으로 접속해 이 서버로 바로 복사 (파일로 내려받지 않음)
+  // 상태는 항상 직전 값 위에 덧붙임 (연달아 바꿔도 앞의 변경을 덮어쓰지 않게)
+  migSet(patch) { this.setState(prev => ({ mig: Object.assign({}, prev.mig || {}, patch) })); }
+  migLog(line) {
+    const t = new Date(), p2 = (n) => String(n).padStart(2, '0');
+    const entry = p2(t.getHours()) + ':' + p2(t.getMinutes()) + ':' + p2(t.getSeconds()) + '  ' + line;
+    this.setState(prev => { const m = prev.mig || {}; return { mig: Object.assign({}, m, { log: (m.log || []).concat([entry]).slice(-300) }) }; });
+  }
+  migSrc() {
+    const m = this.state.mig || {};
+    return { url: ((m.srcUrl != null ? m.srcUrl : Component.MIG_SRC.url) || '').trim().replace(/\/+$/, ''), key: ((m.srcKey != null ? m.srcKey : Component.MIG_SRC.key) || '').trim(), token: m.token };
+  }
+  async migSrcFetch(path, init) {
+    const s = this.migSrc();
+    const r = await fetch(s.url + path, Object.assign({}, init || {}, { headers: Object.assign({ apikey: s.key, Authorization: 'Bearer ' + s.token, 'Content-Type': 'application/json' }, (init || {}).headers || {}) }));
+    if (!r.ok) throw new Error('원본 서버 오류 (HTTP ' + r.status + ')');
+    return r;
+  }
+  static migKind(rest) {
+    if (rest === 'smartcare.patients.v1' || /\.patients\.v1$/.test(rest)) return '환자 명부';
+    if (rest === 'smartcare.roster.v1') return '직원 명부';
+    if (/\.idph\.|\.idphotos\./.test(rest)) return '증명사진';
+    if (/\.wph\./.test(rest)) return '현장사진';
+    if (/\.sign\.|\.signs\./.test(rest)) return '서명';
+    if (/\.wsess\.|\.work\.v1$/.test(rest)) return '일지';
+    if (/\.cfiles\.|consent/i.test(rest)) return '동의서';
+    if (/\.plans\.v1$/.test(rest)) return '일정';
+    return '기타 설정';
+  }
+  async migConnect() {
+    const m = this.state.mig || {}, src = this.migSrc(), ws = (this.cloudBase() || {}).ws || 'smartcare';
+    if (!/^https?:\/\/.+/.test(src.url) || !src.key) { this.migSet({ err: '원본 서버 주소와 공개 키를 확인하세요' }); return; }
+    if (!(m.srcEmail || '').trim() || !m.srcPw) { this.migSet({ err: '원본 서버 공용 계정 이메일과 비밀번호를 입력하세요' }); return; }
+    this.migSet({ busy: true, err: '', summary: null, keys: null, token: null });
+    try {
+      const r = await fetch(src.url + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: src.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: m.srcEmail.trim(), password: m.srcPw }) });
+      if (!r.ok) throw new Error(r.status === 400 ? '원본 서버 계정 이메일 또는 비밀번호가 맞지 않습니다' : '원본 서버 로그인 실패 (HTTP ' + r.status + ')');
+      this.migSet({ token: (await r.json()).access_token, srcPw: '' });
+      // 키 목록 (값은 받지 않음)
+      const keys = [];
+      for (let off = 0; off < 100000; off += 1000) {
+        const rows = await (await this.migSrcFetch('/rest/v1/smartcare_kv?select=k,updated_at&k=like.' + encodeURIComponent(ws + ':*') + '&order=k&limit=1000&offset=' + off)).json();
+        rows.forEach(x => keys.push(x.k));
+        if (rows.length < 1000) break;
+      }
+      const skip = (k) => /:smartcare\.(appver|cloud)\.v1$/.test(k);
+      const use = keys.filter(k => !skip(k));
+      const byKind = {};
+      use.forEach(k => { const kind = Component.migKind(k.slice(ws.length + 1)); byKind[kind] = (byKind[kind] || 0) + 1; });
+      let roster = [];
+      try { const rr = await (await this.migSrcFetch('/rest/v1/smartcare_kv?select=v&k=eq.' + encodeURIComponent(ws + ':smartcare.roster.v1'))).json(); roster = rr[0] ? JSON.parse(rr[0].v) : []; } catch (e) {}
+      let ver = null;
+      try { const vr = await (await this.migSrcFetch('/rest/v1/smartcare_kv?select=v&k=eq.' + encodeURIComponent(ws + ':smartcare.appver.v1'))).json(); ver = vr[0] ? vr[0].v : null; } catch (e) {}
+      this.migSet({ busy: false, keys: use, roster: Array.isArray(roster) ? roster : [], srcVer: ver, frozen: ver === Component.MIG_FREEZE,
+        summary: { total: use.length, byKind: byKind, staff: (Array.isArray(roster) ? roster : []).length } });
+      this.migLog('원본 서버 연결 — 데이터 ' + use.length + '개 항목, 직원 ' + roster.length + '명');
+    } catch (e) { this.migSet({ busy: false, err: e.message }); }
+  }
+  async migFreeze(on) {
+    const ws = (this.cloudBase() || {}).ws || 'smartcare', m = this.state.mig || {};
+    const v = on ? Component.MIG_FREEZE : (m.srcVer && m.srcVer !== Component.MIG_FREEZE ? m.srcVer : String(Component.BUILD));
+    await this.migSrcFetch('/rest/v1/smartcare_kv?on_conflict=k', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ k: ws + ':smartcare.appver.v1', v: v, updated_at: new Date().toISOString() }]) });
+    this.migSet({ frozen: !!on });
+    this.migLog(on ? '원본 서버 저장 멈춤 — 원본 화면은 1분 안에 저장을 멈추고 새로고침을 요구합니다' : '원본 서버 저장 다시 허용');
+  }
+  async migRun(final) {
+    const m = this.state.mig || {}, b = this.cloudBase();
+    if (!m.keys || !m.token || m.busy) return;
+    this.migSet({ busy: true, err: '', temps: null, done: false });
+    try {
+      if (final && !m.frozen) {
+        await this.migFreeze(true);
+        const wait = window.__scMigWaitMs != null ? window.__scMigWaitMs : 70000; // 시험에서만 줄임
+        this.migLog('원본 화면이 저장을 멈출 때까지 ' + Math.round(wait / 1000) + '초 기다립니다…');
+        await new Promise(r => setTimeout(r, wait));
+      }
+      // 1) 데이터 복사
+      const keys = m.keys.slice();
+      let copied = 0, bytes = 0, failed = [];
+      const one = async (k) => {
+        const rows = await (await this.migSrcFetch('/rest/v1/smartcare_kv?select=k,v,updated_at&k=eq.' + encodeURIComponent(k))).json();
+        if (!rows[0]) return;
+        let v = rows[0].v;
+        if (/:smartcare\.roster\.v1$/.test(k)) {
+          // 새 서버 직원 명부에는 비밀번호를 두지 않음
+          try { v = JSON.stringify(JSON.parse(v).map(x => { if (!x || typeof x !== 'object') return x; const c = Object.assign({}, x); delete c.pw; delete c.tempPw; return c; })); } catch (e) {}
+        }
+        await this.authEnsure();
+        const w = await fetch(b.url + '/rest/v1/smartcare_kv?on_conflict=k', { method: 'POST', headers: this.cloudHeaders(b, { Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify([{ k: k, v: v, updated_at: rows[0].updated_at || new Date().toISOString() }]) });
+        if (!w.ok) throw new Error('HTTP ' + w.status);
+        copied++; bytes += (v || '').length;
+      };
+      this.migLog('데이터 복사 시작 — ' + keys.length + '개 항목');
+      for (let i = 0; i < keys.length; i += 4) {
+        await Promise.all(keys.slice(i, i + 4).map(k => one(k).catch(e => failed.push(k + ' (' + e.message + ')'))));
+        if ((i / 4) % 10 === 0 || i + 4 >= keys.length) this.migSet({ progress: Math.min(keys.length, i + 4) + ' / ' + keys.length });
+      }
+      this.migLog('데이터 복사 완료 — ' + copied + '개 · ' + Math.round(bytes / 1024) + 'KB' + (failed.length ? ' · 실패 ' + failed.length + '개' : ''));
+      failed.slice(0, 10).forEach(f => this.migLog('  실패: ' + f));
+      // 2) 확인: 새 서버에 모든 키가 있는지
+      const have = {};
+      for (let off = 0; off < 100000; off += 1000) {
+        const rows = await (await fetch(b.url + '/rest/v1/smartcare_kv?select=k&k=like.' + encodeURIComponent(b.ws + ':*') + '&order=k&limit=1000&offset=' + off, { headers: this.cloudHeaders(b) })).json();
+        rows.forEach(x => { have[x.k] = 1; });
+        if (rows.length < 1000) break;
+      }
+      const missing = keys.filter(k => !have[k]);
+      this.migLog(missing.length ? '확인: 새 서버에 없는 항목 ' + missing.length + '개 — 다시 실행하세요' : '확인: 원본의 모든 항목이 새 서버에 있습니다 (' + keys.length + '개)');
+      // 3) 직원 서버 계정 (임시 비밀번호)
+      const myId = this.state.userId, orgs = this.state.orgs || [];
+      const temps = [];
+      for (const x of (m.roster || [])) {
+        if (!x || x.id == null || x.id === myId) continue;
+        const t = Component.tempPassword();
+        const payload = { action: 'sync', staff: Component.staffFields(x), password: t, must_change: true };
+        try {
+          try { await this.staffFn(Object.assign({ create: true }, payload)); }
+          catch (e) { if (!/이미 사용 중인 직원 번호/.test(e.message)) throw e; await this.staffFn(payload); }
+          temps.push({ name: x.name || '(이름 없음)', org: x.org === '*' ? '시스템 관리자' : ((orgs.find(o => o.id === x.org) || {}).name || x.org), id: x.org === '*' ? (x.empNo || '') : (x.empNo || x.email || '—'), status: x.status === '활성' ? '' : '사용 중지', pw: t });
+        } catch (e) { this.migLog('  계정 실패: ' + (x.name || x.id) + ' — ' + e.message); }
+      }
+      this.migLog('직원 서버 계정 ' + temps.length + '개 준비 (임시 비밀번호 발급 · 첫 로그인 때 변경)');
+      this.staffSnapSet(null);
+      this.migSet({ busy: false, temps: temps, done: true, progress: '' });
+      this.migLog(final ? '최종 이전 완료 — 원본 서버는 저장이 멈춘 상태로 남아 있습니다' : '리허설 완료 — 원본 서버는 그대로입니다. 확인 후 [새 서버 데이터 비우기]로 정리하세요');
+    } catch (e) { this.migSet({ busy: false, err: e.message }); this.migLog('중단: ' + e.message); }
+  }
+  async migWipe() {
+    const b = this.cloudBase();
+    this.migSet({ busy: true, err: '' });
+    try {
+      await this.authEnsure();
+      const r = await fetch(b.url + '/rest/v1/smartcare_kv?k=like.' + encodeURIComponent(b.ws + ':*'), { method: 'DELETE', headers: this.cloudHeaders(b) });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      this.migLog('새 서버 데이터를 비웠습니다 (직원 서버 계정은 남아 있음 — 최종 이전 때 임시 비밀번호를 새로 발급)');
+      this.migSet({ busy: false, temps: null, done: false });
+    } catch (e) { this.migSet({ busy: false, err: '비우기 실패 — ' + e.message }); }
   }
 
   cloudHeaders(c, extra) {
@@ -6856,7 +6999,8 @@ class Component extends DCLogic {
             { k: 'set-ward', label: '병동 · 호실', icon: 'ph ph-bed', show: can('settings'), on: v === 'settings' && st === 'ward', go: goView('settings', { setTab: 'ward' }) },
             { k: 'set-staff', label: '계정 · 권한', icon: 'ph ph-identification-badge', show: can('settings'), on: v === 'settings' && st === 'staff', go: goView('settings', { setTab: 'staff' }) },
             { k: 'set-org', label: '기관 관리', icon: 'ph ph-buildings', show: can('settings') && isSys, on: v === 'settings' && st === 'org', go: goView('settings', { setTab: 'org' }) },
-            { k: 'set-cloud', label: '데이터 서버', icon: 'ph ph-cloud', show: can('settings') && isSys, on: v === 'settings' && st === 'cloud', go: goView('settings', { setTab: 'cloud' }) }
+            { k: 'set-cloud', label: '데이터 서버', icon: 'ph ph-cloud', show: can('settings') && isSys, on: v === 'settings' && st === 'cloud', go: goView('settings', { setTab: 'cloud' }) },
+            { k: 'set-migrate', label: '데이터 이전', icon: 'ph ph-arrow-fat-lines-right', show: can('settings') && isSys && Component.isStaffMode(), on: v === 'settings' && st === 'migrate', go: goView('settings', { setTab: 'migrate' }) }
           ] }
         ];
         // 메뉴 순서는 사용자(계정)별로 저장 — 다른 PC에서 같은 계정으로 로그인해도 유지
@@ -9382,7 +9526,7 @@ class Component extends DCLogic {
         { key: 'program', label: '프로그램 관리' },
         { key: 'ward', label: '병동 · 호실' },
         { key: 'staff', label: '담당자 명단 및 권한' }
-      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).map(t => ({
+      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
         label: t.label, active: s.setTab === t.key, inactive: s.setTab !== t.key,
         go: () => { if (t.key === s.setTab) return; guardLeave(() => this.setState({ setTab: t.key })); }
       })),
@@ -9391,6 +9535,50 @@ class Component extends DCLogic {
       setWardTab: s.setTab === 'ward',
       setOrgTab: isSys && s.setTab === 'org',
       setCloudTab: isSys && s.setTab === 'cloud',
+      setMigrateTab: isSys && Component.isStaffMode() && s.setTab === 'migrate',
+      ...(() => {
+        const m = s.mig || {}, src = this.migSrc();
+        const sm = m.summary;
+        return {
+          migSrcUrl: src.url, migSrcKey: src.key, migSrcEmail: m.srcEmail || '', migSrcPw: m.srcPw || '',
+          onMigSrcUrl: (e) => this.migSet({ srcUrl: e.target.value }),
+          onMigSrcKey: (e) => this.migSet({ srcKey: e.target.value }),
+          onMigSrcEmail: (e) => this.migSet({ srcEmail: e.target.value, err: '' }),
+          onMigSrcPw: (e) => this.migSet({ srcPw: e.target.value, err: '' }),
+          migConnect: () => this.migConnect(),
+          migBusy: !!m.busy, migIdle: !m.busy,
+          migErr: m.err || '',
+          migConnected: !!sm, migNotConnected: !sm,
+          migTotal: sm ? sm.total : 0, migStaffCount: sm ? sm.staff : 0,
+          migKinds: sm ? Object.keys(sm.byKind).sort().map(k => ({ kind: k, n: sm.byKind[k] })) : [],
+          migFrozen: !!m.frozen, migNotFrozen: !m.frozen,
+          migProgress: m.progress || '',
+          migLogText: (m.log || []).join('\n'),
+          migHasLog: !!(m.log || []).length,
+          migRehearse: () => this.migRun(false),
+          migFinal: () => this.setState({ dialog: {
+            title: '최종 이전을 시작할까요?',
+            body: '원본 서버(지금 운영 중인 서버)의 저장을 멈춘 뒤 모든 데이터를 이 서버로 옮기고, 직원마다 임시 비밀번호를 새로 발급합니다.\n원본 화면을 쓰는 직원은 1분 안에 저장이 막힙니다. 직원들이 쓰지 않는 시간에 진행하세요.',
+            cta: '최종 이전 시작',
+            confirm: () => { this.setState({ dialog: null }); this.migRun(true); }
+          } }),
+          migUnfreeze: () => this.migFreeze(false).catch(e => this.migSet({ err: e.message })),
+          migWipe: () => this.setState({ dialog: {
+            title: '새 서버의 데이터를 모두 지울까요?',
+            body: '리허설로 옮긴 데이터를 지웁니다. 원본 서버(운영)의 데이터는 그대로입니다.',
+            cta: '새 서버 데이터 비우기',
+            confirm: () => { this.setState({ dialog: null }); this.migWipe(); }
+          } }),
+          migHasTemps: !!(m.temps && m.temps.length),
+          migTemps: (m.temps || []).map(t => ({ name: t.name, org: t.org, id: t.id, pw: t.pw, status: t.status })),
+          migCopyTemps: async () => {
+            const txt = ['기관\t이름\t사번/ID\t임시 비밀번호\t상태'].concat((m.temps || []).map(t => [t.org, t.name, t.id, t.pw, t.status].join('\t'))).join('\n');
+            try { await navigator.clipboard.writeText(txt); this.flash('임시 비밀번호 목록을 복사했습니다 — 엑셀 등에 붙여 넣을 수 있습니다'); }
+            catch (e) { this.flash('자동 복사가 막혀 있습니다 — 표를 직접 선택해 복사하세요'); }
+          },
+          migReload: () => window.location.reload()
+        };
+      })(),
       setNotifyTab: (isSys || hasRole('관리자')) && s.setTab === 'notify',
       setApprovalTab: (isSys || hasRole('관리자')) && s.setTab === 'approval',
       ...(() => {
