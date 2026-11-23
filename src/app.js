@@ -492,7 +492,15 @@ class Component extends DCLogic {
     const isSys = (Array.isArray(me.roles) ? me.roles : [me.role]).indexOf('시스템관리자') >= 0;
     const narrow = (s.vw || 1600) < 700;
     const dotC = { red: '#e03131', amber: '#e8890c', green: '#2b8a3e' };
-    const welcome = { role: 'bot', title: '무엇을 도와드릴까요?', lines: [{ t: '오늘 할 일, 미비사항 점검, 미작성 일지 목록, 담당자별 일정, 동의·증명사진 미완료 환자, 통계, 환자 참여 이력, 사용법을 물어보세요.', c: '' }] };
+    // 배지 숫자만큼의 새 소식(밀린 일지 · 검수 필요)을 창을 열면 바로 보여줌
+    const newsFmt = (d) => String(d || '').slice(5).replace('-', '/');
+    const news = past.map(p => ({ t: '· ' + newsFmt(p.date) + ' ' + p.program + ' — 일지 미작성', c: 'amber' })).concat(iss.review.map(p => ({ t: '· ' + newsFmt(p.date) + ' ' + p.program + ' — 검수 필요', c: 'red' })));
+    const newsShown = news.slice(0, 8);
+    if (news.length > newsShown.length) newsShown.push({ t: '… 외 ' + (news.length - newsShown.length) + '건 (“미비사항 점검”으로 전체 보기)', c: '' });
+    const hint = { t: '오늘 할 일, 미비사항 점검, 미작성 일지 목록, 담당자별 일정, 동의·증명사진 미완료 환자, 통계, 환자 참여 이력, 사용법을 물어보세요.', c: '' };
+    const welcome = news.length
+      ? { role: 'bot', title: '새 소식 ' + news.length + '건이 있어요', lines: newsShown.concat([hint]), actions: [{ label: '일지 목록 · 검수', go: this.aiGo({ pcView: 'logs', logTab: 'list' }) }] }
+      : { role: 'bot', title: '무엇을 도와드릴까요?', lines: [hint] };
     const msgs = (s.aiMsgs && s.aiMsgs.length) ? s.aiMsgs : [welcome];
     const chipQ = ['오늘 할 일', '내일 일정', '이번 주 일정', '미비사항 점검', '일지 미작성 목록', '이번 주 담당자별 일정', '증명사진 없는 환자 몇 명', '이번 달 통계', '일지 작성 방법'];
     return {
@@ -505,9 +513,10 @@ class Component extends DCLogic {
       aiBriefText: '오늘 일정 ' + iss.todayPlans.length + '건 · 밀린 일지 ' + past.length + '건 · 검수 ' + iss.review.length + '건',
       aiBriefOpen: () => { markSeen(); this.setState({ aiBriefClosed: true }); this.aiAsk('오늘 할 일'); },
       aiBriefClose: () => { markSeen(); this.setState({ aiBriefClosed: true }); },
-      aiModeLabel: cfg.url ? 'AI 연결됨 · 환자 이름은 가려서 전송' : '무료 규칙형 · 시스템 데이터로 답변',
-      aiCanSetup: isSys,
-      aiSetupOpen: !!s.aiSetupOpen && isSys,
+      // AI 연결 설정·연결 상태 표시는 개발자용 — 운영 화면에서는 숨김 (주소 끝에 ?dev=1 을 붙이면 보임)
+      aiModeLabel: Component.DEV_BAR ? (cfg.url ? 'AI 연결됨 · 환자 이름은 가려서 전송' : '무료 규칙형 · 시스템 데이터로 답변') : '업무를 도와드려요',
+      aiCanSetup: isSys && Component.DEV_BAR,
+      aiSetupOpen: !!s.aiSetupOpen && isSys && Component.DEV_BAR,
       aiSetupToggle: () => { const b = this.cloudBase(); this.setState({ aiSetupOpen: !this.state.aiSetupOpen, aiUrlDraft: cfg.url || (b ? b.url + '/functions/v1/smartcare-ai' : '') }); },
       aiUrlDraft: s.aiUrlDraft != null ? s.aiUrlDraft : (cfg.url || ''),
       onAiUrl: (e) => this.setState({ aiUrlDraft: e.target.value }),

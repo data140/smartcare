@@ -45,6 +45,40 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     check('미비사항 점검은 그대로', t.split('미비사항 점검').length > 1 && /검수 필요/.test(t));
     check('외부 AI 서버로 요청 없음 (무료)', external.length === 0, external.slice(0, 2).join(', '));
     check('화면 오류 없음', errors.length === 0, errors.slice(0, 3).join(' | '));
+
+    // 새 소식: 밀린 일지(어제 프로그램)가 있으면 배지 숫자와 같은 수의 소식이 창을 열자마자 보여야 함
+    const p2 = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+    p2.on('pageerror', e => errors.push(e.message));
+    await p2.goto(BASE + '/'); await p2.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await p2.locator('input[autocomplete="username"]').first().fill('100101');
+    await p2.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await p2.locator('button:has-text("로그인")').last().click();
+    await p2.waitForSelector('text=가상환자1', { timeout: 20000 });
+    await p2.evaluate(() => {
+      const d = new Date(Date.now() - 86400000), p = (n) => String(n).padStart(2, '0'), ymd = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+      const k = 'smartcare.plans.v1', list = JSON.parse(localStorage.getItem(k) || '[]');
+      list.push({ id: 'pl-past1', date: ymd, start: '09:00', end: '10:00', program: '작업치료', place: '재활실', staff: ['박체험'], status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' });
+      list.push({ id: 'pl-past2', date: ymd, start: '13:00', end: '14:00', program: '산책치료', place: '정원', staff: ['김체험'], status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' });
+      localStorage.setItem(k, JSON.stringify(list));
+    });
+    await p2.reload(); await p2.waitForSelector('button[aria-label="AI 비서 열기"]', { timeout: 20000 }); await p2.waitForTimeout(1200);
+    const badge = await p2.evaluate(() => { const b = document.querySelector('button[aria-label="AI 비서 열기"]'); const m = b && /(\d+)/.exec(b.innerText); return m ? Number(m[1]) : 0; });
+    await p2.click('button[aria-label="AI 비서 열기"]');
+    const first = await p2.locator('[role="dialog"][aria-label="AI 비서"]').innerText();
+    check('배지 숫자(' + badge + ')만큼 새 소식이 창을 열자마자 보임', badge >= 2 && first.includes('새 소식 ' + badge + '건') && first.includes('작업치료') && first.includes('산책치료'), first.replace(/\s+/g, ' ').slice(0, 110));
+    check('개발 빌드에서는 AI 연결 상태가 보임', first.includes('무료 규칙형'));
+    // 운영 빌드(개발용 표시를 끈 상태)에서는 숨김
+    const ctx3 = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
+    await ctx3.route('**/*', async (route) => { if (route.request().resourceType() !== 'document') return route.continue(); const r = await route.fetch(); route.fulfill({ response: r, body: (await r.text()).replace("'1' === '1'", "'0' === '1'") }); });
+    const p3 = await ctx3.newPage();
+    await p3.goto(BASE + '/'); await p3.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await p3.locator('input[autocomplete="username"]').first().fill('100101');
+    await p3.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await p3.locator('button:has-text("로그인")').last().click();
+    await p3.waitForSelector('text=가상환자1', { timeout: 20000 });
+    await p3.click('button[aria-label="AI 비서 열기"]');
+    const prodTxt = await p3.locator('[role="dialog"][aria-label="AI 비서"]').innerText();
+    check('운영 빌드에서는 AI 연결 설정 버튼·연결 상태가 숨겨짐', (await p3.locator('button[aria-label="AI 연결 설정"]').count()) === 0 && !prodTxt.includes('무료 규칙형') && !prodTxt.includes('AI 연결됨'));
   } catch (e) {
     check('시험 진행', false, e.message);
   } finally {
