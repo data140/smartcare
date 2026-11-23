@@ -23,6 +23,16 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     await p.waitForSelector('text=가상환자1', { timeout: 20000 });
     await p.locator('text=계정 · 권한 >> visible=true').first().click(); await p.waitForTimeout(1500);
 
+    // 처음에는 한 줄 요약만 보이고, [상세]를 눌러야 입력칸이 펼쳐짐
+    const collapsed = await p.evaluate(() => ({
+      cards: [...document.querySelectorAll('span[title="끌어서 순서 변경"]')].filter(g => g.offsetParent !== null).length,
+      inputs: [...document.querySelectorAll('input[aria-label="사번"]')].filter(i => i.offsetParent !== null).length,
+      chips: /환자\s*(사용|뷰|없음)/.test(document.body.innerText) && /일지\s*(사용|뷰|없음)/.test(document.body.innerText)
+    }));
+    check('처음에는 계정마다 한 줄 요약만 표시 (입력칸 접힘)', collapsed.cards === 3 && collapsed.inputs === 0, JSON.stringify(collapsed));
+    check('요약에 권한(환자·일지·통계) 표시', collapsed.chips);
+    for (const b of await p.locator('button[aria-label="상세 열기·닫기"]:visible').all()) { await b.click(); }
+    await p.waitForTimeout(500);
     const info = await p.evaluate(() => [...document.querySelectorAll('span[title="끌어서 순서 변경"]')].filter(g => g.offsetParent !== null).map(g => {
       const card = g.parentElement.parentElement; const t = card.innerText.replace(/\s+/g, ' ');
       const pos = (k) => t.indexOf(k);
