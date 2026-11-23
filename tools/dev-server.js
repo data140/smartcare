@@ -84,9 +84,9 @@ function logAudit(uid, ws, action, k, size, detail) { audit.push({ id: audit.len
 const esc = s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 const like = pat => { const re = new RegExp('^' + pat.split('*').map(esc).join('.*') + '$'); return v => re.test(v); };
 function cond(expr) {
-  const m = expr.match(/^(\w+)\.(not\.)?(like|eq|in|gt)\.(.*)$/); if (!m) return () => true;
+  const m = expr.match(/^(\w+)\.(not\.)?(like|eq|in|gte|gt)\.(.*)$/); if (!m) return () => true;
   const [, col, neg, op, raw] = m; let f;
-  if (op === 'like') f = like(raw); else if (op === 'eq') f = v => String(v) === raw; else if (op === 'gt') f = v => v > raw;
+  if (op === 'like') f = like(raw); else if (op === 'eq') f = v => String(v) === raw; else if (op === 'gt') f = v => v > raw; else if (op === 'gte') f = v => v >= raw;
   else { const list = raw.replace(/^\(|\)$/g, '').split(',').map(s => s.replace(/^"|"$/g, '')); f = v => list.includes(String(v)); }
   return r => (neg ? !f(r[col]) : f(r[col]));
 }
@@ -111,6 +111,31 @@ function loadFunction() {
   vm.runInNewContext(code, ctx, { filename: 'smartcare-staff/index.ts' });
 }
 if (STAFF) loadFunction();
+
+// AI 비서 함수: 실제 파일을 실행하되 Claude SDK 는 가짜로 바꿔 끼움 (실제 AI 에 요청하지 않음)
+let aiHandler = null, aiLast = null;
+class FakeAnthropicError extends Error { constructor(status, m) { super(m); this.status = status; } }
+class FakeAnthropic {
+  constructor() {
+    this.beta = { messages: { create: async (p) => {
+      aiLast = p;
+      const user = p.messages[p.messages.length - 1].content;
+      const tag = (String(user).match(/환자[A-Z]/) || ['환자A'])[0];
+      return { model: p.model, stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 20 },
+        content: [{ type: 'text', text: '(가짜 AI 답변) ' + tag + ' 님 관련 질문을 받았습니다.\n- 데이터 기준으로 답했습니다.' }] };
+    } } };
+  }
+}
+FakeAnthropic.APIError = FakeAnthropicError;
+FakeAnthropic.RateLimitError = class extends FakeAnthropicError {};
+FakeAnthropic.AuthenticationError = class extends FakeAnthropicError {};
+function loadAiFunction() {
+  const code = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', 'smartcare-ai', 'index.ts'), 'utf8').replace(/^import Anthropic from .*$/m, '');
+  const env = { SUPABASE_URL: BASE, SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, SMARTCARE_AI_DAILY_LIMIT: '3' };
+  const ctx = { Anthropic: FakeAnthropic, Deno: { env: { get: k => env[k] }, serve: h => { aiHandler = h; } }, fetch, Request, Response, Headers, URL, console, Date, JSON, Number, String, Array, Set, Object, Math, encodeURIComponent, Error };
+  vm.runInNewContext(code, ctx, { filename: 'smartcare-ai/index.ts' });
+}
+if (STAFF) loadAiFunction();
 
 // ───── HTTP ─────
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, prefer, x-client-info', 'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS' };
@@ -159,6 +184,13 @@ async function route(req, res, body) {
     if (req.method === 'DELETE') { users.delete(id); for (let i = staff.length - 1; i >= 0; i--) if (staff[i].user_id === id) staff.splice(i, 1); for (const [t, v] of tokens) if (v === id) tokens.delete(t); return send(res, 200, {}); }
   }
 
+  // 시험용: AI 함수가 Claude 에 보낸 마지막 요청
+  if (p === '/__test/ai-last') return send(res, 200, aiLast);
+  if (p === '/functions/v1/smartcare-ai') {
+    if (!STAFF) return send(res, 404, {});
+    const r = await aiHandler(new Request(BASE + p, { method: req.method, headers: req.headers, body: req.method === 'POST' ? body : undefined }));
+    res.writeHead(r.status, Object.assign({ 'Content-Type': 'application/json' }, CORS)); return res.end(await r.text());
+  }
   // 서버 함수
   if (p === '/functions/v1/smartcare-staff') {
     if (!STAFF) return send(res, 404, {});
@@ -209,7 +241,7 @@ async function route(req, res, body) {
   }
   if (p === '/rest/v1/smartcare_audit') {
     if (req.method === 'POST' && who === 'service') { logAudit(J.user_id, J.ws, J.action, J.k, J.size, J.detail); return send(res, 201); }
-    if (req.method === 'GET') { const rows = audit.filter(a => who === 'service' || (STAFF && meRow(who, a.ws) && meRow(who, a.ws).roles.some(r => r === '관리자' || r === '시스템관리자'))); return send(res, 200, rows); }
+    if (req.method === 'GET') { const rows = audit.filter(filters(u.searchParams)).filter(a => who === 'service' || (STAFF && meRow(who, a.ws) && meRow(who, a.ws).roles.some(r => r === '관리자' || r === '시스템관리자'))); return send(res, 200, rows); }
     return send(res, 403, {});
   }
   return send(res, 404, {});

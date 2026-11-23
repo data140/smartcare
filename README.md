@@ -14,6 +14,7 @@
 | `supabase/schema.sql` | 운영 서버(도쿄) 보안 구성 — 기관 공용 계정 |
 | `supabase/schema-next.sql` | 새 서버(서울) 구성 — 직원별 계정 · 기관/역할별 권한 · 감사 기록 |
 | `supabase/functions/smartcare-staff/` | 계정 관리 서버 함수 (직원 계정 만들기·비밀번호·권한) |
+| `supabase/functions/smartcare-ai/` | AI 비서 서버 함수 (Claude 에 자유 질문) |
 | `supabase/tests/` | 서버 권한 규칙 시험 (로컬 PostgreSQL) |
 | `tools/` | 빌드·개발 서버·가상 데이터 |
 | `tests/smoke.js` · `tests/smoke-staff.js` · `tests/migrate.js` | 화면 동작 시험 (공용 계정 방식 · 직원별 계정 방식 · 데이터 이전) |
@@ -78,6 +79,16 @@
 5. 중단해야 하면 **원본 서버 저장 다시 허용**
 
 데이터는 브라우저에서 원본 → 새 서버로 바로 옮기며 파일로 내려받지 않습니다. 새 서버 직원 명부에는 비밀번호를 옮기지 않습니다.
+
+## AI 비서 (Claude)
+
+화면의 AI 비서는 정해진 질문(오늘 할 일·미비사항·통계·환자 이력·사용법)은 화면에서 바로 답하고, 그 밖의 자유 질문은 서버 함수 `smartcare-ai` 를 거쳐 Claude(`claude-opus-5-5`)에게 묻습니다.
+
+- 화면이 보내는 시스템 데이터는 환자 이름을 '환자A' 처럼 가린 요약본이며, 답변의 가명은 화면이 실명으로 되돌립니다.
+- 로그인한 직원만 사용, 한 사람당 하루 질문 수 제한(기본 60회, 함수 비밀값 `SMARTCARE_AI_DAILY_LIMIT`).
+- 질문 내용은 저장하지 않고 감사 기록에 글자 수·사용량만 남깁니다.
+
+설정: Edge Functions › Deploy a new function › Via Editor → 이름 `smartcare-ai`, 내용 `supabase/functions/smartcare-ai/index.ts` → **Verify JWT 끄기** → Edge Functions › Secrets 에 `ANTHROPIC_API_KEY` 추가 → 화면 AI 비서의 설정(시스템 관리자)에서 연결 주소 저장.
 
 ## 서버 전환 (도쿄 → 서울)
 
