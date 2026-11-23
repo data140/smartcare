@@ -4677,7 +4677,13 @@ class Component extends DCLogic {
 
   async _doLogin() {
     const s = this.state;
-    const id = (s.lgId || '').trim(), pw = s.lgPw || '';
+    // 브라우저가 저장된 아이디·비밀번호를 자동으로 채운 경우 입력 이벤트가 앱에 전달되지 않을 수 있어, 화면에 입력된 값을 직접 읽어 보완
+    let domId = '', domPw = '';
+    try {
+      const ui = document.querySelector('form input[autocomplete="username"]'), pi = document.querySelector('form input[autocomplete="current-password"]');
+      domId = ui ? ui.value : ''; domPw = pi ? pi.value : '';
+    } catch (e) {}
+    const id = ((s.lgId || '') || domId).trim(), pw = (s.lgPw || '') || domPw;
     if (!id || !pw) { this.setState({ lgErr: (s.lgMode === 'gmail' ? 'Gmail 주소' : s.lgMode === 'sys' ? '관리자 ID' : '사번') + '와 비밀번호를 입력하세요' }); return; }
     const rl = (m) => Array.isArray(m.roles) ? m.roles : [m.role];
     let m;

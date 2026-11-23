@@ -77,6 +77,13 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p5.locator('input[autocomplete="current-password"]').first().fill('틀린비밀번호');
     await p5.locator('button:has-text("로그인")').last().click(); await sleep(1500);
     check('Gmail 로그인도 비밀번호가 틀리면 들어가지 못함', !(await p5.evaluate(() => document.body.innerText.includes('가상환자1'))) && await p5.evaluate(() => /일치하지|확인|틀|실패/.test(document.body.innerText)));
+    // 4-2) 브라우저 자동 채우기처럼 입력 이벤트 없이 값만 채워져도 로그인됨
+    const p7 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
+    p7.on('pageerror', e => errors.push(e.message));
+    await p7.goto(BASE + '/'); await p7.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await p7.evaluate(() => { document.querySelector('input[autocomplete="username"]').value = '100101'; document.querySelector('input[autocomplete="current-password"]').value = '1234'; });
+    await p7.locator('button:has-text("로그인")').last().click();
+    check('자동 채우기(입력 이벤트 없음)로 채워진 아이디·비밀번호로도 로그인됨', await p7.waitForSelector('text=가상환자1', { timeout: 15000 }).then(() => true, () => false));
     // 5) 아이디 저장 (비밀번호는 저장하지 않음) · Enter 로 로그인
     const p6 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
     p6.on('pageerror', e => errors.push(e.message));
