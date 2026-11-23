@@ -62,6 +62,25 @@
   </div>
   </sc-if>
 
+  <!-- ══════════ 비밀번호 변경 (직원별 계정) ══════════ -->
+  <sc-if value="{{ pwcOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 9001; display: grid; place-items: center; padding: var(--space-6); background: rgba(0, 0, 0, 0.55); overflow-y: auto;">
+      <div role="dialog" aria-modal="true" aria-labelledby="sc-pwc-title" style="width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: var(--space-5, 14px); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-md);">
+        <div>
+          <div id="sc-pwc-title" style="font-size: 20px; font-weight: 500;">{{ pwcTitle }}</div>
+          <p style="font-size: 14px; color: var(--color-neutral-500); line-height: 1.7; margin: var(--space-2) 0 0;">{{ pwcDesc }}</p>
+        </div>
+        <div class="field"><label for="sc-pwc-new">새 비밀번호</label><input id="sc-pwc-new" class="input" type="password" value="{{ pwcNew }}" sc-camel-on-change="{{ onPwcNew }}" sc-camel-on-key-down="{{ pwcKey }}" autocomplete="new-password" style="min-height: 46px; font-size: 15px;"></div>
+        <div class="field"><label for="sc-pwc-new2">새 비밀번호 확인</label><input id="sc-pwc-new2" class="input" type="password" value="{{ pwcNew2 }}" sc-camel-on-change="{{ onPwcNew2 }}" sc-camel-on-key-down="{{ pwcKey }}" autocomplete="new-password" style="min-height: 46px; font-size: 15px;"></div>
+        <sc-if value="{{ pwcErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font-size: 13.5px; color: var(--color-accent-300);">{{ pwcErr }}</div></sc-if>
+        <div style="display: flex; gap: var(--space-3); justify-content: flex-end; flex-wrap: wrap;">
+          <sc-if value="{{ pwcCanClose }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ pwcClose }}" class="btn btn-ghost" style="min-height: 44px;">취소</button></sc-if>
+          <button sc-camel-on-click="{{ pwcSave }}" disabled="{{ pwcBusy }}" class="btn btn-primary" style="min-height: 44px;"><i class="ph ph-lock-key"></i> {{ pwcBtnLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <!-- ══════════ 서버 로그인 (기관 공용 계정) ══════════ -->
   <sc-if value="{{ srvGate }}" hint-placeholder-val="{{ false }}">
     <div style="position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: var(--space-6); background: var(--color-bg); overflow-y: auto;">
@@ -137,7 +156,7 @@
               </div>
             </div>
             <sc-if value="{{ lgErr }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13.5px; color: var(--color-accent-300);">{{ lgErr }}</div></sc-if>
-            <button sc-camel-on-click="{{ login }}" class="btn btn-primary btn-block" style="min-height: 50px; font-size: 16px;"><i class="ph ph-sign-in"></i> 로그인</button>
+            <button sc-camel-on-click="{{ login }}" disabled="{{ lgBusy }}" class="btn btn-primary btn-block" style="min-height: 50px; font-size: 16px;"><i class="ph ph-sign-in"></i> {{ lgBtnLabel }}</button>
           </div>
           <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
             <div style="display: flex; gap: var(--space-3); align-items: center; padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-neutral-700); font-size: 13.5px; color: var(--color-neutral-400);">
@@ -271,6 +290,7 @@
                 <button sc-camel-on-click="{{ uiScaleUp }}" disabled="{{ uiScaleMaxDis }}" class="btn btn-secondary" aria-label="화면 크게" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-plus" style="font-size: 15px;"></i></button>
               </span>
             </div>
+            <sc-if value="{{ pwcAvail }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ pwcShow }}" class="btn btn-ghost btn-block" style="min-height: 34px; font-size: 13.5px;"><i class="ph ph-password" style="font-size: 15px;"></i> 비밀번호 변경</button></sc-if>
             <button sc-camel-on-click="{{ logout }}" class="btn btn-secondary btn-block" style="min-height: 38px; font-size: 14px;"><i class="ph ph-sign-out" style="font-size: 16px;"></i> 로그아웃</button>
           </sc-if>
           <sc-if value="{{ sbMini }}" hint-placeholder-val="{{ false }}">

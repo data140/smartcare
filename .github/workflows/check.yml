@@ -8,18 +8,33 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: index.html 이 src/ 와 일치하는지
+      - name: 배포 파일이 src/ 와 일치하는지
         run: python3 tools/build.py --check
       - name: 앱 코드 문법
         run: node --check src/app.js
+      - name: 서버 권한 규칙 시험 (supabase/schema-next.sql)
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: npm run test:sql
       - name: 시험 도구 설치
         run: |
           npm install --no-audit --no-fund
           npx playwright install --with-deps chromium
-      - name: 기본 동작 시험
+      - name: 화면 동작 시험 (공용 계정 방식 · 직원별 계정 방식)
         run: npm test

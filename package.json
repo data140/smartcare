@@ -3,12 +3,13 @@
   "private": true,
   "description": "스마트케어 프로세스 (사회사업실)",
   "scripts": {
-    "build": "python3 tools/build.py",
-    "build:test": "python3 tools/build.py test",
+    "build": "python3 tools/build.py && python3 tools/build.py next",
     "build:demo": "python3 tools/build.py demo",
     "check": "python3 tools/build.py --check && node --check src/app.js",
     "dev": "python3 tools/build.py local && node tools/dev-server.js",
-    "test": "python3 tools/build.py local && node tests/smoke.js"
+    "dev:staff": "python3 tools/build.py local-staff && node tools/dev-server.js --staff",
+    "test": "python3 tools/build.py local && node tests/smoke.js && python3 tools/build.py local-staff && node tests/smoke-staff.js",
+    "test:sql": "bash supabase/tests/run.sh"
   },
   "devDependencies": {
     "playwright": "1.63.0"
