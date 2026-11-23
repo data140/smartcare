@@ -3999,7 +3999,9 @@ class Component extends DCLogic {
         if (!uk) return; // 다른 기관 데이터
         if (initial && this._cloudEarly && key in this._cloudEarly && uk !== 'smartcare.work.v1' && uk.indexOf(Component.WSESS_PREFIX) !== 0) return;
         const memOnly = (uk.indexOf(Component.IDPH_PREFIX) === 0 && !this._idphCache[uk.slice(Component.IDPH_PREFIX.length)]) || (uk.indexOf(Component.SIGN_PREFIX) === 0 && !this._signCache[uk.slice(Component.SIGN_PREFIX.length)]);
-        if (!memOnly && this._kvSeen[key] && row.updated_at && row.updated_at <= this._kvSeen[key]) return;
+        // 이미 받은 항목이어도 이 기기에 값이 없으면(저장 공간이 가득 차 저장 실패 등) 다시 반영
+        const haveLocal = (Storage.prototype.__scGet || Storage.prototype.getItem).call(localStorage, key) != null;
+        if (!memOnly && haveLocal && this._kvSeen[key] && row.updated_at && row.updated_at <= this._kvSeen[key]) return;
         if (row.updated_at) this._kvSeen[key] = row.updated_at;
         // 동시 수정 합치기의 기준점 (마지막으로 받은 서버 내용)
         if (Component.isMergeKey(uk)) { this._kvBase = this._kvBase || {}; this._kvBase[key] = row.v; }
