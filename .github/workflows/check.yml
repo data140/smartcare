@@ -1,0 +1,25 @@
+name: 검사
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: index.html 이 src/ 와 일치하는지
+        run: python3 tools/build.py --check
+      - name: 앱 코드 문법
+        run: node --check src/app.js
+      - name: 시험 도구 설치
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: 기본 동작 시험
+        run: npm test
