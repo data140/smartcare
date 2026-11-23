@@ -37,6 +37,8 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
       await p.waitForFunction(() => /오늘 \d건|오늘/.test(document.body.innerText) && !document.querySelector('input[autocomplete="username"]'), null, { timeout: 20000 }).catch(() => {});
       const txt = await p.evaluate(() => document.body.innerText);
       check(name + ': 로그인 후 현장 앱 화면이 나옴 (빈 화면 아님)', txt.length > 60 && /오늘/.test(txt), '글자 수 ' + txt.length);
+      const fab = await p.evaluate(() => { const b = document.querySelector('button[aria-label="AI 비서 열기"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { bottomGap: Math.round(window.innerHeight - r.bottom) }; });
+      check(name + ': AI 버튼이 하단 탭 막대(약 80px)를 가리지 않음', !!fab && fab.bottomGap >= 80, fab ? '아래 여백 ' + fab.bottomGap + 'px' : '버튼 없음');
       check(name + ': 화면 오류 없음', errors.length === 0, errors.join(' | '));
       await ctx.close();
     }

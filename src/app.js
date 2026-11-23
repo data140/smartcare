@@ -524,7 +524,8 @@ class Component extends DCLogic {
         const z = (s.logged && s.device === 'pc') ? this.uiZoom() : 1;
         const vh = (typeof window !== 'undefined' ? window.innerHeight : 800) / z;
         const vw = (typeof window !== 'undefined' ? window.innerWidth : 1200) / z;
-        const maxH = Math.max(260, Math.floor(vh - 94 - 16));
+        const botOff = s.phoneOnly ? 150 : 94;   // 휴대폰·태블릿은 하단 탭 막대 위로
+        const maxH = Math.max(260, Math.floor(vh - botOff - 16));
         const maxW = Math.max(280, Math.floor(vw - (narrow ? 24 : 44)));
         // 사용자가 조절한 크기 (기기마다 기억) — 화면 밖으로 넘치지 않게 제한
         let size = s.aiSize;
@@ -554,6 +555,11 @@ class Component extends DCLogic {
         return {
           aiW: W + 'px', aiH: H + 'px',
           aiRight: narrow ? '12px' : '22px',
+          // 하단 탭 막대(오늘·일정…)를 가리지 않도록 휴대폰·태블릿에서는 탭 막대 위에 띄움
+          aiFabBottom: s.phoneOnly ? 'calc(92px + env(safe-area-inset-bottom))' : '22px',
+          aiFabSize: s.phoneOnly ? '50px' : '60px',
+          aiBriefBottom: s.phoneOnly ? 'calc(152px + env(safe-area-inset-bottom))' : '96px',
+          aiDlgBottom: s.phoneOnly ? 'calc(150px + env(safe-area-inset-bottom))' : '94px',
           aiRsW: start('w'), aiRsH: start('h'), aiRsWH: start('wh'),
           aiRsReset: () => { try { localStorage.removeItem('sc.aiSize'); } catch (e) {} this.setState({ aiSize: null }); }
         };
@@ -4138,6 +4144,8 @@ class Component extends DCLogic {
         const getL = Storage.prototype.__scGet || Storage.prototype.getItem;
         const need = meta.filter(m => {
           const key = m.k.slice(c.ws.length + 1);
+          // 증명사진·서명을 뒤에서 받는 중이면 주기 동기화가 같은 것을 또 받지 않음
+          if (!initial && this._heavyLoading) { const u0 = Component.unKey(key) || ''; if (u0.indexOf(Component.IDPH_PREFIX) === 0 || u0.indexOf(Component.SIGN_PREFIX) === 0) return false; }
           if (!(seen[key] && m.updated_at && m.updated_at <= seen[key])) return true;
           // 받은 기록은 있어도 실제 값이 이 기기에 없으면 다시 받음
           const uk = Component.unKey(key);
@@ -4148,10 +4156,19 @@ class Component extends DCLogic {
           return getL.call(localStorage, key) == null;
         }).map(m => m.k);
         rows = [];
-        if (initial) this.setState({ cloudErr: '서버 데이터 받는 중… (' + need.length + '개 항목)' });
+        // 첫 동기화: 환자·일정 같은 작은 데이터만 먼저 받아 화면을 바로 보여주고, 증명사진·서명(용량 큼)은 화면이 뜬 뒤 뒤에서 받음
+        let needNow = need;
+        this._heavyKeys = [];
+        if (initial) {
+          const isHeavyKey = (k) => { const uk = Component.unKey(k.slice(c.ws.length + 1)) || ''; return uk.indexOf(Component.IDPH_PREFIX) === 0 || uk.indexOf(Component.SIGN_PREFIX) === 0; };
+          this._heavyKeys = need.filter(isHeavyKey);
+          needNow = need.filter(k => !isHeavyKey(k));
+          if (this._heavyKeys.length) this._heavyLoading = true;
+        }
+        if (initial) this.setState({ cloudErr: '서버 데이터 받는 중… (' + needNow.length + '개 항목)' });
         // 작은 데이터 먼저, 사진은 뒤로 · 4개 요청을 동시에 (한 줄로 기다리지 않게)
         const isPh = (k) => k.indexOf(Component.WPH_PREFIX) >= 0;
-        const ordered = need.filter(k => !isPh(k)).concat(need.filter(isPh));
+        const ordered = needNow.filter(k => !isPh(k)).concat(needNow.filter(isPh));
         const parts = [];
         for (let i = 0; i < ordered.length; i += 8) parts.push(ordered.slice(i, i + 8));
         let pi = 0, failed = null;
@@ -4260,6 +4277,8 @@ class Component extends DCLogic {
         // 일지·업무 묶음은 제외 — 동기화 전 값은 오래된 값일 수 있음 (사용자가 바꾸면 그때 다시 올라감)
         Object.keys(early).forEach(k => { const uk = Component.unKey(k) || ''; if (uk === 'smartcare.work.v1' || uk.indexOf(Component.WSESS_PREFIX) === 0) return; this.cloudQueue(k, early[k]); });
         this.compactIdPhotos();
+        // 증명사진·서명은 화면이 뜬 뒤 뒤에서 받음 (환자 목록이 사진을 기다리지 않게)
+        this.cloudPullHeavy();
         // 현장사진은 따로, 실패해도 다른 데이터 동기화에는 영향 없음
         setTimeout(() => this.cloudPullPhotos(), 300);
       } else if (changed) this.flash('다른 PC·기기의 변경 내용 ' + changed + '건을 반영했습니다');
@@ -4276,6 +4295,63 @@ class Component extends DCLogic {
         ? '데이터 서버 무료 사용량(전송 한도)이 초과되어 서버가 일시 차단되었습니다 — 관리자에게 문의하세요. 입력한 내용은 이 기기에 보관되며, 서버가 풀리면 자동으로 올라갑니다.'
         : (this._cloudReady ? '' : '첫 동기화 재시도 중 — ') + (e.message || '네트워크 오류') });
     }
+  }
+  // 증명사진·서명 뒤에서 받기: 첫 동기화에서 미뤄 둔 항목을 조금씩 받아 화면에 채움 (실패해도 다음 주기 동기화에서 다시 받음)
+  async cloudPullHeavy() {
+    const keys = (this._heavyKeys || []).slice();
+    this._heavyKeys = [];
+    const c = this.cloudCfg();
+    if (!c || !keys.length) { this._heavyLoading = false; return; }
+    this._heavyLoading = true;
+    const refresh = () => {
+      if (this._idphDirty) {
+        this._idphDirty = false;
+        let idx = null; try { idx = JSON.parse(localStorage.getItem('smartcare.idphotos.v1') || 'null'); } catch (e) {}
+        const m = idx && idx.__idx ? this.idphFromStored(idx) : Object.assign({}, this.state.photoUrls || {}, this._idphCache);
+        if (m) this.setState({ photoUrls: m });
+      }
+      if (this._signDirty) { this._signDirty = false; this.setState({ signImgsFor: null, mcTick: (this.state.mcTick || 0) + 1 }); }
+    };
+    let lastUi = 0;
+    try {
+      const parts = [];
+      for (let i = 0; i < keys.length; i += 6) parts.push(keys.slice(i, i + 6));
+      let pi = 0, failed = false;
+      this._kvSeen = this._kvSeen || {};
+      const worker = async () => {
+        while (pi < parts.length && !failed) {
+          const my = parts[pi++];
+          const part = my.map(k => encodeURIComponent('"' + k.replace(/"/g, '\\"') + '"')).join(',');
+          let rows;
+          try {
+            const ri = await fetch(c.url + '/rest/v1/smartcare_kv?select=k,v,updated_at&k=in.(' + part + ')', { headers: this.cloudHeaders(c) });
+            if (!ri.ok) { failed = true; return; }
+            rows = await ri.json();
+          } catch (e) { failed = true; return; }
+          rows.forEach(row => {
+            const key = row.k.slice(c.ws.length + 1);
+            if ((this._cloudPending && key in this._cloudPending) || (this._cloudInflight && this._cloudInflight[key])) return;
+            const uk = Component.unKey(key); if (!uk) return;
+            if (row.updated_at) this._kvSeen[key] = row.updated_at;
+            if (uk.indexOf(Component.IDPH_PREFIX) === 0) {
+              const id = uk.slice(Component.IDPH_PREFIX.length);
+              if (this._idphCache[id] === row.v) return;
+              if (row.v) { this._idphCache[id] = row.v; this._idphSent[id] = row.v.length; } else delete this._idphCache[id];
+              this._idphDirty = true;
+            } else if (uk.indexOf(Component.SIGN_PREFIX) === 0) {
+              const pid = uk.slice(Component.SIGN_PREFIX.length);
+              try { this._signCache[pid] = row.v ? JSON.parse(row.v) : {}; } catch (e) { this._signCache[pid] = {}; }
+              this._signDirty = true;
+            }
+          });
+          // 화면 갱신은 0.6초에 한 번만 (사진이 올 때마다 다시 그리지 않게)
+          if (Date.now() - lastUi > 600) { lastUi = Date.now(); refresh(); }
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      refresh();
+      if (!failed) this.compactIdPhotos();
+    } finally { this._heavyLoading = false; }
   }
   // 현장사진만 받기 (사진마다 한 건씩 — 큰 요청 한 번에 실패하지 않게)
   async cloudPullPhotos() {
