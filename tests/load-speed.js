@@ -44,6 +44,38 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await sleep(9000);
     const got = await p.evaluate(() => { try { return Object.keys(window.__scApp ? window.__scApp._idphCache : {}).length; } catch (e) { return -1; } });
     check('증명사진은 뒤에서 이어서 받음 (요청 발생)', photoReqs > 0, '사진 요청 ' + photoReqs + '건');
+
+    // 로그아웃 직후(이 기기에 데이터 없음) 다시 로그인: 큰 항목이 느리거나 일부 요청이 한 번 실패해도 환자 목록이 먼저·정상으로 나와야 함
+    const ctx2 = await browser.newContext({ viewport: { width: 1466, height: 900 } });
+    const q = await ctx2.newPage(); q.on('pageerror', e => errors.push(e.message));
+    await q.goto(BASE + '/'); await q.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await q.locator('input[autocomplete="username"]').first().fill('100101'); await q.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await q.locator('button:has-text("로그인")').last().click(); await q.waitForSelector('text=가상환자1', { timeout: 20000 }); await sleep(1200);
+    await q.evaluate(() => {
+      const pts = []; for (let i = 1; i <= 300; i++) pts.push({ id: 'PT-' + String(i).padStart(4, '0'), room: ((i % 6) + 1) + '병동 101호', name: '환자' + i, sex: '남', birth: '1940-01-01', age: 80, consent: '동의', bio: '동의', stay: '재원' });
+      window.__scCloudPush('smartcare.patients.v1', JSON.stringify(pts));
+      window.__scCloudPush('smartcare.cfiles.v1', JSON.stringify({ files: { big: 'x'.repeat(1500000) }, via: {} }));
+    });
+    await sleep(4500);
+    await q.locator('button:has-text("로그아웃")').first().click(); await q.waitForSelector('input[autocomplete="username"]', { timeout: 20000 }); await sleep(1200);
+    let failedOnce = false, bigHits = 0;
+    await ctx2.route('**/rest/v1/smartcare_kv?**', async (route) => {
+      const u = decodeURIComponent(route.request().url());
+      if (route.request().method() === 'GET' && u.includes('smartcare.cfiles.v1')) { bigHits++; await sleep(6000); }
+      if (route.request().method() === 'GET' && u.includes('smartcare.orgs.v1') && !failedOnce) { failedOnce = true; return route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"timeout"}' }); }
+      route.continue();
+    });
+    const t1 = Date.now();
+    await q.locator('input[autocomplete="username"]').first().fill('100101'); await q.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await q.locator('button:has-text("로그인")').last().click();
+    await q.waitForFunction(() => /전체\s*300/.test(document.body.innerText), null, { timeout: 20000 }).catch(() => {});
+    const tCore = Date.now() - t1;
+    const cnt = await q.evaluate(() => (/전체\s*(\d+)/.exec(document.body.innerText) || [])[1]);
+    check('로그아웃 후 다시 로그인: 큰 첨부가 6초 늦어도 환자 목록이 먼저 나옴', cnt === '300' && tCore < 5500, tCore + 'ms · 환자 ' + cnt + '명 (큰 항목 요청 ' + bigHits + '건)');
+    check('일부 요청이 한 번 실패(500)해도 자동으로 다시 시도해 이어서 받음', failedOnce && cnt === '300');
+    await sleep(8000);
+    check('큰 항목은 뒤이어 도착하고 오류 표시 없음', !(await q.evaluate(() => /첫 동기화 재시도|HTTP 5/.test(document.body.innerText))));
+    await ctx2.close();
     check('화면 오류 없음', errors.length === 0, errors.join(' | '));
   } catch (e) { check('시험 진행', false, e.message); }
   finally { await browser.close(); srv.kill(); }
