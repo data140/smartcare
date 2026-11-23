@@ -3555,11 +3555,12 @@ class Component extends DCLogic {
     const roles = Array.isArray(m.roles) ? m.roles : (m.role ? [m.role] : []);
     return { roster_id: m.id, org: m.org, emp_no: m.empNo || '', gmail: m.email || '', name: m.name || '', roles: roles, status: m.status === '활성' ? '활성' : '중지', valid_from: m.validFrom || null, valid_to: m.validTo || null };
   }
+  // 비밀번호 규칙: 숫자 6자리 (예: 123456) — 데이터 서버(Supabase) 로그인이 요구하는 최소 길이가 6자라 4자리는 쓸 수 없음
+  static MIN_PW = 6;
   static tempPassword() {
-    const cs = 'abcdefghjkmnpqrstuvwxyz23456789';
-    const buf = new Uint32Array(10);
+    const buf = new Uint32Array(6);
     try { crypto.getRandomValues(buf); } catch (e) { for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 4294967296); }
-    return Array.from(buf, n => cs[n % cs.length]).join('');
+    return Array.from(buf, n => String(n % 10)).join('');
   }
   staffSnapSet(list) {
     this._staffSnap = {};
@@ -3623,7 +3624,7 @@ class Component extends DCLogic {
   async _pwcSave() {
     const s = this.state;
     const a = s.pwcNew || '', b2 = s.pwcNew2 || '';
-    if (a.length < 8) { this.setState({ pwcErr: '비밀번호는 8자 이상이어야 합니다' }); return; }
+    if (a.length < Component.MIN_PW) { this.setState({ pwcErr: '비밀번호는 ' + Component.MIN_PW + '자 이상이어야 합니다 (예: 123456)' }); return; }
     if (a !== b2) { this.setState({ pwcErr: '두 비밀번호가 같지 않습니다' }); return; }
     if (s.pwcBusy) return;
     this.setState({ pwcBusy: true, pwcErr: '' });
@@ -6598,6 +6599,8 @@ class Component extends DCLogic {
         empNo: m.empNo || '', name: m.name || '', org: m.org, dept: m.dept || deptOpts[0], type: m.type || '기타', email: m.email || '',
         deptOpts: deptOpts, locked: locked, mailLocked: mailLocked, orgLocked: locked || !isSys,
         isMe: m.id === me.id,
+        headName: m.name || '이름 없음',
+        headSub: [m.empNo ? '사번 ' + m.empNo : '사번 미입력', orgNm(m.org), m.dept, m.type].filter(Boolean).join(' · '),
         rowBg: m.status === '활성' ? 'transparent' : 'var(--color-neutral-900)',
         opacity: m.status === '활성' ? '1' : '0.6',
         onEmp: (e) => setAcct(m.id, { empNo: e.target.value.trim() }),
@@ -6656,7 +6659,7 @@ class Component extends DCLogic {
           const v = (this.state.pwDraft || '').trim();
           if (!v) { this.flash('비밀번호를 입력하세요'); return; }
           if (Component.isStaffMode()) {
-            if (v.length < 8) { this.flash('비밀번호는 8자 이상이어야 합니다'); return; }
+            if (v.length < Component.MIN_PW) { this.flash('비밀번호는 ' + Component.MIN_PW + '자 이상이어야 합니다 (예: 123456)'); return; }
             this.staffFn({ action: 'sync', staff: Component.staffFields(m), password: v, must_change: true })
               .then(() => { const tp = Object.assign({}, this.state.tempPws || {}); delete tp[m.id]; this.setState({ pwEditId: null, pwDraft: '', tempPws: tp }); this.flash((m.name || '사용자') + ' 비밀번호를 지정했습니다 — 본인에게 전달하세요 (첫 로그인 때 변경)'); })
               .catch(e => this.flash('비밀번호를 바꾸지 못했습니다 — ' + e.message));
@@ -7031,7 +7034,7 @@ class Component extends DCLogic {
       pwcOpen: Component.isStaffMode() && !!s.logged && !!s.pwcOpen,
       pwcForced: !!s.pwcForced, pwcCanClose: !s.pwcForced,
       pwcTitle: s.pwcForced ? '새 비밀번호를 정하세요' : '비밀번호 변경',
-      pwcDesc: s.pwcForced ? '임시 비밀번호로 로그인했습니다. 계속하려면 본인만 아는 새 비밀번호로 바꾸세요.' : '새 비밀번호를 두 번 입력하세요. 8자 이상이어야 합니다.',
+      pwcDesc: s.pwcForced ? '임시 비밀번호로 로그인했습니다. 계속하려면 본인만 아는 새 비밀번호로 바꾸세요.' : '새 비밀번호를 두 번 입력하세요. 숫자 6자리 이상이면 됩니다 (예: 123456).',
       pwcNew: s.pwcNew || '', pwcNew2: s.pwcNew2 || '', pwcErr: s.pwcErr || '',
       pwcBusy: !!s.pwcBusy, pwcBtnLabel: s.pwcBusy ? '바꾸는 중…' : '비밀번호 바꾸기',
       onPwcNew: (e) => this.setState({ pwcNew: e.target.value, pwcErr: '' }),
@@ -10031,6 +10034,7 @@ class Component extends DCLogic {
         const sbW = vw < 1100 ? (s.menuExpandNarrow ? (s.sbW || 248) : 64) : (s.menuMini ? 64 : (s.sbW || 248));
         const wide = vw - sbW - 48 >= 1310;
         return {
+          acctWide: wide, acctNarrow: !wide,
           acctCols: wide ? '28px minmax(76px, 0.7fr) minmax(84px, 0.8fr) minmax(140px, 1.3fr) minmax(108px, 1fr) minmax(104px, 1fr) minmax(220px, 2fr) 112px 112px 112px 70px 56px' : 'repeat(auto-fill, minmax(min(100%, 168px), 1fr))',
           acctMinW: wide ? '1180px' : '0',
           acctHeadDisp: wide ? 'grid' : 'none',
