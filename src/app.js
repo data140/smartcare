@@ -6633,13 +6633,17 @@ class Component extends DCLogic {
       const validLabel = vs === 'pending' ? fmtMD(m.validFrom) + '부터 활성 예약'
         : vs === 'expired' ? fmtMD(m.validTo) + ' 만료'
         : (m.validFrom || m.validTo) ? (m.validTo ? fmtMD(m.validTo) + '까지 사용' : '사용 중') : '기간 제한 없음';
+      const isOpen = !!(s.acctOpen || {})[m.id];
+      const anyOpen = acctList.some(x => (s.acctOpen || {})[x.id]);
       const canDrag = isSys || meIsAdmin;
       const dragging = s.acctDrag === m.id;
       const over = s.acctOver === m.id && s.acctDrag != null && !dragging;
       return {
         canDrag: canDrag, gripCursor: canDrag ? 'grab' : 'default',
-        dragOpacity: dragging ? '0.45' : '1',
-        dropRing: over ? 'inset 0 3px 0 var(--color-accent)' : 'none',
+        dragOpacity: dragging ? '0.45' : (anyOpen && !isOpen ? '0.62' : '1'),
+        // 펼쳐서 수정 중인 계정: 강조 테두리 + 왼쪽 띠 + 은은한 배경, 나머지는 흐리게
+        cardBd: isOpen ? 'var(--color-accent)' : 'var(--color-divider)',
+        dropRing: over ? 'inset 0 3px 0 var(--color-accent)' : (isOpen ? '0 0 0 1px var(--color-accent), inset 5px 0 0 var(--color-accent), 0 8px 24px rgba(0,0,0,0.35)' : 'none'),
         dragStart: (e) => {
           if (!canDrag) { e.preventDefault(); return; }
           if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(m.id)); }
@@ -6701,7 +6705,7 @@ class Component extends DCLogic {
         lastLoginShort: m.lastLogin ? String(m.lastLogin).slice(0, 10) : '접속 없음',
         headName: m.name || '이름 없음',
         headSub: [m.empNo ? '사번 ' + m.empNo : '사번 미입력', orgNm(m.org), m.dept, m.type].filter(Boolean).join(' · '),
-        rowBg: m.status === '활성' ? 'transparent' : 'var(--color-neutral-900)',
+        rowBg: isOpen ? 'var(--color-accent-900)' : (m.status === '활성' ? 'transparent' : 'var(--color-neutral-900)'),
         opacity: m.status === '활성' ? '1' : '0.6',
         onEmp: (e) => setAcct(m.id, { empNo: e.target.value.trim() }),
         checkEmp: () => {
