@@ -9808,7 +9808,7 @@ class Component extends DCLogic {
         const code = [
           '// 스마트케어 — 오늘 프로그램 일정 알림 (Gmail 무료 발송)',
           Component.isStaffMode()
-            ? '// 1) 저장  2) 프로젝트 설정(⚙) › 스크립트 속성에 SB_ID(알림 전용 계정의 직원 번호), SB_PASSWORD 추가'
+            ? '// 1) 저장  2) 프로젝트 설정(⚙) › 스크립트 속성에 SB_ID(알림 전용 계정의 사번), SB_PASSWORD 추가'
             : '// 1) 저장  2) 프로젝트 설정(⚙) › 스크립트 속성에 SB_EMAIL, SB_PASSWORD(데이터 서버 공용 계정) 추가',
           '// 3) 함수 setup 실행 → 권한 허용  (이후 매일 자동 발송)',
           '// 비밀번호는 이 코드에 넣지 말고 스크립트 속성에만 넣으세요.',
@@ -9821,8 +9821,11 @@ class Component extends DCLogic {
           '  const p = PropertiesService.getScriptProperties();',
           ...(Component.isStaffMode() ? [
             "  const id = String(p.getProperty('SB_ID') || '').trim(), password = p.getProperty('SB_PASSWORD');",
-            "  if (!id || !password) throw new Error('프로젝트 설정 › 스크립트 속성에 SB_ID(직원 번호), SB_PASSWORD를 넣으세요');",
-            "  const email = 's' + id + '.' + CFG.ws + '@smartcare.invalid';"
+            "  if (!id || !password) throw new Error('프로젝트 설정 › 스크립트 속성에 SB_ID(사번), SB_PASSWORD를 넣으세요');",
+            "  // 사번 → 서버 계정 주소 (로그인 화면과 같은 방식)",
+            "  const er = UrlFetchApp.fetch(CFG.url + '/rest/v1/rpc/smartcare_login_email', { method: 'post', contentType: 'application/json', headers: { apikey: CFG.key }, payload: JSON.stringify({ p_ws: CFG.ws, p_mode: 'emp', p_org: CFG.org, p_id: id }), muteHttpExceptions: true });",
+            "  if (er.getResponseCode() !== 200) throw new Error('계정을 찾지 못했습니다 (HTTP ' + er.getResponseCode() + ')');",
+            "  const email = JSON.parse(er.getContentText());"
           ] : [
             "  const email = p.getProperty('SB_EMAIL'), password = p.getProperty('SB_PASSWORD');",
             "  if (!email || !password) throw new Error('프로젝트 설정 › 스크립트 속성에 SB_EMAIL, SB_PASSWORD를 넣으세요');"
