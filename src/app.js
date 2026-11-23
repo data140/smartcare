@@ -659,6 +659,7 @@ class Component extends DCLogic {
     proto.__scGet = function (k) { return g.call(this, isLS(this) && NS ? NS + k : k); };
     proto.getItem = function (k) { return g.call(this, isLS(this) ? NS + Component.nsKey(k) : k); };
     proto.removeItem = function (k) { return r.call(this, isLS(this) ? NS + Component.nsKey(k) : k); };
+    proto.__scRemove = function (k) { return r.call(this, isLS(this) && NS ? NS + k : k); };
     if (NS) proto.setItem = function (k, v) { return s0.call(this, isLS(this) ? NS + k : k, v); };
     // 이 기관의 키 목록 (화면에서 쓰는 이름으로)
     window.__scKeys = () => Component.lsKeys().map(k => Component.unKey(k)).filter(Boolean);
@@ -2678,6 +2679,26 @@ class Component extends DCLogic {
   static MIG_SRC = { url: '__SC_MIG_SRC_URL__', key: '__SC_MIG_SRC_KEY__' };
   static MIG_FREEZE = '9999999999';
   // 이 화면 구역의 저장 키 목록 (구역 접두어를 뗀 이름)
+  // 꼭 필요한 작은 값(로그인 정보·마지막 화면) 저장 — 공간이 부족하면 서버에서 다시 받을 수 있는 큰 화면 데이터부터 비우고 다시 저장
+  // canEvict: 서버에 연결된 경우에만 (서버 미연결이면 이 기기 데이터가 원본이므로 지우지 않음)
+  static lsSetCritical(k, v, canEvict) {
+    const P = Storage.prototype;
+    const set = P.__scOrig || P.setItem, get = P.__scGet || P.getItem, del = P.__scRemove || P.removeItem;
+    const keep = { 'smartcare.roster.v1': 1, 'smartcare.orgs.v1': 1, 'smartcare.cloud.v1': 1 };
+    for (let i = 0; i < 60; i++) {
+      try { set.call(window.localStorage, k, v); return true; } catch (e) {}
+      if (!canEvict) return false;
+      let big = null, size = 0;
+      Component.lsKeys().forEach(x => {
+        if (x.indexOf('smartcare.') !== 0 || keep[x]) return;
+        let n = 0; try { n = (get.call(window.localStorage, x) || '').length; } catch (e) {}
+        if (n > size) { size = n; big = x; }
+      });
+      if (!big) return false;
+      try { del.call(window.localStorage, big); } catch (e) { return false; }
+    }
+    return false;
+  }
   static lsKeys() {
     const NS = Component.STORE_NS, out = [];
     try {
@@ -2790,7 +2811,7 @@ class Component extends DCLogic {
       if (!this.state.logged) { localStorage.removeItem(Component.VIEW_KEY); return; }
       const o = {}; Component.VIEW_KEYS.forEach(k => { if (this.state[k] !== undefined) o[k] = this.state[k]; });
       o.at = Date.now();
-      localStorage.setItem(Component.VIEW_KEY, JSON.stringify(o));
+      Component.lsSetCritical(Component.VIEW_KEY, JSON.stringify(o), !!this.cloudCfg());
     } catch (e) {}
   }
   saveView() {
@@ -2813,7 +2834,7 @@ class Component extends DCLogic {
       const want = sys ? Component.sysOrg(this.state.orgs) : m.org;
       patch.orgId = want;
       if (want !== (window.__scOrg || 'ORG1')) {
-        try { const o = {}; Component.VIEW_KEYS.forEach(k => { if (patch[k] !== undefined) o[k] = patch[k]; }); o.at = Date.now(); window.localStorage.setItem(Component.VIEW_KEY, JSON.stringify(o)); } catch (e) {}
+        try { const o = {}; Component.VIEW_KEYS.forEach(k => { if (patch[k] !== undefined) o[k] = patch[k]; }); o.at = Date.now(); Component.lsSetCritical(Component.VIEW_KEY, JSON.stringify(o), !!this.cloudCfg()); } catch (e) {}
         window.location.reload(); return;
       }
       this.setState(patch);
@@ -3359,7 +3380,7 @@ class Component extends DCLogic {
   _auth = (() => { try { const a = JSON.parse(window.localStorage.getItem('sc.auth.v1') || 'null'); return a && a.refresh_token && a.url ? a : null; } catch (e) { return null; } })();
   authStore(a) {
     this._auth = a;
-    try { if (a) localStorage.setItem(Component.AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(Component.AUTH_KEY); } catch (e) {}
+    try { if (a) Component.lsSetCritical(Component.AUTH_KEY, JSON.stringify(a), true); else localStorage.removeItem(Component.AUTH_KEY); } catch (e) {}
   }
   authFrom(j, url, email) {
     return { url: url, access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Date.now() + (j.expires_in || 3600) * 1000, email: (j.user && j.user.email) || email || '' };
@@ -4398,7 +4419,7 @@ class Component extends DCLogic {
     const view = { logged: true, userId: m.id, role: roles[0], orgId: org, device: Component.detectDevice(), pcView: onlyView ? 'stats' : 'patients', setTab: s.setTab || 'ai', mobileView: 'today', lgPw: '', lgErr: '' };
     if (org !== (window.__scOrg || 'ORG1')) {
       // 다른 기관(또는 시스템 관리자)으로 로그인: 그 기관 데이터만 새로 불러오도록 화면을 다시 엶
-      try { const o = {}; Component.VIEW_KEYS.forEach(k => { if (view[k] !== undefined) o[k] = view[k]; }); o.at = Date.now(); window.localStorage.setItem(Component.VIEW_KEY, JSON.stringify(o)); } catch (e) {}
+      try { const o = {}; Component.VIEW_KEYS.forEach(k => { if (view[k] !== undefined) o[k] = view[k]; }); o.at = Date.now(); Component.lsSetCritical(Component.VIEW_KEY, JSON.stringify(o), !!this.cloudCfg()); } catch (e) {}
       this.flash('로그인 — 기관 데이터를 불러오는 중…');
       setTimeout(() => window.location.reload(), 300);
       return;
