@@ -8,6 +8,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const PORT = 8885, BASE = 'http://localhost:' + PORT;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const results = []; let failed = false;
 const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + name + (extra ? ' — ' + extra : '')); if (!ok) failed = true; };
 
@@ -37,8 +38,19 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
       await p.waitForFunction(() => /오늘 \d건|오늘/.test(document.body.innerText) && !document.querySelector('input[autocomplete="username"]'), null, { timeout: 20000 }).catch(() => {});
       const txt = await p.evaluate(() => document.body.innerText);
       check(name + ': 로그인 후 현장 앱 화면이 나옴 (빈 화면 아님)', txt.length > 60 && /오늘/.test(txt), '글자 수 ' + txt.length);
-      const fab = await p.evaluate(() => { const b = document.querySelector('button[aria-label="AI 비서 열기"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { bottomGap: Math.round(window.innerHeight - r.bottom) }; });
-      check(name + ': AI 버튼이 하단 탭 막대(약 80px)를 가리지 않음', !!fab && fab.bottomGap >= 80, fab ? '아래 여백 ' + fab.bottomGap + 'px' : '버튼 없음');
+      // 맨 위 오른쪽 빈 공간에 놓이고, 끌어서 옮길 수 있고, 옮긴 위치를 기억함
+      const box0 = await p.locator('button[aria-label="AI 비서 열기"]').boundingBox();
+      check(name + ': AI 버튼 기본 위치가 맨 위 오른쪽 (하단 탭·버튼 아님)', box0 && box0.y < 140 && box0.x > (opt.viewport.width - 110), JSON.stringify(box0));
+      await p.mouse.move(box0.x + 25, box0.y + 25); await p.mouse.down(); await p.mouse.move(box0.x - 60, box0.y + 200, { steps: 8 }); await p.mouse.move(150, 420, { steps: 6 }); await p.mouse.up();
+      await sleep(200);
+      const box1 = await p.locator('button[aria-label="AI 비서 열기"]').boundingBox();
+      check(name + ': 끌어서 원하는 곳으로 옮길 수 있음', box1 && Math.abs(box1.x - 125) < 30 && Math.abs(box1.y - 395) < 30, JSON.stringify(box1));
+      check(name + ': 끌어서 옮긴 뒤 대화창이 저절로 열리지 않음', (await p.locator('[role="dialog"][aria-label="AI 비서"]').count()) === 0);
+      await p.reload(); await p.waitForFunction(() => /오늘/.test(document.body.innerText) && !document.querySelector('input[autocomplete="username"]'), null, { timeout: 20000 }).catch(() => {});
+      const box2 = await p.locator('button[aria-label="AI 비서 열기"]').boundingBox().catch(() => null);
+      check(name + ': 옮긴 위치를 기억함 (새로고침 후에도)', box2 && Math.abs(box2.x - box1.x) < 6 && Math.abs(box2.y - box1.y) < 6, JSON.stringify(box2));
+      await p.locator('button[aria-label="AI 비서 열기"]').tap(); await sleep(500);
+      check(name + ': 눌러서 대화창 열기', (await p.locator('[role="dialog"][aria-label="AI 비서"]').count()) === 1);
       check(name + ': 화면 오류 없음', errors.length === 0, errors.join(' | '));
       await ctx.close();
     }

@@ -500,7 +500,7 @@ class Component extends DCLogic {
       aiOpen: !!s.aiOpen,
       aiFabIcon: s.aiOpen ? 'ph ph-x' : 'ph-fill ph-sparkle',
       aiHasBadge: !s.aiOpen && badge > 0, aiBadge: badge > 99 ? '99+' : String(badge),
-      aiToggle: () => { const o = !this.state.aiOpen; this.setState({ aiOpen: o }); if (o) this.aiScrollEnd(); },
+      aiToggle: () => { if (this._aiFabDragged) return; const o = !this.state.aiOpen; this.setState({ aiOpen: o }); if (o) this.aiScrollEnd(); },
       aiBriefShow: !s.aiOpen && !s.aiBriefClosed && seen !== today,
       aiBriefText: '오늘 일정 ' + iss.todayPlans.length + '건 · 밀린 일지 ' + past.length + '건 · 검수 ' + iss.review.length + '건',
       aiBriefOpen: () => { markSeen(); this.setState({ aiBriefClosed: true }); this.aiAsk('오늘 할 일'); },
@@ -556,8 +556,40 @@ class Component extends DCLogic {
           aiW: W + 'px', aiH: H + 'px',
           aiRight: narrow ? '12px' : '22px',
           // 하단 탭 막대(오늘·일정…)를 가리지 않도록 휴대폰·태블릿에서는 탭 막대 위에 띄움
-          aiFabBottom: s.phoneOnly ? 'calc(92px + env(safe-area-inset-bottom))' : '22px',
           aiFabSize: s.phoneOnly ? '50px' : '60px',
+          ...(() => {
+            let pos = s.aiFabPos;
+            if (pos === undefined) { try { pos = JSON.parse(localStorage.getItem('sc.aiFab.v1') || 'null'); } catch (e) { pos = null; } }
+            const sz = s.phoneOnly ? 50 : 60;
+            const vw = typeof window !== 'undefined' ? window.innerWidth : 400, vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+            const has = pos && typeof pos.x === 'number' && typeof pos.y === 'number';
+            const x = has ? Math.max(4, Math.min(vw - sz - 4, pos.x)) : 0, y = has ? Math.max(4, Math.min(vh - sz - 4, pos.y)) : 0;
+            return {
+              // 직접 옮긴 위치가 없으면: 휴대폰·태블릿은 맨 위 오른쪽 빈 공간, PC는 오른쪽 아래
+              aiFabLeft: has ? x + 'px' : 'auto', aiFabTop: has ? y + 'px' : (s.phoneOnly ? 'calc(56px + env(safe-area-inset-top))' : 'auto'),
+              aiFabRightPx: has ? 'auto' : (s.phoneOnly ? '14px' : '22px'), aiFabBot: has ? 'auto' : (s.phoneOnly ? 'auto' : '22px'),
+              aiFabDown: (e) => {
+                if (e.button != null && e.button !== 0) return;
+                const el = e.currentTarget; const r = el.getBoundingClientRect();
+                const ox = e.clientX - r.left, oy = e.clientY - r.top, sx = e.clientX, sy = e.clientY;
+                let moved = false, last = null;
+                const mv = (ev) => {
+                  if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 8) return;
+                  moved = true; this._aiFabDragged = true;
+                  ev.preventDefault();
+                  last = { x: Math.round(ev.clientX - ox), y: Math.round(ev.clientY - oy) };
+                  this.setState({ aiFabPos: last });
+                };
+                const up = () => {
+                  window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+                  if (moved && last) { try { localStorage.setItem('sc.aiFab.v1', JSON.stringify(last)); } catch (err) {} setTimeout(() => { this._aiFabDragged = false; }, 60); }
+                  else this._aiFabDragged = false;
+                };
+                window.addEventListener('pointermove', mv, { passive: false }); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+              },
+              aiFabReset: () => { try { localStorage.removeItem('sc.aiFab.v1'); } catch (e) {} this.setState({ aiFabPos: null }); this.flash('AI 버튼 위치를 처음으로 되돌렸습니다'); }
+            };
+          })(),
           aiBriefBottom: s.phoneOnly ? 'calc(152px + env(safe-area-inset-bottom))' : '96px',
           aiDlgBottom: s.phoneOnly ? 'calc(150px + env(safe-area-inset-bottom))' : '94px',
           aiRsW: start('w'), aiRsH: start('h'), aiRsWH: start('wh'),
