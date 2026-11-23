@@ -4299,7 +4299,7 @@
         </div>
         <sc-if value="{{ fcHasImg }}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-            <div style="font-size: 13.5px; color: var(--color-neutral-400); flex: 1 1 300px; min-width: 0;"><b style="color: var(--color-accent-300);">얼굴 주변을 마우스로 끌어 네모를 그리세요.</b> 네모 안을 끌면 위치를 옮길 수 있습니다. 얼굴이 작으면 확대해서 그리세요.</div>
+            <div style="font-size: 13.5px; color: var(--color-neutral-400); flex: 1 1 300px; min-width: 0;"><b style="color: var(--color-accent-300);">얼굴 주변을 마우스로 끌어 네모를 그리세요.</b> 네모 안을 끌면 위치를, 테두리·모서리를 끌면 크기를 바꿀 수 있습니다. 얼굴이 작으면 확대해서 그리세요.</div>
             <span role="group" aria-label="확대" style="display: inline-flex; align-items: center; gap: 4px; flex: none;">
               <button sc-camel-on-click="{{ fcZoomOut }}" disabled="{{ fcZoomMin }}" class="btn btn-secondary" aria-label="축소" title="축소 (Ctrl + 휠)" style="min-height: 34px; width: 34px; padding: 0; justify-content: center;"><i class="ph ph-magnifying-glass-minus" style="font-size: 16px;"></i></button>
               <span style="min-width: 54px; text-align: center; font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ fcZoomLabel }}</span>
@@ -4312,7 +4312,11 @@
             <div ref="{{ fcStageRef }}" sc-camel-on-pointer-down="{{ fcDown }}" style="position: relative; display: inline-block; flex: none; max-width: {{ fcStageMax }}; cursor: crosshair; touch-action: none; user-select: none; line-height: 0;">
               {{ fcImgEl }}
               <sc-if value="{{ fcHasBox }}" hint-placeholder-val="{{ false }}">
-                <div style="position: absolute; left: {{ fcBoxL }}; top: {{ fcBoxT }}; width: {{ fcBoxW }}; height: {{ fcBoxH }}; border: 2px solid var(--color-accent); box-shadow: 0 0 0 9999px rgba(10, 11, 18, 0.55); cursor: move; pointer-events: none;"></div>
+                <div style="position: absolute; left: {{ fcBoxL }}; top: {{ fcBoxT }}; width: {{ fcBoxW }}; height: {{ fcBoxH }}; border: 2px solid var(--color-accent); box-shadow: 0 0 0 9999px rgba(10, 11, 18, 0.55); cursor: move; pointer-events: none;">
+                  <sc-for list="{{ fcHandles }}" as="fh" hint-placeholder-count="8">
+                    <span sc-camel-on-pointer-down="{{ fh.down }}" aria-label="{{ fh.label }}" style="position: absolute; left: {{ fh.l }}; top: {{ fh.t }}; width: {{ fh.w }}; height: {{ fh.h }}; transform: translate(-50%, -50%); border-radius: {{ fh.r }}; background: var(--color-accent); box-shadow: 0 0 0 3px rgba(10,11,18,0.7); cursor: {{ fh.cur }}; touch-action: none; pointer-events: auto;"></span>
+                  </sc-for>
+                </div>
               </sc-if>
             </div>
           </div>

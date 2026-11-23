@@ -1559,6 +1559,17 @@ class Component extends DCLogic {
           fcWheel: (e) => { if (!e.ctrlKey) return; e.preventDefault(); step(e.deltaY < 0 ? 1 : -1, { x: e.clientX, y: e.clientY }); }
         };
       })(),
+      // 네모 크기 조절: 테두리 4개 + 모서리 4개 손잡이
+      fcHandles: [
+        { m: 'n', l: '50%', t: '0%', w: '34px', h: '10px', r: '5px', cur: 'ns-resize', label: '위쪽 크기 조절' },
+        { m: 's', l: '50%', t: '100%', w: '34px', h: '10px', r: '5px', cur: 'ns-resize', label: '아래쪽 크기 조절' },
+        { m: 'w', l: '0%', t: '50%', w: '10px', h: '34px', r: '5px', cur: 'ew-resize', label: '왼쪽 크기 조절' },
+        { m: 'e', l: '100%', t: '50%', w: '10px', h: '34px', r: '5px', cur: 'ew-resize', label: '오른쪽 크기 조절' },
+        { m: 'nw', l: '0%', t: '0%', w: '16px', h: '16px', r: '50%', cur: 'nwse-resize', label: '왼쪽 위 모서리' },
+        { m: 'ne', l: '100%', t: '0%', w: '16px', h: '16px', r: '50%', cur: 'nesw-resize', label: '오른쪽 위 모서리' },
+        { m: 'sw', l: '0%', t: '100%', w: '16px', h: '16px', r: '50%', cur: 'nesw-resize', label: '왼쪽 아래 모서리' },
+        { m: 'se', l: '100%', t: '100%', w: '16px', h: '16px', r: '50%', cur: 'nwse-resize', label: '오른쪽 아래 모서리' }
+      ].map(hd => Object.assign({}, hd, { down: (e) => { e.stopPropagation(); this.fcResize(e, hd.m); } })),
       fcHasBox: !!(b && b.w > 0.005), fcBoxL: b ? pc(b.x) : '0', fcBoxT: b ? pc(b.y) : '0', fcBoxW: b ? pc(b.w) : '0', fcBoxH: b ? pc(b.h) : '0',
       fcCantApply: !(src && b && b.w > 0.01 && b.h > 0.01),
       fcHint: !src ? '이 환자가 참여한 일지의 현장사진이 먼저 나옵니다'
@@ -1572,7 +1583,7 @@ class Component extends DCLogic {
               const q = long >= 400 ? '선명' : long >= 200 ? '보통 (조금 흐릴 수 있음)' : '흐림 — 얼굴이 작게 찍힌 사진입니다. 가까이서 찍은 사진을 권장';
               return '고른 부분 원본 ' + pw + '×' + ph + 'px → 긴 변 ' + Math.max(800, Math.min(1200, long)) + 'px로 크게 저장 · 화질: ' + q;
             })()
-          : '얼굴 주변을 끌어서 네모를 그리세요 · Ctrl + 마우스 휠로 확대/축소'),
+          : '얼굴 주변을 끌어서 네모를 그리세요 · 테두리·모서리를 끌면 크기 조절 · Ctrl + 마우스 휠로 확대/축소'),
       fcStageRef: this._fcStage, fcFileRef: this._fcFile,
       fcClose: () => this.setState({ faceCrop: null }),
       fcPickFile: () => { if (this._fcFile.current) this._fcFile.current.click(); },
@@ -1624,6 +1635,27 @@ class Component extends DCLogic {
         im.src = fc2.src;
       }
     };
+  }
+
+  // 얼굴 네모 크기 조절 (사진 크기 대비 비율 0~1 · 반대쪽 변은 고정)
+  fcResize(e, mode) {
+    const el = this._fcStage.current, b0 = (this.state.faceCrop || {}).box;
+    if (!el || !b0) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const MIN = 0.02;
+    const move = (ev) => {
+      const dx = (ev.clientX - sx) / r.width, dy = (ev.clientY - sy) / r.height;
+      let l = b0.x, t = b0.y, rt = b0.x + b0.w, bt = b0.y + b0.h;
+      if (mode.indexOf('w') >= 0) l = Math.max(0, Math.min(rt - MIN, l + dx));
+      if (mode.indexOf('e') >= 0) rt = Math.min(1, Math.max(l + MIN, rt + dx));
+      if (mode.indexOf('n') >= 0) t = Math.max(0, Math.min(bt - MIN, t + dy));
+      if (mode.indexOf('s') >= 0) bt = Math.min(1, Math.max(t + MIN, bt + dy));
+      this.setState({ faceCrop: Object.assign({}, this.state.faceCrop, { box: { x: l, y: t, w: rt - l, h: bt - t } }) });
+    };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
   }
 
   // 왼쪽 메뉴 높이 = 화면에 보이는 높이 (위쪽 바가 보일 때도 하단 로그아웃이 화면 안에 들어오게)
