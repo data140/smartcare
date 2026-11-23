@@ -643,7 +643,33 @@ class Component extends DCLogic {
     if (org === 'ORG1') return k;
     return Component.isGlobalKey(k.slice(10)) ? k : null;
   }
+  // 데이터 서버가 바뀌면(도쿄 → 서울 전환 등) 이 기기에 남은 예전 서버의 화면 데이터·로그인을 비움
+  // 서버 주소와 로그인 방식을 'sc.server.v1' 에 기록해 두고, 다르면 비운 뒤 새 서버에서 다시 받음
+  static resetIfServerChanged() {
+    const NS = Component.STORE_NS;
+    let ls; try { ls = window.localStorage; } catch (e) { return; }
+    const cur = (Component.CLOUD_DEFAULT.url || '') + '|' + Component.AUTH_MODE;
+    const mk = NS + 'sc.server.v1';
+    let prev = null; try { prev = ls.getItem(mk); } catch (e) { return; }
+    if (prev === cur) return;
+    // 기록이 없는 기기: 공용 계정 방식은 기록만 (지금 쓰던 데이터 그대로), 직원별 계정 방식은 예전 데이터로 보고 비움
+    if (prev == null && Component.AUTH_MODE !== 'staff') { try { ls.setItem(mk, cur); } catch (e) {} return; }
+    const del = [];
+    try {
+      for (let i = 0; i < ls.length; i++) {
+        const raw = ls.key(i);
+        if (!raw) continue;
+        if (NS ? raw.indexOf(NS) !== 0 : /^[a-z]+~/.test(raw)) continue;
+        const k = NS ? raw.slice(NS.length) : raw;
+        if (k.indexOf('smartcare.') === 0 || ['sc.kvSeen.v1', 'sc.auth.v1', 'sc.lastView.v1', 'sc.sysOrg.v1'].indexOf(k) >= 0) del.push(raw);
+      }
+    } catch (e) {}
+    del.forEach(raw => { try { ls.removeItem(raw); } catch (e) {} });
+    try { sessionStorage.removeItem('sc.lastView.v1'); } catch (e) {}
+    try { ls.setItem(mk, cur); } catch (e) {}
+  }
   static installOrgNs() {
+    Component.resetIfServerChanged();
     // 로그인한 기관을 데이터를 읽기 전에 정함 (마지막 로그인 화면 기록 기준)
     try {
       const v = JSON.parse(window.localStorage.getItem('sc.lastView.v1') || 'null');
@@ -3796,7 +3822,7 @@ class Component extends DCLogic {
   }
   // ───── 버전 보호: 예전 파일로 열린 기기가 서버 데이터를 덮어쓰지 않게 ─────
   // 배포할 때마다 BUILD 숫자를 올림. 서버에 더 높은 번호가 있으면 이 기기는 저장을 멈추고 새로고침을 요구함
-  static BUILD = 2026111801;
+  static BUILD = 2026112301;
   // 동시 수정 시 합쳐서 저장하는 항목: 일지(일자·프로그램별), 환자 명부
   static isMergeKey(uk) {
     return !!uk && (uk.indexOf(Component.WSESS_PREFIX) === 0 || uk === 'smartcare.patients.v1');
@@ -7034,7 +7060,7 @@ class Component extends DCLogic {
             { k: 'set-staff', label: '계정 · 권한', icon: 'ph ph-identification-badge', show: can('settings'), on: v === 'settings' && st === 'staff', go: goView('settings', { setTab: 'staff' }) },
             { k: 'set-org', label: '기관 관리', icon: 'ph ph-buildings', show: can('settings') && isSys, on: v === 'settings' && st === 'org', go: goView('settings', { setTab: 'org' }) },
             { k: 'set-cloud', label: '데이터 서버', icon: 'ph ph-cloud', show: can('settings') && isSys, on: v === 'settings' && st === 'cloud', go: goView('settings', { setTab: 'cloud' }) },
-            { k: 'set-migrate', label: '데이터 이전', icon: 'ph ph-arrow-fat-lines-right', show: can('settings') && isSys && Component.isStaffMode(), on: v === 'settings' && st === 'migrate', go: goView('settings', { setTab: 'migrate' }) }
+            { k: 'set-migrate', label: '데이터 이전', icon: 'ph ph-arrow-fat-lines-right', show: can('settings') && isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url, on: v === 'settings' && st === 'migrate', go: goView('settings', { setTab: 'migrate' }) }
           ] }
         ];
         // 메뉴 순서는 사용자(계정)별로 저장 — 다른 PC에서 같은 계정으로 로그인해도 유지
@@ -9560,7 +9586,7 @@ class Component extends DCLogic {
         { key: 'program', label: '프로그램 관리' },
         { key: 'ward', label: '병동 · 호실' },
         { key: 'staff', label: '담당자 명단 및 권한' }
-      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
+      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
         label: t.label, active: s.setTab === t.key, inactive: s.setTab !== t.key,
         go: () => { if (t.key === s.setTab) return; guardLeave(() => this.setState({ setTab: t.key })); }
       })),
@@ -9569,7 +9595,7 @@ class Component extends DCLogic {
       setWardTab: s.setTab === 'ward',
       setOrgTab: isSys && s.setTab === 'org',
       setCloudTab: isSys && s.setTab === 'cloud',
-      setMigrateTab: isSys && Component.isStaffMode() && s.setTab === 'migrate',
+      setMigrateTab: isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url && s.setTab === 'migrate',
       ...(() => {
         const m = s.mig || {}, src = this.migSrc();
         const sm = m.summary;
