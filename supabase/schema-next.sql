@@ -195,6 +195,9 @@ revoke all on smartcare_kv, smartcare_staff, smartcare_audit from anon;
 revoke all on sequence smartcare_audit_id_seq from anon, authenticated;
 grant select, insert, update, delete on smartcare_kv to authenticated;
 grant select on smartcare_staff, smartcare_audit to authenticated;
+-- 서버 함수(서버 키 = service_role)용: 최근 Supabase 프로젝트는 테이블 권한을 자동으로 주지 않으므로 직접 부여
+grant all on smartcare_kv, smartcare_staff, smartcare_audit to service_role;
+grant usage, select on sequence smartcare_audit_id_seq to service_role;
 
 revoke all on function smartcare_me_row(text), smartcare_is_member(text), smartcare_me(text), smartcare_can_read(text),
   smartcare_can_write(text), smartcare_is_admin(text), smartcare_touch_login(text), smartcare_audit_kv(),

@@ -50,7 +50,8 @@ def template(env):
     url_js = 'location.origin' if cfg['url'] is None else json.dumps(cfg['url']).replace('"', "'")
     for ph, val in (("'__SC_CLOUD_URL__'", url_js), ("'__SC_CLOUD_KEY__'", json.dumps(cfg['key']).replace('"', "'")),
                     ("'__SC_CLOUD_WS__'", json.dumps(cfg.get('ws', 'smartcare')).replace('"', "'")),
-                    ("'__SC_AUTH_MODE__'", "'%s'" % cfg.get('auth', 'shared'))):
+                    ("'__SC_AUTH_MODE__'", "'%s'" % cfg.get('auth', 'shared')),
+                    ("'__SC_STORE_NS__'", "'%s'" % {'next': 'next~', 'test': 'test~'}.get(env, ''))):
         if html.count(ph) != 1:
             sys.exit('placeholder %s: %d개 (1개여야 함)' % (ph, html.count(ph)))
         html = html.replace(ph, val)

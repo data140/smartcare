@@ -12,7 +12,5 @@ $$;
 grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 grant usage on schema public to anon, authenticated, service_role;
--- Supabase 기본값: public 의 새 테이블·함수·시퀀스에 anon/authenticated 권한이 자동으로 붙음
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+-- 최근 Supabase 프로젝트처럼 새 테이블에 자동 권한을 주지 않음 (schema-next.sql 이 필요한 권한을 직접 부여해야 통과)
+-- 함수는 PostgreSQL 기본값대로 PUBLIC 실행 가능 (schema-next.sql 이 직접 회수)
