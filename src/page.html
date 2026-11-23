@@ -3384,12 +3384,13 @@
                     </div>
                     <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="5">
                       <sc-if value="{{ acctNarrow }}" hint-placeholder-val="{{ false }}">
-                        <div sc-camel-on-drag-over="{{ a.dragOver }}" sc-camel-on-drop="{{ a.drop }}" style="margin: var(--space-3); padding: var(--space-5, 18px); border: 1px solid var(--color-divider); border-radius: var(--radius-md); background: {{ a.rowBg }}; box-shadow: {{ a.dropRing }}; opacity: {{ a.dragOpacity }}; display: flex; flex-direction: column; gap: var(--space-4); transition: box-shadow 100ms ease;">
+                        <div sc-camel-on-drag-over="{{ a.dragOver }}" sc-camel-on-drop="{{ a.drop }}" style="margin: var(--space-3); padding: var(--space-5, 18px); border: 1px solid {{ a.cardBd }}; border-radius: var(--radius-md); background: {{ a.rowBg }}; box-shadow: {{ a.dropRing }}; opacity: {{ a.dragOpacity }}; display: flex; flex-direction: column; gap: var(--space-4); transition: box-shadow 100ms ease, opacity 100ms ease;">
                           <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; opacity: {{ a.opacity }};">
                             <span draggable="{{ a.canDrag }}" sc-camel-on-drag-start="{{ a.dragStart }}" sc-camel-on-drag-end="{{ a.dragEnd }}" title="끌어서 순서 변경" style="width: 28px; height: 38px; display: grid; place-items: center; border-radius: 6px; color: var(--color-neutral-500); cursor: {{ a.gripCursor }};"><i class="ph ph-dots-six-vertical" style="font-size: 20px;"></i></span>
                             <button sc-camel-on-click="{{ a.toggleOpen }}" aria-expanded="{{ a.open }}" title="눌러서 상세 보기·수정" style="flex: 1 1 230px; min-width: 200px; display: flex; flex-direction: column; gap: 2px; padding: 4px 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;">
                               <span style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
                                 <span style="font-size: 16px; font-weight: 500; line-height: 1.3;">{{ a.headName }}</span>
+                                <sc-if value="{{ a.open }}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; background: var(--color-accent); color: var(--color-neutral-950, #0b0b10); font-size: 11.5px; font-weight: 600; white-space: nowrap;"><i class="ph ph-pencil-simple-line"></i> 수정 중</span></sc-if>
                                 <sc-if value="{{ a.isMe }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="font-size: 11.5px;">본인</span></sc-if>
                                 <sc-if value="{{ a.admin }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent" style="font-size: 11.5px;">기관 관리자</span></sc-if>
                               </span>
