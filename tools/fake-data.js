@@ -1,6 +1,7 @@
 /* 개발·체험용 가상 데이터 (실제 환자·직원 정보가 아님) — dev-server.js 와 체험용 빌드가 함께 사용 */
 function scFakeData(today) {
-  today = today || new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  // 접속한 기기(브라우저)의 오늘 날짜와 같게 (한국 시간대 고정이면 서버·시험 환경의 시간대에 따라 하루씩 어긋남)
+  if (!today) { var _d = new Date(), _p = function (n) { return String(n).padStart(2, '0'); }; today = _d.getFullYear() + '-' + _p(_d.getMonth() + 1) + '-' + _p(_d.getDate()); }
   var addDay = function (n) { return new Date(Date.parse(today) + n * 864e5).toISOString().slice(0, 10); };
   var roster = [
     { id: 99, name: '시스템 관리자', type: '본사', roles: ['시스템관리자'], role: '시스템관리자', status: '활성', revokedAt: '', org: '*', empNo: 'admin', email: '', pw: 'demo1234' },
@@ -20,7 +21,7 @@ function scFakeData(today) {
     P('PT-D005', '4병동 403호', '가상환자5', '여', '1945-09-30', 81, '동의', '미동의', '재원'),
     P('PT-D006', '4병동 405호', '가상환자6', '남', '1937-01-08', 89, '동의', '동의', '퇴원')
   ];
-  var pl = function (id, date, start, end, program, place, staff) { return { id: id, date: date, start: start, end: end, program: program, place: place, staff: staff, status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' }; };
+  var pl = function (id, date, start, end, program, place, staff) { return { id: id, date: date, start: start, end: end, program: program, place: place, ward: '전체', staff: staff, status: '예정', capacity: 10, repeat: '없음', until: '', memo: '' }; };
   var plans = [
     pl('pl-d1', today, '10:00', '11:00', '미술치료', '3층 프로그램실', ['박체험']),
     pl('pl-d2', today, '14:00', '15:00', '음악치료', '4층 휴게실', ['김체험']),
