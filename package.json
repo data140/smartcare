@@ -1,0 +1,16 @@
+{
+  "name": "smartcare",
+  "private": true,
+  "description": "스마트케어 프로세스 (사회사업실)",
+  "scripts": {
+    "build": "python3 tools/build.py",
+    "build:test": "python3 tools/build.py test",
+    "build:demo": "python3 tools/build.py demo",
+    "check": "python3 tools/build.py --check && node --check src/app.js",
+    "dev": "python3 tools/build.py local && node tools/dev-server.js",
+    "test": "python3 tools/build.py local && node tests/smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
