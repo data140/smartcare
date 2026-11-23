@@ -2768,6 +2768,7 @@ class Component extends DCLogic {
   // 주소에 ?app=pc / ?app=mobile / ?app=tablet 을 붙이면 강제 지정 (개발 확인용)
   static detectDevice() {
     if (typeof window === 'undefined') return 'pc';
+    if (!Component.DEV_BAR) return Component.autoDevice();   // 운영: 접속 기기 그대로 (저장된 고정값·주소 지정 무시)
     const m = /[?&]app=(pc|mobile|1|tablet)\b/.exec(window.location.search);
     if (m) return m[1] === 'pc' ? 'pc' : (m[1] === 'tablet' ? 'tablet' : 'mobile');
     try { const saved = localStorage.getItem('smartcare.viewMode.v1'); if (saved === 'pc' || saved === 'tablet' || saved === 'mobile') return saved; } catch (e) {}
@@ -2824,6 +2825,17 @@ class Component extends DCLogic {
   // 브라우저 저장 공간 구역: 운영 = '' · 새 서버 = 'next~' · 시험 = 'test~'
   // 같은 주소(data140.github.io)의 운영·새 서버 화면이 서로의 저장 데이터·로그인을 섞지 않게 함
   static STORE_NS = '__SC_STORE_NS__';
+  // 개발용 조작 바 표시 여부. 운영 빌드에서는 숨기고(접속 기기에 맞춰 PC·태블릿·휴대폰 화면이 자동 선택됨),
+  // 개발 확인이 필요하면 주소 끝에 ?dev=1 (이 브라우저에 기억됨) / ?dev=0 (해제)
+  static DEV_BAR = (() => {
+    let on = '__SC_DEV_BAR__' === '1';
+    try {
+      const q = /[?&]dev=(1|0)\b/.exec(window.location.search);
+      if (q) { if (q[1] === '1') localStorage.setItem('smartcare.dev.v1', '1'); else localStorage.removeItem('smartcare.dev.v1'); }
+      if (localStorage.getItem('smartcare.dev.v1') === '1') on = true;
+    } catch (e) {}
+    return on;
+  })();
   // 데이터 이전 도구의 기본 원본 서버 (운영 서버 주소·공개 키)
   static MIG_SRC = { url: '__SC_MIG_SRC_URL__', key: '__SC_MIG_SRC_KEY__' };
   static MIG_FREEZE = '9999999999';
@@ -7055,7 +7067,8 @@ class Component extends DCLogic {
       showApp: s.logged && (s.device === 'tablet' || s.device === 'mobile'),
       isTablet: s.device === 'tablet',
       phoneOnly: !!s.phoneOnly, notPhoneOnly: !s.phoneOnly,
-      rootPad: s.phoneOnly ? '0' : 'var(--space-3) 0 0',
+      showDevBar: Component.DEV_BAR && !s.phoneOnly, showModeBtn: Component.DEV_BAR && !!s.phoneOnly,
+      rootPad: s.phoneOnly || !Component.DEV_BAR ? '0' : 'var(--space-3) 0 0',
       appMargin: s.phoneOnly ? '0' : 'var(--space-6) auto calc(var(--space-8) * 2)',
       appShadow: s.phoneOnly ? 'none' : 'var(--shadow-md)',
       appMaxWidth: s.phoneOnly ? 'none' : (s.device === 'tablet' ? '980px' : '372px'),
