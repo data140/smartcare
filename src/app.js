@@ -6685,6 +6685,20 @@ class Component extends DCLogic {
         empNo: m.empNo || '', name: m.name || '', org: m.org, dept: m.dept || deptOpts[0], type: m.type || '기타', email: m.email || '',
         deptOpts: deptOpts, locked: locked, mailLocked: mailLocked, orgLocked: locked || !isSys,
         isMe: m.id === me.id,
+        open: !!(s.acctOpen || {})[m.id], chev: (s.acctOpen || {})[m.id] ? 'ph ph-caret-up' : 'ph ph-caret-down', openLabel: (s.acctOpen || {})[m.id] ? '닫기' : '상세',
+        toggleOpen: () => this.setState({ acctOpen: Object.assign({}, this.state.acctOpen || {}, { [m.id]: !(this.state.acctOpen || {})[m.id] }) }),
+        chips: FEATS.map(f => {
+          const pv = p[f.k] || {};
+          const lvl = pv.u ? '사용' : (pv.v ? '뷰' : '없음');
+          const sh = f.k === 'pt' ? '환자' : (f.k === 'lg' ? '일지' : '통계');
+          const on = pv.u, view = pv.v && !pv.u;
+          return { label: sh, lvl: lvl, title: f.n + ' · ' + lvl,
+            bd: on ? 'var(--color-accent)' : (view ? 'var(--color-neutral-600)' : 'var(--color-neutral-800)'),
+            bg: on ? 'var(--color-accent-900)' : 'transparent',
+            fg: on ? 'var(--color-accent-100)' : (view ? 'var(--color-neutral-300)' : 'var(--color-neutral-600)') };
+        }),
+        mailShort: !m.email ? 'Gmail 없음' : (m.notify ? '메일 수신' : '메일 꺼짐'),
+        lastLoginShort: m.lastLogin ? String(m.lastLogin).slice(0, 10) : '접속 없음',
         headName: m.name || '이름 없음',
         headSub: [m.empNo ? '사번 ' + m.empNo : '사번 미입력', orgNm(m.org), m.dept, m.type].filter(Boolean).join(' · '),
         rowBg: m.status === '활성' ? 'transparent' : 'var(--color-neutral-900)',
@@ -10132,10 +10146,10 @@ class Component extends DCLogic {
         const sbW = vw < 1100 ? (s.menuExpandNarrow ? (s.sbW || 248) : 64) : (s.menuMini ? 64 : (s.sbW || 248));
         const wide = vw - sbW - 48 >= 1310;
         return {
-          acctWide: wide, acctNarrow: !wide,
+          acctWide: false, acctNarrow: true,
           acctCols: wide ? '28px minmax(76px, 0.7fr) minmax(84px, 0.8fr) minmax(140px, 1.3fr) minmax(108px, 1fr) minmax(104px, 1fr) minmax(220px, 2fr) 112px 112px 112px 70px 56px' : 'repeat(auto-fill, minmax(min(100%, 168px), 1fr))',
           acctMinW: wide ? '1180px' : '0',
-          acctHeadDisp: wide ? 'grid' : 'none',
+          acctHeadDisp: 'none',
           acctLblDisp: wide ? 'none' : 'block',
           acctMailSpan: wide ? 'auto' : '1 / -1',
           acctCellAlign: wide ? 'center' : 'flex-start',
@@ -10172,12 +10186,12 @@ class Component extends DCLogic {
         if (Component.isStaffMode()) {
           delete row.pw; delete row.tempPw;
           const list = [row].concat(s.roster);
-          this.setState({ roster: list, acctQ: '' });
+          this.setState({ roster: list, acctQ: '', acctOpen: Object.assign({}, s.acctOpen || {}, { [id]: true }) });
           this.staffCreate(row).then(tp => { this.saveRoster(this.state.roster); if (tp) this.flash(orgNm(org) + ' 계정 추가 — 맨 위 행에 사번·이름을 입력하세요 (임시 비밀번호 ' + tp + ')'); });
           return;
         }
         const list = [row].concat(s.roster);
-        this.setState({ roster: list, acctQ: '' }); this.saveRoster(list);
+        this.setState({ roster: list, acctQ: '', acctOpen: Object.assign({}, s.acctOpen || {}, { [id]: true }) }); this.saveRoster(list);
         this.flash(orgNm(org) + ' 계정 추가 — 맨 위 행에 사번·이름을 입력하세요 (임시 비밀번호 ' + t + ')');
       },
       staffOrgOpts: s.orgs.map(o => ({

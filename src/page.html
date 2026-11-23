@@ -3383,91 +3383,33 @@
                       <span style="text-align: center;">계정</span><span style="text-align: right;">관리</span>
                     </div>
                     <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="5">
-                      <sc-if value="{{ acctWide }}" hint-placeholder-val="{{ false }}">
-                      <div sc-camel-on-drag-over="{{ a.dragOver }}" sc-camel-on-drop="{{ a.drop }}" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-bottom: 1px solid var(--color-divider); background: {{ a.rowBg }}; box-shadow: {{ a.dropRing }}; opacity: {{ a.dragOpacity }}; transition: box-shadow 100ms ease;">
-                        <div style="display: grid; grid-template-columns: {{ acctCols }}; gap: var(--space-3); align-items: center; opacity: {{ a.opacity }};">
-                          <span draggable="{{ a.canDrag }}" sc-camel-on-drag-start="{{ a.dragStart }}" sc-camel-on-drag-end="{{ a.dragEnd }}" title="끌어서 순서 변경" style="grid-column: {{ acctGripSpan }}; width: {{ acctGripW }}; height: {{ acctGripH }}; display: grid; place-items: center; border-radius: 6px; color: var(--color-neutral-500); cursor: {{ a.gripCursor }}; background: var(--color-neutral-900); box-shadow: 0 0 0 1px var(--color-neutral-700), 0 2px 0 rgba(0,0,0,0.35);"><i class="ph ph-dots-six-vertical" style="font-size: 18px;"></i></span>
-                          <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">사번</span>
-                          <input class="input" value="{{ a.empNo }}" sc-camel-on-change="{{ a.onEmp }}" sc-camel-on-blur="{{ a.checkEmp }}" disabled="{{ a.locked }}" placeholder="사번" aria-label="사번" style="min-height: 38px; font-variant-numeric: tabular-nums;"></label>
-                          <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">이름</span>
-                          <input class="input" value="{{ a.name }}" sc-camel-on-change="{{ a.onName }}" disabled="{{ a.locked }}" placeholder="이름" aria-label="이름" style="min-height: 38px;"></label>
-                          <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">소속기관</span>
-                          <sc-raw-select class="input" value="{{ a.org }}" sc-camel-on-change="{{ a.onOrg }}" disabled="{{ a.orgLocked }}" aria-label="소속기관" style="min-height: 38px;">
-                            <sc-for list="{{ orgOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.id }}">{{ o.name }}</option></sc-for>
-                          </sc-raw-select></label>
-                          <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">부서</span>
-                          <sc-raw-select class="input" value="{{ a.dept }}" sc-camel-on-change="{{ a.onDept }}" disabled="{{ a.locked }}" aria-label="부서" style="min-height: 38px;">
-                            <sc-for list="{{ a.deptOpts }}" as="d" hint-placeholder-count="5"><option value="{{ d }}">{{ d }}</option></sc-for>
-                          </sc-raw-select></label>
-                          <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">직책</span>
-                          <sc-raw-select class="input" value="{{ a.type }}" sc-camel-on-change="{{ a.onType }}" disabled="{{ a.locked }}" aria-label="직책" style="min-height: 38px;">
-                            <sc-for list="{{ posOpts }}" as="d" hint-placeholder-count="5"><option value="{{ d }}">{{ d }}</option></sc-for>
-                          </sc-raw-select></label>
-                          <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; grid-column: {{ acctMailSpan }};"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">알림 수신 Gmail</span>
-                          <span style="display: flex; gap: var(--space-2); align-items: center; min-width: 0;">
-                            <input class="input" value="{{ a.email }}" sc-camel-on-change="{{ a.onEmail }}" sc-camel-on-blur="{{ a.checkEmail }}" disabled="{{ a.mailLocked }}" placeholder="name@gmail.com" aria-label="알림 수신 Gmail" style="min-height: 38px; flex: 1; min-width: 0;">
-                            <button sc-camel-on-click="{{ a.notifyT }}" disabled="{{ a.mailLocked }}" aria-pressed="{{ a.notify }}" title="알림 메일 수신" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ a.notifyBd }}; background: {{ a.notifyBg }}; color: {{ a.notifyFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">수신</button>
-                          </span></span>
-                          <sc-for list="{{ a.feats }}" as="ft" hint-placeholder-count="3">
-                            <span style="display: flex; flex-direction: column; gap: 4px; align-items: {{ acctCellAlign }}; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">{{ ft.fname }}</span>
-                            <span style="display: flex; gap: 4px; align-items: center;">
-                              <button sc-camel-on-click="{{ ft.vT }}" disabled="{{ a.locked }}" aria-pressed="{{ ft.v }}" title="{{ ft.vTitle }}" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ ft.vBd }}; background: {{ ft.vBg }}; color: {{ ft.vFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">뷰</button>
-                              <button sc-camel-on-click="{{ ft.uT }}" disabled="{{ a.locked }}" aria-pressed="{{ ft.u }}" title="{{ ft.uTitle }}" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ ft.uBd }}; background: {{ ft.uBg }}; color: {{ ft.uFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">사용</button>
-                            </span></span>
-                          </sc-for>
-                          <span style="display: flex; flex-direction: column; gap: 4px; align-items: {{ acctCellAlign }};"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">계정</span><button sc-camel-on-click="{{ a.activeT }}" disabled="{{ a.locked }}" aria-pressed="{{ a.active }}" title="계정 활성 / 중지" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid {{ a.activeBd }}; background: {{ a.activeBg }}; color: {{ a.activeFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">{{ a.statusLabel }}</button></span>
-                          <span style="display: flex; justify-content: {{ acctDelAlign }}; align-items: flex-end; align-self: end;"><button sc-camel-on-click="{{ a.del }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;">삭제</button></span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">
-                          <button sc-camel-on-click="{{ a.adminT }}" disabled="{{ a.locked }}" aria-pressed="{{ a.admin }}" style="display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid {{ a.adminBd }}; background: {{ a.adminBg }}; color: {{ a.adminFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">{{ a.adminLabel }}</button>
-                          <span style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                            <button sc-camel-on-click="{{ a.resetPw }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 30px; padding: 0 10px; font-size: 13px; border-radius: 999px; white-space: nowrap;"><i class="ph ph-key"></i> 비밀번호 초기화</button>
-                            <sc-if value="{{ a.hasTemp }}" hint-placeholder-val="{{ false }}">
-                              <span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; border: 1px dashed var(--color-accent-500); color: var(--color-text); white-space: nowrap;">임시 비밀번호 <b style="font-family: ui-monospace, monospace; letter-spacing: 0.05em;">{{ a.tempPw }}</b><span style="color: var(--color-neutral-400);">· 본인에게 전달 ·</span><span style="color: var(--color-accent-300);">첫 로그인 시 변경</span></span>
-                            </sc-if>
-                          </span>
-                          <sc-if value="{{ a.pwEditing }}" hint-placeholder-val="{{ false }}">
-                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 10px; border-radius: 999px; background: var(--color-neutral-900); box-shadow: 0 0 0 1px var(--color-accent-700);">
-                              <i class="ph ph-password" style="font-size: 15px; color: var(--color-accent-400);"></i>
-                              <input class="input" type="text" value="{{ a.pwDraft }}" sc-camel-on-change="{{ a.onPwDraft }}" sc-camel-on-key-down="{{ a.pwKey }}" placeholder="새 비밀번호 (예: 123456)" aria-label="새 비밀번호" autocomplete="off" style="min-height: 28px; width: 150px; padding: 0 8px; font-size: 13px; border-radius: 999px;">
-                              <button sc-camel-on-click="{{ a.pwSave }}" class="btn btn-primary" style="min-height: 28px; padding: 0 10px; font-size: 12.5px; border-radius: 999px; white-space: nowrap;">저장</button>
-                              <button sc-camel-on-click="{{ a.pwCancel }}" class="btn btn-ghost" aria-label="취소" style="min-height: 28px; width: 28px; padding: 0; justify-content: center; border-radius: 999px;"><i class="ph ph-x"></i></button>
-                            </span>
-                          </sc-if>
-                          <sc-if value="{{ a.pwNotEditing }}" hint-placeholder-val="{{ true }}">
-                            <button sc-camel-on-click="{{ a.pwOpen }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 30px; padding: 0 10px; font-size: 13px; border-radius: 999px; white-space: nowrap;"><i class="ph ph-password"></i> 비밀번호 지정</button>
-                          </sc-if>
-                          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 10px; border-radius: 999px; background: var(--color-neutral-900); box-shadow: 0 0 0 1px {{ a.validRing }};">
-                            <i class="ph ph-calendar-check" style="font-size: 15px; color: var(--color-accent-400);"></i>
-                            <span style="white-space: nowrap;">유효기간</span>
-                            <span style="position: relative; display: inline-flex;"><input type="date" class="input date-cal" value="{{ a.validFrom }}" sc-camel-on-change="{{ a.onValidFrom }}" disabled="{{ a.locked }}" aria-label="사용 시작일" style="min-height: 28px; padding: 0 30px 0 6px; font-size: 13px; width: 136px;"><button sc-camel-on-click="{{ openDateCal }}" disabled="{{ a.locked }}" aria-label="달력에서 사용 시작일 선택" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 4px; background: transparent; color: var(--color-accent-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-calendar-blank" style="font-size: 15px;"></i></button></span>
-                            <span>~</span>
-                            <span style="position: relative; display: inline-flex;"><input type="date" class="input date-cal" value="{{ a.validTo }}" sc-camel-on-change="{{ a.onValidTo }}" disabled="{{ a.locked }}" aria-label="사용 종료일" style="min-height: 28px; padding: 0 30px 0 6px; font-size: 13px; width: 136px;"><button sc-camel-on-click="{{ openDateCal }}" disabled="{{ a.locked }}" aria-label="달력에서 사용 종료일 선택" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border: 0; border-radius: 4px; background: transparent; color: var(--color-accent-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-calendar-blank" style="font-size: 15px;"></i></button></span>
-                            <sc-if value="{{ a.hasValid }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ a.clearValid }}" disabled="{{ a.locked }}" aria-label="유효기간 해제" title="기간 제한 없음" style="width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: var(--color-neutral-500); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button></sc-if>
-                            <span class="tag {{ a.validTagCls }}" style="font-size: 12px; white-space: nowrap;">{{ a.validLabel }}</span>
-                          </span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: 12.5px; color: var(--color-neutral-500);">
-                          <sc-if value="{{ a.isMe }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="font-size: 12px;">본인</span></sc-if>
-                          <span style="white-space: nowrap;"><i class="ph ph-clock-counter-clockwise" style="font-size: 13px;"></i> 최근 접속 {{ a.lastLogin }}</span>
-                          <span style="color: {{ a.mailColor }}; white-space: nowrap;"><i class="ph ph-envelope-simple" style="font-size: 13px;"></i> {{ a.mailNote }}</span>
-                        </div>
-                      </div>
-                      </sc-if>
                       <sc-if value="{{ acctNarrow }}" hint-placeholder-val="{{ false }}">
                         <div sc-camel-on-drag-over="{{ a.dragOver }}" sc-camel-on-drop="{{ a.drop }}" style="margin: var(--space-3); padding: var(--space-5, 18px); border: 1px solid var(--color-divider); border-radius: var(--radius-md); background: {{ a.rowBg }}; box-shadow: {{ a.dropRing }}; opacity: {{ a.dragOpacity }}; display: flex; flex-direction: column; gap: var(--space-4); transition: box-shadow 100ms ease;">
                           <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; opacity: {{ a.opacity }};">
                             <span draggable="{{ a.canDrag }}" sc-camel-on-drag-start="{{ a.dragStart }}" sc-camel-on-drag-end="{{ a.dragEnd }}" title="끌어서 순서 변경" style="width: 28px; height: 38px; display: grid; place-items: center; border-radius: 6px; color: var(--color-neutral-500); cursor: {{ a.gripCursor }};"><i class="ph ph-dots-six-vertical" style="font-size: 20px;"></i></span>
-                            <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                              <span style="font-size: 16px; font-weight: 500; line-height: 1.3;">{{ a.headName }}</span>
+                            <button sc-camel-on-click="{{ a.toggleOpen }}" aria-expanded="{{ a.open }}" title="눌러서 상세 보기·수정" style="flex: 1 1 230px; min-width: 200px; display: flex; flex-direction: column; gap: 2px; padding: 4px 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;">
+                              <span style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+                                <span style="font-size: 16px; font-weight: 500; line-height: 1.3;">{{ a.headName }}</span>
+                                <sc-if value="{{ a.isMe }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="font-size: 11.5px;">본인</span></sc-if>
+                                <sc-if value="{{ a.admin }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent" style="font-size: 11.5px;">기관 관리자</span></sc-if>
+                              </span>
                               <span style="font-size: 12.5px; color: var(--color-neutral-500);">{{ a.headSub }}</span>
+                            </button>
+                            <span style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                              <sc-for list="{{ a.chips }}" as="c" hint-placeholder-count="3">
+                                <span title="{{ c.title }}" style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; white-space: nowrap; border: 1px solid {{ c.bd }}; background: {{ c.bg }}; color: {{ c.fg }};">{{ c.label }} <b style="font-weight: 500;">{{ c.lvl }}</b></span>
+                              </sc-for>
                             </span>
-                              <span style="margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-2);">
+                            <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; white-space: nowrap; color: {{ a.mailColor }};" title="{{ a.mailNote }}"><i class="ph ph-envelope-simple" style="font-size: 14px;"></i> {{ a.mailShort }}</span>
+                            <span style="font-size: 12.5px; color: var(--color-neutral-500); white-space: nowrap;" title="최근 접속"><i class="ph ph-clock-counter-clockwise" style="font-size: 13px;"></i> {{ a.lastLoginShort }}</span>
+                            <span style="margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-2);">
                               <button sc-camel-on-click="{{ a.activeT }}" disabled="{{ a.locked }}" aria-pressed="{{ a.active }}" title="계정 활성 / 중지" style="display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid {{ a.activeBd }}; background: {{ a.activeBg }}; color: {{ a.activeFg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.4), inset 0 1px 0 rgba(233,233,237,0.1);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.45);">{{ a.statusLabel }}</button>
-                              <button sc-camel-on-click="{{ a.del }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;">삭제</button>
+                              <button sc-camel-on-click="{{ a.toggleOpen }}" class="btn btn-secondary" aria-label="상세 열기·닫기" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;"><i class="{{ a.chev }}"></i> {{ a.openLabel }}</button>
                             </span>
                           </div>
-                          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3) var(--space-4);">
+                          <sc-if value="{{ a.open }}" hint-placeholder-val="{{ false }}">
+                          <div style="display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3) var(--space-4);">
                           <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">사번</span>
                           <input class="input" value="{{ a.empNo }}" sc-camel-on-change="{{ a.onEmp }}" sc-camel-on-blur="{{ a.checkEmp }}" disabled="{{ a.locked }}" placeholder="사번" aria-label="사번" style="min-height: 38px; font-variant-numeric: tabular-nums;"></label>
                           <label style="display: flex; flex-direction: column; gap: 4px; min-width: 0;"><span style="display: {{ acctLblDisp }}; font-size: 12px; color: var(--color-neutral-500);">이름</span>
@@ -3532,11 +3474,13 @@
                           </span>
                         </div>
                         <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: 12.5px; color: var(--color-neutral-500);">
-                          <sc-if value="{{ a.isMe }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="font-size: 12px;">본인</span></sc-if>
                           <span style="white-space: nowrap;"><i class="ph ph-clock-counter-clockwise" style="font-size: 13px;"></i> 최근 접속 {{ a.lastLogin }}</span>
                           <span style="color: {{ a.mailColor }}; white-space: nowrap;"><i class="ph ph-envelope-simple" style="font-size: 13px;"></i> {{ a.mailNote }}</span>
+                          <span style="margin-left: auto;"><button sc-camel-on-click="{{ a.del }}" disabled="{{ a.locked }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;">삭제</button></span>
                         </div>
                           </div>
+                        </div>
+                        </sc-if>
                         </div>
                       </sc-if>
                     </sc-for>
