@@ -27,7 +27,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     check('공용 계정(SB_EMAIL) 안내는 나오지 않음', !body.includes('SB_EMAIL'));
     await p.locator('button:has-text("스크립트 보기")').first().click(); await p.waitForTimeout(500);
     const code = await p.locator('textarea:visible').first().inputValue();
-    check('스크립트가 SB_ID로 로그인', code.includes("getProperty('SB_ID')") && code.includes('@smartcare.invalid'));
+    check('스크립트가 SB_ID로 로그인', code.includes("getProperty('SB_ID')") && code.includes('smartcare_login_email'));
     check('스크립트에 화면 코드 변수(Component)가 섞이지 않음', !/Component\.isStaffMode/.test(code));
     let ok = true; try { new Function(code); } catch (e) { ok = false; check('스크립트 문법 오류 없음', false, e.message); }
     if (ok) check('스크립트 문법 오류 없음', true);
