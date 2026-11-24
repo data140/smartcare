@@ -3329,6 +3329,11 @@
                     <sc-if value="{{ rsHasHint }}" hint-placeholder-val="{{ true }}"><span style="font-size: 13px; color: oklch(0.8 0.13 70); font-weight: 600;"><i class="ph ph-info"></i> {{ rsHint }}</span></sc-if><sc-if value="{{ rsScanned }}" hint-placeholder-val="{{ false }}"><span style="font-size: 12.5px; color: var(--color-neutral-400);"><i class="ph ph-check"></i> 항목 확인 완료</span></sc-if><sc-if value="{{ rsBacked }}" hint-placeholder-val="{{ false }}"><span style="font-size: 12.5px; color: var(--color-neutral-400);"><i class="ph ph-check"></i> 백업 완료</span></sc-if></div>
                   <sc-if value="{{ rsHasMsg }}" hint-placeholder-val="{{ false }}"><div role="status" style="padding: 10px 14px; border-radius: 10px; background: var(--color-neutral-900); font-size: 13.5px; line-height: 1.6;">{{ rsMsg }}</div></sc-if>
                 </div>
+                <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                  <div style="font-size: 16px; font-weight: 600;">다른 기기에 남은 옛 데이터 정리</div>
+                  <div style="font-size: 13.5px; color: var(--color-neutral-400); line-height: 1.7;">초기화 뒤에도 휴대폰·태블릿 등에 옛 일정이 보이면, 아래 단추로 모든 기기에 정리 신호를 보냅니다. 각 기기가 앱을 새로고침하거나 다시 열 때 자기 사본을 지우고 서버의 최신 상태를 불러옵니다. (서버 데이터는 지우지 않습니다)</div>
+                  <div><button type="button" sc-camel-on-click="{{ rsMarker }}" disabled="{{ rsBusy }}" class="btn btn-secondary" style="min-height: 40px;"><i class="ph ph-broadcast"></i> 모든 기기에 정리 신호 보내기</button></div>
+                </div>
               </div>
             </sc-if>
             <sc-if value="{{ setJournalTab }}" hint-placeholder-val="{{ false }}">

@@ -671,7 +671,7 @@ class Component extends DCLogic {
   // ───── 기관별 별도 저장 ─────
   // 가족사랑요양병원(ORG1)은 기존 저장 위치 그대로. 다른 기관은 'smartcare.o.<기관코드>.' 아래에 따로 저장.
   // 계정 · 기관 목록 · 화면 설정 같은 공용 항목만 모든 기관이 함께 씀.
-  static GLOBAL_KEYS = ['roster.v1', 'orgs.v1', 'cloud.v1', 'viewMode.v1', 'menu.v1', 'menuCollapsed.v1', 'menuMini.v1', 'kpiView.v1', 'sbW.v1', 'flowView.v1', 'ptCols.v1', 'emrCols.v1', 'cformLib.v1', 'approval.v1', 'theme.v1', 'cformMargin.v1'];
+  static GLOBAL_KEYS = ['roster.v1', 'orgs.v1', 'cloud.v1', 'viewMode.v1', 'menu.v1', 'menuCollapsed.v1', 'menuMini.v1', 'kpiView.v1', 'sbW.v1', 'flowView.v1', 'ptCols.v1', 'emrCols.v1', 'cformLib.v1', 'approval.v1', 'theme.v1', 'cformMargin.v1', 'resetAt.v1'];
   static sysOrg(orgs) {
     let v = null;
     try { v = window.localStorage.getItem('sc.sysOrg.v1'); } catch (e) {}
@@ -2360,6 +2360,7 @@ class Component extends DCLogic {
       ['sessions', 'review', 'photos', 'confirmed', 'activeSession', 'sessionMeta', 'consentFiles', 'consentVia'].forEach(k => { delete o[k]; });
       upd.push({ k: r.k, v: JSON.stringify(o), updated_at: new Date().toISOString() });
     });
+    if (kind === 'run') upd.push({ k: c.ws + ':smartcare.resetAt.v1', v: JSON.stringify({ at: new Date().toISOString(), patients: !!sel.patients }), updated_at: new Date().toISOString() });
     if (kind === 'run' && upd.length) {
       const r = await fetch(c.url + '/rest/v1/smartcare_kv?on_conflict=k', { method: 'POST', headers: H({ Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify(upd) });
       if (!r.ok) throw new Error('환자·업무 데이터 정리 실패 ' + r.status);
@@ -4839,9 +4840,35 @@ class Component extends DCLogic {
       this._cloudT = setTimeout(() => this.cloudFlush(), 5000);
     }
   }
+  // 운영 데이터 초기화 표식: 서버에 기록된 초기화 시각이 이 기기가 마지막으로 본 것보다 새로우면,
+  // 이 기기에 남아 있는 일정·일지·사진·동의서(+환자 명부를 지웠다면 명부)의 옛 사본을 지우고 다시 불러옴 (오래된 기기가 옛 데이터를 되살리지 못하게)
+  async checkResetMarker(c) {
+    try {
+      const r = await fetch(c.url + '/rest/v1/smartcare_kv?select=v&k=eq.' + encodeURIComponent(c.ws + ':smartcare.resetAt.v1'), { headers: this.cloudHeaders(c) });
+      if (!r.ok) return false;
+      const row = (await r.json())[0]; if (!row || !row.v) return false;
+      const mk = JSON.parse(row.v); if (!mk || !mk.at) return false;
+      const get = Storage.prototype.__scGet ? (k) => Storage.prototype.__scGet.call(localStorage, k) : (k) => localStorage.getItem(k);
+      const seen = get('sc.resetSeen.v1') || '';
+      if (seen && seen >= mk.at) return false;
+      // 처음 이 표식을 보는 기기: 이 기기의 사본이 초기화 이전 것이면 지움 (새 기기라 사본이 없으면 아무 일도 일어나지 않음)
+      const del = [];
+      Component.lsKeys().forEach(k => {
+        const rest = k.replace(/^smartcare\.(o\.[^.]+\.)?/, '');
+        if (k.indexOf('smartcare.') !== 0) return;
+        if (/^(plans|journals|journalph|cfiles|signs|mconsent|emrUndo|idphotos|emrLast)\.v1$/.test(rest) || /^(wsess|wsessbak|wph|sign|idph)\./.test(rest) || rest === 'work.v1' || rest === 'patients.v1') del.push(k);
+      });
+      del.forEach(k => { try { Storage.prototype.__scRemove.call(localStorage, k); } catch (e) {} delete Component.MEM[k]; });
+      try { Storage.prototype.__scRemove.call(localStorage, 'sc.kvSeen.v1'); } catch (e) {}
+      (Storage.prototype.__scOrig || Storage.prototype.setItem).call(localStorage, 'sc.resetSeen.v1', mk.at);
+      if (del.length) { this.flash('운영 데이터 초기화가 반영되어 이 기기의 옛 데이터를 지우고 새로 불러옵니다'); setTimeout(() => location.reload(), 1200); return true; }
+      return false;
+    } catch (e) { return false; }
+  }
   async cloudPull(initial) {
     const c = this.cloudCfg(); if (!c) return;
     if (!(await this.authEnsure())) return;
+    if (await this.checkResetMarker(c)) return;   // 운영 데이터 초기화가 있었으면 이 기기의 옛 사본을 지우고 새로 불러옴
     try {
       if (this._pullBusy) return;
       this._pullBusy = true;
@@ -10817,6 +10844,7 @@ class Component extends DCLogic {
           rsHint: !s.resetScanned ? '먼저 1단계에서 [삭제될 항목 확인]을 눌러 주세요' : (!s.resetBacked ? '2단계 [백업 파일 내려받기]를 먼저 눌러 백업을 받아 주세요' : ((s.resetPhrase || '').trim() !== PH ? '확인 문구를 정확히 입력해 주세요' : '')), rsHasHint: !can && !s.resetBusy,
           rsScanned: !!s.resetScanned, rsBacked: !!s.resetBacked, rsPhrase: s.resetPhrase || '', rsCan: can, rsCanNot: !can,
           rsPhraseOn: (e) => this.setState({ resetPhrase: e.target.value }),
+          rsMarker: async () => { this.setState({ resetBusy: true, resetMsg: '모든 기기에 정리 신호를 보내는 중…' }); try { const c = this.cloudCfg(); if (!c || !(await this.authEnsure())) throw new Error('서버 로그인이 필요합니다'); const r = await fetch(c.url + '/rest/v1/smartcare_kv?on_conflict=k', { method: 'POST', headers: this.cloudHeaders(c, { Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify([{ k: c.ws + ':smartcare.resetAt.v1', v: JSON.stringify({ at: new Date().toISOString(), patients: false }), updated_at: new Date().toISOString() }]) }); if (!r.ok) throw new Error('서버 오류 ' + r.status); this.setState({ resetMsg: '신호를 보냈습니다. 각 기기에서 앱을 새로고침하거나 다시 열면 옛 일정·일지·사진·동의서 사본이 지워지고 서버의 최신 상태로 다시 불러옵니다.' }); } catch (e) { this.setState({ resetMsg: '신호 보내기 실패 — ' + (e && e.message) }); } this.setState({ resetBusy: false }); },
           rsScan: async () => { this.setState({ resetBusy: true, resetMsg: '서버에서 삭제될 항목을 세는 중…' }); try { const r = await this.resetCall('scan'); this.setState({ resetRes: r, resetScanned: true, resetBacked: false, resetMsg: '' }); } catch (e) { this.setState({ resetMsg: '확인 실패 — ' + (e && e.message) }); } this.setState({ resetBusy: false }); },
           rsBackup: async () => { this.setState({ resetBusy: true, resetMsg: '백업 파일을 만드는 중…' }); try { const r = await this.resetCall('backup'); const d = new Date(), p2 = (n) => String(n).padStart(2, '0'); Component.saveBlob(new Blob([JSON.stringify(r.backup)], { type: 'application/json' }), 'smartcare-backup-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + '.json'); this.setState({ resetBacked: true, resetMsg: '백업 파일을 내려받았습니다. 안전한 곳에 보관한 뒤 아래에서 초기화를 진행하세요.' }); } catch (e) { this.setState({ resetMsg: '백업 실패 — ' + (e && e.message) }); } this.setState({ resetBusy: false }); },
           rsRun: async () => {

@@ -30,6 +30,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.locator('input[autocomplete="username"]').first().fill('admin'); await p.locator('input[autocomplete="current-password"]').first().fill('demo1234');
     await p.locator('button:has-text("로그인")').last().click(); await sleep(4500);
     if (!(await p.locator('text=계정 · 권한 >> visible=true').count())) { await p.getByText('설정', { exact: true }).first().click().catch(() => {}); await sleep(600); }
+    // 다른 기기(오래된 사본을 가진 휴대폰 역할): 같은 계정으로 로그인해 두고, 초기화 뒤 새로고침했을 때 옛 데이터가 지워지는지 확인
+    const c2 = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+    const q = await c2.newPage(); await q.goto(BASE + '/'); await q.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await q.locator('input[autocomplete="username"]').first().fill('100101'); await q.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await q.locator('button:has-text("로그인")').last().click(); await q.waitForSelector('text=가상환자1', { timeout: 20000 });
     // 시험용 운영 데이터를 서버에 올려 둠 (일정·운영일지·동의서)
     await p.evaluate(() => {
       localStorage.setItem('smartcare.journals.v1', JSON.stringify({ '2026-01-01|시험': { f: { content: '시험' } } }));
@@ -55,6 +60,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     check('백업 후 확인 문구가 맞으면 실행할 수 있음', !(await p.locator('button:has-text("운영 데이터 초기화 실행")').isDisabled()));
     await p.locator('button:has-text("운영 데이터 초기화 실행")').click();
     await p.waitForSelector('text=초기화가 끝났습니다', { timeout: 15000 }).then(() => check('초기화가 끝났다는 안내', true), () => check('초기화가 끝났다는 안내', false));
+    // 오래된 사본을 가진 다른 기기에 옛 데이터를 넣어 두었다가, 새로고침하면 지워지는지
+    await q.evaluate(() => { localStorage.setItem('smartcare.plans.v1', JSON.stringify([{ id: 'old1', date: '2026-01-01', start: '10:00', end: '11:00', program: '옛일정', place: 'x', ward: '전체', staff: [], status: '예정', capacity: 5 }])); localStorage.setItem('smartcare.journals.v1', JSON.stringify({ 'k|옛': { f: { content: '옛' } } })); });
+    await q.reload(); await sleep(6000);
+    const stale = await q.evaluate(() => ({ j: localStorage.getItem('smartcare.journals.v1'), p: localStorage.getItem('smartcare.plans.v1') || '' }));
+    check('초기화 뒤 다른 기기를 새로고침하면 옛 일정·운영일지 사본이 지워짐', !stale.j && !/옛일정/.test(stale.p), JSON.stringify(stale).slice(0, 80));
     await sleep(4500);   // 자동 새로고침
     await p.waitForSelector('input[autocomplete="username"]', { timeout: 30000 });
     // 서버 상태 확인: 다시 로그인해 같은 탭에서 개수를 세어 봄
