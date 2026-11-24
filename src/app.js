@@ -106,7 +106,7 @@ class Component extends DCLogic {
     plans: [], calCustom: null, journals: {}, jrnPh: {}, jrnOpt: {}, jrnSel: null, jrnPrev: false, jrnFmt: 'pdf', jrnMic: null, jrnMicPhase: '', jrnInterim: '',
     consent: { portrait: false, face: false },
     paperSign: {},
-    signed: { '동의인': false, '보호자': false, '촬영자': false },
+    signed: {},
     threshold: null,
     orgs: [
       { id: 'ORG1', name: '가족사랑요양병원' },
@@ -2372,6 +2372,16 @@ class Component extends DCLogic {
     }
     return out;
   }
+  // ───── 동의서 서명란 구성 (설정 › 동의서식 관리) — 서명할 사람(본인·보호자·촬영자 등)을 기관이 정함 ─────
+  static SIG_DEFAULT = [{ k: '동의인', label: '동의인', hint: '(본인)', who: 'patient', req: false }, { k: '보호자', label: '보호자', hint: '(대리 동의 시)', who: 'guardian', req: false }];
+  static SIG_WHO = { patient: '환자 본인', guardian: '보호자', staff: '촬영자(담당자)', other: '그 밖의 사람' };
+  sigRoles() {
+    try { const a = JSON.parse(localStorage.getItem('smartcare.sigRoles.v1') || 'null'); if (Array.isArray(a) && a.length) return a.filter(r => r && r.k && r.label).map(r => ({ k: String(r.k), label: String(r.label), hint: String(r.hint || ''), who: Component.SIG_WHO[r.who] ? r.who : 'other', req: !!r.req })); } catch (e) {}
+    return Component.SIG_DEFAULT.map(r => Object.assign({}, r));
+  }
+  saveSigRoles(list) { try { localStorage.setItem('smartcare.sigRoles.v1', JSON.stringify(list)); } catch (e) {} this.setState({ sigRev: (this.state.sigRev || 0) + 1 }); }
+  sigName(r, patientName, guardianName, staffName) { return r.who === 'patient' ? patientName : r.who === 'guardian' ? guardianName : r.who === 'staff' ? staffName : ''; }
+  signedFrom(saved) { const o = {}; Object.keys(saved || {}).forEach(k => { o[k] = !!saved[k]; }); return o; }
   static xmlEsc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   jrnApBox(titles, h) {
     const e = Component.xmlEsc; if (!titles || !titles.length) return '';
@@ -3316,7 +3326,7 @@ class Component extends DCLogic {
     this.setState({
       signImgsFor: pid,
       signImgs: saved,
-      signed: { '동의인': !!saved['동의인'], '보호자': !!saved['보호자'], '촬영자': !!saved['촬영자'] }
+      signed: this.signedFrom(saved)
     });
   }
 
@@ -6350,15 +6360,24 @@ class Component extends DCLogic {
       mWeekNext: () => shift(7),
       onMDay: (e) => { if (e.target.value) this.setState({ mDay: e.target.value, logDate: null }); },
       mWeekDays: days.map((d, i) => {
-        const k = iso(d), on = k === mDay, has = plansOn(k).length > 0;
+        const k = iso(d), on = k === mDay, cnt = plansOn(k).length;
         const t = k === TODAY;
         const tone = this.dayTone(k, d.getDay());
+        // 찢어 쓰는 달력 한 장 모양: 위쪽 색 띠(요일) · 큰 날짜 숫자 · 일정 개수 점 · 위 고리 두 개
+        const bandBase = tone.color ? 'color-mix(in oklch, ' + tone.color + ' 74%, black)' : 'color-mix(in oklch, var(--color-accent) 52%, black)';
+        const bandOn = tone.color ? 'color-mix(in oklch, ' + tone.color + ' 86%, black)' : 'color-mix(in oklch, var(--color-accent) 74%, black)';
         return {
-          wd: t ? '오늘' : (tone.name ? tone.name.split('·')[0].slice(0, 4) : WD[i]), num: d.getDate(), on: on, off: !on,
-          numColor: tone.color || 'var(--color-neutral-300)',
-          offBorder: t ? 'var(--color-accent)' : 'var(--color-neutral-700)',
-          wdColor: t ? 'var(--color-accent-300)' : (tone.color || 'var(--color-neutral-500)'),
-          dot: has ? (on ? 'var(--color-accent-200)' : 'var(--color-accent)') : 'transparent',
+          wd: t ? '오늘' : WD[i], num: d.getDate(), on: on, off: !on,
+          aria: (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + WD[i] + '요일' + (cnt ? ' · 일정 ' + cnt + '건' : ''),
+          btn: 'position: relative; display: flex; flex-direction: column; align-items: center; min-height: clamp(70px, 11vw, 92px); padding: 0; margin-top: 4px; border-radius: 12px; overflow: hidden; cursor: pointer; font: inherit; color: var(--color-text); '
+            + 'border: ' + (on ? '2px solid var(--color-accent)' : '1px solid var(--color-neutral-700)') + '; '
+            + 'background: linear-gradient(180deg, color-mix(in oklch, var(--color-neutral-800) 70%, white 8%), var(--color-neutral-900)); '
+            + 'box-shadow: ' + (on ? '0 0 0 3px color-mix(in oklch, var(--color-accent) 30%, transparent), 0 12px 20px rgba(0,0,0,0.38)' : '0 3px 8px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)') + '; '
+            + 'transform: ' + (on ? 'translateY(-3px)' : 'none') + '; transition: transform 120ms ease, box-shadow 120ms ease;',
+          band: 'align-self: stretch; padding: 5px 0 4px; text-align: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; color: #ffffff; background: ' + (on ? bandOn : bandBase) + '; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.25);',
+          numStyle: 'flex: 1; display: grid; place-items: center; font-size: clamp(20px, 3.4vw, 27px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; padding: 4px 0 2px; color: ' + (tone.color || 'var(--color-text)') + ';',
+          dots: Array.from({ length: Math.min(cnt, 3) }, () => 1).map(() => ({ c: on ? 'var(--color-accent-200)' : 'var(--color-accent)' })),
+          hasDots: cnt > 0, more: cnt > 3 ? '+' + (cnt - 3) : '', hasMore: cnt > 3,
           pick: () => this.setState({ mDay: k, logDate: null })
         };
       }),
@@ -8024,7 +8043,8 @@ class Component extends DCLogic {
       { key: 'settings', label: '설정', icon: 'ph ph-gear', views: ['settings'] }
     ];
 
-    const signedCount = ['동의인', '보호자', '촬영자'].filter(r => s.signed[r]).length;
+    const sigRoles = this.sigRoles(); void s.sigRev;
+    const signedCount = sigRoles.filter(r => s.signed[r.k]).length;
 
     return {
       // 셸
@@ -9370,7 +9390,11 @@ class Component extends DCLogic {
         void s.mcTick;
         const mc = this.loadMobileConsent(sel.id);
         const ok = 'var(--color-accent-300)', no = 'var(--color-neutral-400)';
-        const roles = ['동의인', '보호자', '촬영자'];
+        // 기관이 정한 서명란 + (예전 기록에 있던 서명은 그대로 함께 보여 줌)
+        const cfgRoles = this.sigRoles();
+        const roles = cfgRoles.map(r => r.k).concat(Object.keys((mc && mc.signs) || {}).filter(k => !cfgRoles.some(r => r.k === k) && mc.signs[k]));
+        const roleLabel = (k) => { const r = cfgRoles.find(x => x.k === k); return r ? r.label : k; };
+        const roleWho = (k) => { const r = cfgRoles.find(x => x.k === k); return r ? r.who : (k === '촬영자' ? 'staff' : k === '보호자' ? 'guardian' : 'patient'); };
         const imgOf = (url, alt) => React.createElement('img', { src: url, alt: alt, style: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' } });
         // 현재 동의 상태에 반영된 동의서를 위로: 서면 첨부가 최근 반영이면 서면, 아니면 모바일 전자 동의
         const hasPaper = (s.consentFiles[sel.id] || []).length > 0;
@@ -9391,10 +9415,10 @@ class Component extends DCLogic {
           mcSigns: roles.map(r => {
             const url = mc && mc.signs ? mc.signs[r] : null;
             return {
-              role: r, name: r === '촬영자' ? (mc ? mc.staff : '') : sel.name,
+              role: roleLabel(r), name: roleWho(r) === 'staff' ? (mc ? mc.staff : '') : (roleWho(r) === 'patient' ? sel.name : ''),
               has: !!url, none: !url,
-              imgEl: url ? imgOf(url, r + ' 서명') : null,
-              open: () => { if (url) this.setState({ zoom: { url: url, title: sel.name + ' · ' + r + ' 서명', meta: '모바일 전자 동의 · ' + mc.at + ' · ' + mc.device } }); }
+              imgEl: url ? imgOf(url, roleLabel(r) + ' 서명') : null,
+              open: () => { if (url) this.setState({ zoom: { url: url, title: sel.name + ' · ' + roleLabel(r) + ' 서명', meta: '모바일 전자 동의 · ' + mc.at + ' · ' + mc.device } }); }
             };
           }),
           mcPrint: () => {
@@ -9405,9 +9429,9 @@ class Component extends DCLogic {
             const g1 = ((sel.guardians || []).find(g => g.type === '주보호자') || {}).name || '';
             const m = /(\d{4})[-.](\d{1,2})[-.](\d{1,2})/.exec(mc.at || '') || [];
             const dateTxt = m[1] ? m[1] + '년 ' + Number(m[2]) + '월 ' + Number(m[3]) + '일' : esc(mc.at);
-            const nm = (r) => r === '촬영자' ? mc.staff : r === '보호자' ? g1 : sel.name;
+            const nm = (k) => { const r = cfgRoles.find(x => x.k === k); return this.sigName(r || { who: k === '촬영자' ? 'staff' : k === '보호자' ? 'guardian' : 'patient' }, sel.name, g1, mc.staff); };
             // 서명은 이름이 아니라 (인) 위에 겹쳐 찍음
-            const signRow = (r) => '<div class="sr"><span class="sl">' + esc(r) + ' :</span><span class="sv">' + esc(nm(r) || '') + '</span><span class="in">(인)' + (mc.signs && mc.signs[r] ? '<img src="' + mc.signs[r] + '" alt="' + esc(r) + ' 서명">' : '') + '</span></div>';
+            const signRow = (r) => '<div class="sr"><span class="sl">' + esc(roleLabel(r)) + ' :</span><span class="sv">' + esc(nm(r) || '') + '</span><span class="in">(인)' + (mc.signs && mc.signs[r] ? '<img src="' + mc.signs[r] + '" alt="' + esc(r) + ' 서명">' : '') + '</span></div>';
             const item = (l, v) => '<div class="it"><b>_ ' + esc(l) + ' :</b><div>' + esc(v) + '</div></div>';
             const html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + esc(cf.title) + ' · ' + esc(sel.name) + '</title><style>'
               + '@page{size:A4;margin:22mm 20mm}body{font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#1a1a1a;font-size:12pt;margin:0}'
@@ -9425,7 +9449,7 @@ class Component extends DCLogic {
               + '<p>' + esc(cf.body) + '</p>'
               + item('사용목적', cf.purpose) + item('사용매체', cf.media) + item('사용형식', cf.form)
               + '<div class="dt">' + dateTxt + '</div>'
-              + signRow('동의인') + signRow('보호자') + signRow('촬영자')
+              + roles.map(signRow).join('')
               + '<div class="org">' + esc(orgName) + '</div>'
               + '<div class="meta">전자 동의 · ' + esc(sel.id) + ' · ' + esc(sel.room) + ' · ' + esc(mc.at) + ' · ' + esc(mc.device) + ' · 초상권 ' + (mc.portrait ? '동의' : '미동의') + ' / 안면인식 ' + (mc.face ? '동의' : '미동의') + '</div>'
               + '</body></html>';
@@ -9588,7 +9612,7 @@ class Component extends DCLogic {
                   + '<p>　본인 <span class="u"></span> 는 ( 또는 보호자 <span class="u"></span> 는 )</p><p>' + esc(sub(draft.body)) + '</p>'
                   + [['사용목적', draft.purpose], ['사용매체', draft.media], ['사용형식', draft.form]].map(([l, v]) => '<div class="it"><b>_ ' + l + ' :</b><div>' + esc(sub(v)) + '</div></div>').join('')
                   + '<div class="dt">' + new Date().getFullYear() + '년 　　월 　　일</div>'
-                  + ['동의인', '보호자', '촬영자'].map(r => '<div class="sr"><span>' + r + ' :</span><span class="sv"></span><span>(인)</span></div>').join('')
+                  + this.sigRoles().map(r => '<div class="sr"><span>' + esc(r.label) + ' :</span><span class="sv"></span><span>(인)</span></div>').join('')
                   + '<div class="org">' + esc(orgName) + '</div></div></div></div></body></html>';
                 const w = window.open('', '_blank');
                 if (!w) { this.flash('팝업이 차단되었습니다 — 브라우저 주소창 오른쪽에서 팝업을 허용하세요'); return; }
@@ -9691,15 +9715,15 @@ class Component extends DCLogic {
           refuse: () => this.setState({ consent: { portrait: s.consent.portrait, face: false } })
         }
       ],
-      signRows: ['동의인', '보호자', '촬영자'].map(role => ({
-        role: role, name: role === '촬영자' ? userName : sel.name,
-        hint: role === '보호자' ? '(대리 동의 시)' : (role === '촬영자' ? '(담당자)' : '(본인)'),
+      signRows: sigRoles.map(r => { const role = r.k; return {
+        role: r.label, name: this.sigName(r, sel.name, '', userName),
+        hint: r.hint,
         signed: !!s.signed[role] && !!(s.signImgs || {})[role], unsigned: !(s.signed[role] && (s.signImgs || {})[role]),
-        imgEl: (s.signImgs || {})[role] ? React.createElement('img', { src: s.signImgs[role], alt: role + ' 서명', style: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' } }) : null,
+        imgEl: (s.signImgs || {})[role] ? React.createElement('img', { src: s.signImgs[role], alt: r.label + ' 서명', style: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' } }) : null,
         sign: () => { this._sigDirty = false; this.setState({ sigRole: role, sigEmpty: true }); }
-      })),
+      }; }),
       sigOpen: !!s.sigRole,
-      sigTitle: s.sigRole ? s.sigRole + ' 서명 · ' + (s.sigRole === '촬영자' ? userName : sel.name) : '',
+      sigTitle: s.sigRole ? ((sigRoles.find(x => x.k === s.sigRole) || { label: s.sigRole }).label) + ' 서명 · ' + this.sigName(sigRoles.find(x => x.k === s.sigRole) || { who: 'patient' }, sel.name, '', userName) : '',
       sigEmpty: s.sigEmpty !== false,
       sigHasPrev: !!(s.sigRole && (s.signImgs || {})[s.sigRole]),
       sigCanvasRef: this._sigRefCb || (this._sigRefCb = (el) => {
@@ -9804,18 +9828,20 @@ class Component extends DCLogic {
             sel: p.id, pickOpen: false,
             consent: { portrait: p.consent === '동의', face: p.face === '동의' },
             signImgs: saved,
-            signed: { '동의인': !!saved['동의인'], '보호자': !!saved['보호자'], '촬영자': !!saved['촬영자'] }
+            signed: this.signedFrom(saved)
           });
           this.flash(p.name + ' 동의서 양식을 불러왔습니다');
         }
       })),
-      signStatus: signedCount + ' / 3 서명 완료' + (s.signed['보호자'] ? '' : ' · 보호자 서명은 의사결정 능력 저하 시 필수'),
+      signStatus: signedCount + ' / ' + sigRoles.length + ' 서명 완료' + ((sigRoles.some(r => r.who === 'guardian') && !sigRoles.filter(r => r.who === 'guardian').some(r => s.signed[r.k])) ? ' · 보호자 서명은 의사결정 능력 저하 시 필수' : ''),
       saveConsent: () => {
-        if (!s.signed['동의인'] && !s.signed['보호자']) {
-          this.flash('본인 또는 보호자 서명이 필요합니다');
+        const pg = sigRoles.filter(r => r.who === 'patient' || r.who === 'guardian');
+        if (pg.length && !pg.some(r => s.signed[r.k])) {
+          this.flash(pg.length > 1 ? '본인 또는 보호자 서명이 필요합니다' : (pg[0].label + ' 서명이 필요합니다'));
           return;
         }
-        if (!s.signed['촬영자']) { this.flash('담당자(촬영자) 서명이 필요합니다'); return; }
+        const need = sigRoles.filter(r => r.who !== 'patient' && r.who !== 'guardian' && r.req && !s.signed[r.k]);
+        if (need.length) { this.flash(need[0].label + ' 서명이 필요합니다'); return; }
         // 전자 동의 기록 저장 → PC 동의서 관리에서 조회
         const nowD = new Date(), p2 = (n) => String(n).padStart(2, '0');
         const rec = {
@@ -10830,6 +10856,28 @@ class Component extends DCLogic {
       setNotifyTab: allowSet('notify') && stEff === 'notify',
       setPrivacyTab: allowSet('privacy') && stEff === 'privacy',
       setJournalTab: allowSet('journal') && stEff === 'journal',
+      ...(() => {
+        const roles = this.sigRoles();
+        const upd = (i, patch) => { const l = roles.map(r => Object.assign({}, r)); l[i] = Object.assign({}, l[i], patch); this.saveSigRoles(l); };
+        const PRESET = [{ label: '환자 본인', hint: '(본인)', who: 'patient' }, { label: '보호자', hint: '(대리 동의 시)', who: 'guardian' }, { label: '촬영자', hint: '(담당자)', who: 'staff', req: true }, { label: '입회인', hint: '', who: 'other' }];
+        return {
+          sgRows: roles.map((r, i) => ({
+            n: i + 1, label: r.label, hint: r.hint, who: r.who, req: r.req, showReq: r.who !== 'patient' && r.who !== 'guardian',
+            reqCls: r.req ? 'sel-chip' : '', reqLabel: r.req ? '필수' : '선택',
+            whoOpts: Object.keys(Component.SIG_WHO).map(k => ({ v: k, t: Component.SIG_WHO[k], sel: k === r.who })),
+            onLabel: (e) => upd(i, { label: e.target.value }), onHint: (e) => upd(i, { hint: e.target.value }),
+            onWho: (e) => upd(i, { who: e.target.value, req: (e.target.value === 'patient' || e.target.value === 'guardian') ? false : r.req }),
+            onReq: () => upd(i, { req: !r.req }),
+            up: () => { if (i === 0) return; const l = roles.slice(); [l[i - 1], l[i]] = [l[i], l[i - 1]]; this.saveSigRoles(l); },
+            down: () => { if (i === roles.length - 1) return; const l = roles.slice(); [l[i + 1], l[i]] = [l[i], l[i + 1]]; this.saveSigRoles(l); },
+            isFirst: i === 0, isLast: i === roles.length - 1,
+            remove: () => { if (roles.length <= 1) { this.flash('서명란은 최소 한 칸이 필요합니다'); return; } this.saveSigRoles(roles.filter((_, j) => j !== i)); this.flash('"' + r.label + '" 서명란을 뺐습니다 (이미 받은 서명 기록은 그대로 남습니다)'); }
+          })),
+          sgPresets: PRESET.map(p => ({ label: '+ ' + p.label, go: () => { if (roles.length >= 6) { this.flash('서명란은 최대 6칸까지입니다'); return; } this.saveSigRoles(roles.concat([{ k: 'r' + Date.now().toString(36), label: p.label, hint: p.hint, who: p.who, req: !!p.req }])); } })),
+          sgPreview: roles.map(r => ({ label: r.label })),
+          sgReset: () => { this.saveSigRoles(Component.SIG_DEFAULT.map(r => Object.assign({}, r))); this.flash('기본 서명란(동의인·보호자)으로 되돌렸습니다'); }
+        };
+      })(),
       setResetTab: isSys && stEff === 'reset',
       ...(() => {
         const R = s.resetRes || null, sel = Object.assign({ work: true, forms: true, consent: true, photo: true, patients: false }, s.resetSel || {});
