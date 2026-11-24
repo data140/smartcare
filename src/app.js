@@ -103,7 +103,7 @@ class Component extends DCLogic {
     staff: [],
     calMonth: null, planDay: null, planStatus: '전체', planOpen: false, planForm: null, planErr: '',
     // 예시 일정 없음 — 서버에 저장된 실제 일정만 사용
-    plans: [], journals: {}, jrnPh: {}, jrnOpt: {}, jrnSel: null, jrnPrev: false, jrnFmt: 'pdf', jrnMic: null, jrnMicPhase: '', jrnInterim: '',
+    plans: [], calCustom: null, journals: {}, jrnPh: {}, jrnOpt: {}, jrnSel: null, jrnPrev: false, jrnFmt: 'pdf', jrnMic: null, jrnMicPhase: '', jrnInterim: '',
     consent: { portrait: false, face: false },
     paperSign: {},
     signed: { '동의인': false, '보호자': false, '촬영자': false },
@@ -825,7 +825,12 @@ class Component extends DCLogic {
     } catch (e) {}
     try { const v = parseInt(localStorage.getItem('sc.calPct'), 10); if (v >= 30 && v <= 92) this.setState({ calPct: v }); } catch (e) {}
     try { const v = parseInt(localStorage.getItem('sc.cpPct'), 10); if (v >= 30 && v <= 70) this.setState({ cpPct: v }); } catch (e) {}
-    try { const b = parseInt(localStorage.getItem('smartcare.calBg.v1'), 10); if (b >= 0 && b < 6) this.setState({ calBgi: b }); } catch (e) {}
+    try {
+      const raw = localStorage.getItem('smartcare.calBg.v1'); const b = parseInt(raw, 10);
+      const cu = JSON.parse(localStorage.getItem('smartcare.calCustom.v1') || 'null');
+      if (cu && typeof cu.h === 'number') this.setState({ calCustom: cu });
+      if (raw === 'custom' && cu) this.setState({ calBgi: -1 }); else if (b >= 0 && b < 12) this.setState({ calBgi: b });
+    } catch (e) {}
     try {
       const pl = JSON.parse(localStorage.getItem('smartcare.plans.v1') || 'null');
       if (Array.isArray(pl)) this.setState({ plans: pl });
@@ -6216,6 +6221,28 @@ class Component extends DCLogic {
     };
   }
 
+  // 캘린더 직접 고른 색: 색 판을 끌 때 화면 전체가 끊기지 않게 잠깐 모았다가 한 번만 반영·저장
+  static hexToHue(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return 280;
+    const n = parseInt(m[1], 16), lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const r = lin((n >> 16) & 255), g = lin((n >> 8) & 255), b = lin(n & 255);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), mm = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), ss = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const A = 1.9779984951 * l - 2.4285922050 * mm + 0.4505937099 * ss, B = 0.0259040371 * l + 0.7827717662 * mm - 0.8086757660 * ss;
+    const h = Math.atan2(B, A) * 180 / Math.PI; return Math.round((h + 360) % 360);
+  }
+  calCustomSet(patch) {
+    const cur = Object.assign({ hex: '#7a6ad8', h: 280, c: 1 }, this._calCu || this.state.calCustom || {});
+    if (patch.hex) { cur.hex = patch.hex; cur.h = Component.hexToHue(patch.hex); }
+    if (typeof patch.c === 'number' && !isNaN(patch.c)) cur.c = Math.max(0, Math.min(2, patch.c));
+    this._calCu = cur;
+    clearTimeout(this._calCuT);
+    this._calCuT = setTimeout(() => {
+      this.setState({ calCustom: cur, calBgi: -1 });
+      try { localStorage.setItem('smartcare.calCustom.v1', JSON.stringify(cur)); localStorage.setItem('smartcare.calBg.v1', 'custom'); } catch (e) {}
+      this._calCu = null;
+    }, 120);
+  }
+
   planVals(s) {
     const WD = ['일', '월', '화', '수', '목', '금', '토'];
     const wdColor = (i) => i === 0 ? 'var(--cal-red)' : i === 6 ? 'var(--cal-blue)' : 'var(--color-neutral-500)';
@@ -6242,10 +6269,14 @@ class Component extends DCLogic {
     // 캘린더 색조 (4e 톤 그라데이션) — 사용자는 색조만 고르고, 밝기는 라이트/다크 모드에 맞춰 자동
     const CAL_PAL = [
       { name: '기본', h: 280, c: 1 }, { name: '블루', h: 245, c: 1 }, { name: '그린', h: 160, c: 1 },
-      { name: '플럼', h: 325, c: 1 }, { name: '웜', h: 65, c: 1 }, { name: '뉴트럴', h: 260, c: 0 }
+      { name: '플럼', h: 325, c: 1 }, { name: '웜', h: 65, c: 1 }, { name: '뉴트럴', h: 260, c: 0 },
+      { name: '로즈', h: 10, c: 1 }, { name: '코랄', h: 35, c: 1 }, { name: '올리브', h: 112, c: 1 },
+      { name: '틸', h: 195, c: 1 }, { name: '인디고', h: 270, c: 1 }, { name: '라벤더', h: 305, c: 1 }
     ];
-    const calBgi = Math.max(0, Math.min(CAL_PAL.length - 1, s.calBgi || 0));
-    const CT = CAL_PAL[calBgi];
+    // 직접 고른 색: 어떤 색이든 고르면 그 색조(hue)와 진하기(chroma)로 캘린더 색을 만듦
+    const useCustom = s.calBgi === -1 && !!s.calCustom;
+    const calBgi = useCustom ? -1 : Math.max(0, Math.min(CAL_PAL.length - 1, s.calBgi || 0));
+    const CT = useCustom ? { name: '직접', h: s.calCustom.h, c: s.calCustom.c } : CAL_PAL[calBgi];
     const LT = (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light');
     const ok = (l, c, h) => 'oklch(' + l + ' ' + c + ' ' + h + ')';
     const CBpanel = LT
@@ -6437,6 +6468,13 @@ class Component extends DCLogic {
       calWeekdays: WD.map((w, i) => ({ label: w, color: i === 0 ? CAL.sun : i === 6 ? CAL.sat : (LT ? ok(0.45, 0.02, CT.h) : ok(0.72, 0.02, CT.h)) })),
       calPalOpen: !!s.calPalOpen,
       calPalToggle: () => this.setState({ calPalOpen: !s.calPalOpen }),
+      calCustomOn: useCustom,
+      calCustomHex: (s.calCustom && s.calCustom.hex) || '#7a6ad8',
+      calCustomC: String((s.calCustom && s.calCustom.c) || 1),
+      calCustomBd: useCustom ? 'var(--color-accent)' : 'var(--color-neutral-700)',
+      calCustomSw: 'linear-gradient(90deg, ' + ok(0.92, 0.05 * ((s.calCustom && s.calCustom.c) || 1), (s.calCustom && s.calCustom.h) || 280) + ' 50%, ' + ok(0.30, 0.06 * ((s.calCustom && s.calCustom.c) || 1), (s.calCustom && s.calCustom.h) || 280) + ' 50%)',
+      onCalColor: (e) => this.calCustomSet({ hex: e.target.value }),
+      onCalChroma: (e) => this.calCustomSet({ c: parseFloat(e.target.value) }),
       calPalette: CAL_PAL.map((p, i) => ({
         name: p.name, sw: 'linear-gradient(90deg, ' + ok(0.92, 0.05 * p.c, p.h) + ' 50%, ' + ok(0.30, 0.06 * p.c, p.h) + ' 50%)', on: i === calBgi,
         bd: i === calBgi ? 'var(--color-accent)' : 'var(--color-neutral-700)',
