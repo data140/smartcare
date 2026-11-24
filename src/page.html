@@ -224,8 +224,8 @@
       <!-- 좌측 메뉴 -->
       <aside aria-label="기능 메뉴" ref="{{ sbRef }}" style="position: sticky; top: 0; align-self: flex-start; height: {{ sbH }}; max-height: {{ sbH }}; overflow-y: auto; overscroll-behavior: contain; z-index: 20; flex: none; width: {{ sbWidth }}; box-sizing: border-box; border-right: 1px solid var(--color-divider); background: var(--color-surface); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-3); transition: width 140ms ease;">
         <sc-if value="{{ sbResizable }}" hint-placeholder-val="{{ true }}">
-          <div role="separator" aria-orientation="vertical" aria-label="메뉴 너비 조절" title="끌어서 메뉴 너비 조절 · 더블클릭하면 기본 너비" sc-camel-on-mouse-down="{{ sbResizeStart }}" sc-camel-on-double-click="{{ sbResizeReset }}" style="position: absolute; top: 0; right: -4px; bottom: 0; width: 8px; cursor: col-resize; z-index: 5; display: flex; align-items: center; justify-content: center;" style-hover="background: color-mix(in oklch, var(--color-accent) 25%, transparent);">
-            <span style="width: 3px; height: 36px; border-radius: 2px; background: var(--color-neutral-600);"></span>
+          <div role="separator" aria-orientation="vertical" aria-label="메뉴 너비 조절" title="끌어서 메뉴 너비 조절 · 더블클릭하면 기본 너비" sc-camel-on-mouse-down="{{ sbResizeStart }}" sc-camel-on-double-click="{{ sbResizeReset }}" style="position: absolute; top: 0; right: -4px; bottom: 0; width: 8px; cursor: col-resize; z-index: 5; display: flex; align-items: center; justify-content: center;" style-hover="background: color-mix(in oklch, var(--color-accent) 22%, transparent); border-radius: 4px;">
+            <i class="ph ph-dots-six-vertical" aria-hidden="true" style="font-size: 14px; color: var(--color-neutral-500); opacity: 0.55; pointer-events: none;"></i>
           </div>
         </sc-if>
         <div style="display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) var(--space-2);">
@@ -1225,7 +1225,7 @@
           </div>
           <sc-if value="{{ cpWide }}" hint-placeholder-val="{{ false }}">
             <div role="separator" aria-orientation="vertical" aria-label="목록과 등록 칸 너비 조절" tabindex="0" sc-camel-on-mouse-down="{{ cpSplitDown }}" sc-camel-on-key-down="{{ cpSplitKey }}" sc-camel-on-double-click="{{ cpSplitReset }}" title="끌어서 너비 조절 · 두 번 누르면 원래대로" style="position: sticky; top: 60px; align-self: start; height: calc(100vh - 72px); width: 18px; cursor: col-resize; display: flex; align-items: center; justify-content: center;" style-hover="background: color-mix(in oklch, var(--color-accent) 10%, transparent); border-radius: 6px;">
-              <span style="width: 4px; height: 56px; border-radius: 2px; background: var(--color-neutral-600); box-shadow: 0 0 0 1px var(--color-neutral-800);"></span>
+              <i class="ph ph-dots-six-vertical" aria-hidden="true" style="font-size: 14px; color: var(--color-neutral-500); opacity: 0.55; pointer-events: none;"></i>
             </div>
           </sc-if>
           <div style="min-width: 0; position: {{ cpRightPos }}; top: 60px; max-height: {{ cpRightMaxH }}; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-6); padding-right: 2px;">
@@ -4523,8 +4523,9 @@
         <button sc-camel-on-click="{{ aiBriefClose }}" aria-label="브리핑 닫기" style="width: 26px; height: 26px; border: 0; border-radius: 50%; background: #eef1f5; color: #4a5568; cursor: pointer; display: grid; place-items: center; flex: none;"><i class="ph ph-x"></i></button>
       </div>
     </sc-if>
-    <button sc-camel-on-click="{{ aiToggle }}" aria-label="AI 비서 열기" title="AI 비서 · 끌어서 옮길 수 있어요 (두 번 누르면 처음 위치)" sc-camel-on-pointer-down="{{ aiFabDown }}" sc-camel-on-double-click="{{ aiFabReset }}" style="position: fixed; left: {{ aiFabLeft }}; top: {{ aiFabTop }}; right: {{ aiFabRightPx }}; bottom: {{ aiFabBot }}; touch-action: none; z-index: 122; width: {{ aiFabSize }}; height: {{ aiFabSize }}; border-radius: 50%; border: 0; cursor: pointer; background: linear-gradient(180deg, #2a4aa3, #1e3a8a); color: #ffffff; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(30, 58, 138, 0.40), inset 0 1px 0 rgba(255,255,255,0.25);" style-hover="transform: translateY(-2px);" style-active="transform: translateY(1px);">
-      <i class="{{ aiFabIcon }}" style="font-size: 27px;"></i>
+    <button sc-camel-on-click="{{ aiToggle }}" aria-label="AI 비서 열기" title="AI 비서 · 끌어서 옮길 수 있어요 (두 번 누르면 처음 위치)" sc-camel-on-pointer-down="{{ aiFabDown }}" sc-camel-on-double-click="{{ aiFabReset }}" style="position: fixed; left: {{ aiFabLeft }}; top: {{ aiFabTop }}; right: {{ aiFabRightPx }}; bottom: {{ aiFabBot }}; touch-action: none; z-index: 122; width: {{ aiFabSize }}; height: {{ aiFabSize }}; border-radius: 50%; border: 0; cursor: pointer; background: radial-gradient(circle at 28% 24%, #8fb4ff 0%, transparent 46%), linear-gradient(135deg, #6d5ef0 0%, #3b6fe0 55%, #1fa6d8 100%); color: #ffffff; display: grid; place-items: center; box-shadow: 0 10px 26px rgba(79, 82, 230, 0.45), 0 0 0 3px rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.45);" class="sc-ai-fab" style-hover="transform: translateY(-2px) scale(1.04);" style-active="transform: translateY(1px);">
+      <span class="sc-ai-fab-ring" aria-hidden="true"></span>
+      <i class="{{ aiFabIcon }}" style="font-size: 26px; position: relative; filter: drop-shadow(0 1px 3px rgba(20,20,80,0.45));"></i>
       <sc-if value="{{ aiHasBadge }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; top: -2px; right: -2px; min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #e03131; color: #ffffff; font-size: 12px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px #ffffff;">{{ aiBadge }}</span></sc-if>
     </button>
     <sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
