@@ -53,8 +53,8 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await p.locator('[role=tab]:has-text("전체") >> visible=true').first().click(); await sleep(300);
     check('운영일지 화면에는 로고 올리기가 없음(설정으로 이동)', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) === 0);
     await p.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(700);
-    await p.locator('button:has-text("운영일지 서식") >> visible=true').first().click(); await sleep(500);
-    check('설정 › 운영일지 서식에 로고 올리기·글자 직접 작성이 있음', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) >= 1 && (await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').count()) >= 1);
+    await p.locator('button:has-text("결재라인") >> visible=true').first().click(); await sleep(500);
+    check('설정 › 결재라인·문서 서식에 로고 올리기·글자 직접 작성이 있음', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) >= 1 && (await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').count()) >= 1);
     await p.locator('button:has-text("글자만") >> visible=true').first().click(); await sleep(300);
     await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().fill('직접 쓴 하단 글자'); await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().blur(); await sleep(400);
     await p.locator('aside button:has-text("프로그램 운영일지") >> visible=true').first().click(); await sleep(800);
