@@ -11335,6 +11335,24 @@ class Component extends DCLogic {
       mToday: s.mobileView === 'today', mNewLog: s.mobileView === 'newLog',
       mReview: s.mobileView === 'review', mLogs: s.mobileView === 'logs',
       mConsent: s.mobileView === 'consent', mMe: s.mobileView === 'me', mJournal: s.mobileView === 'journal',
+      ...(() => {
+        // 홈 화면에 설치해 주소창 없이 앱처럼 쓰기
+        const standalone = (() => { try { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; } catch (e) { return false; } })();
+        const ua = navigator.userAgent || '';
+        const help = /iPhone|iPad|iPod/.test(ua) ? '사파리 아래 [공유] 단추(네모에 화살표) → [홈 화면에 추가]를 누르세요.'
+          : /SamsungBrowser/.test(ua) ? '삼성 인터넷 오른쪽 아래 [≡] 메뉴 → [현재 페이지 추가] → [홈 화면]을 누르세요.'
+          : '크롬 오른쪽 위 [⋮] 메뉴 → [앱 설치] 또는 [홈 화면에 추가]를 누르세요.';
+        return {
+          installShow: !standalone, installIsApp: standalone,
+          installHelp: s.installHelpOn ? help + ' 설치하면 홈 화면 아이콘으로 열고, 주소창 없이 전체 화면으로 쓸 수 있습니다.' : '',
+          installHasHelp: !!s.installHelpOn,
+          installGo: async () => {
+            const ev = window.__scInstallEv;
+            if (ev && ev.prompt) { try { ev.prompt(); const r = await ev.userChoice; window.__scInstallEv = null; if (r && r.outcome === 'accepted') this.flash('앱이 설치되었습니다 — 홈 화면의 아이콘으로 열어 주세요'); } catch (e) { this.setState({ installHelpOn: true }); } }
+            else this.setState({ installHelpOn: true });
+          }
+        };
+      })(),
       reviewMeta: this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', '),
       reviewHead: this.curKey(s).split('|')[0] + ' · ' + (this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', ')),
       mobileBack: s.mobileView !== 'today',

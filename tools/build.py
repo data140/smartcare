@@ -53,6 +53,19 @@ def inject_head(html, snippet):
     return html.replace(anchor, anchor + snippet, 1)
 
 
+PWA_HEAD = (
+    '  <link rel="manifest" href="manifest.webmanifest">\n'
+    '  <meta name="theme-color" content="#151826">\n'
+    '  <meta name="mobile-web-app-capable" content="yes">\n'
+    '  <meta name="apple-mobile-web-app-capable" content="yes">\n'
+    '  <meta name="apple-mobile-web-app-title" content="스마트케어">\n'
+    '  <link rel="apple-touch-icon" href="%sicons/apple-touch-icon.png">\n'
+    '  <link rel="icon" type="image/png" href="%sicons/icon-192.png">\n'
+    '  <script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}'
+    'window.__scInstallEv=null;addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__scInstallEv=e;});</script>\n'
+)
+
+
 def template(env):
     html = page_html()
     cfg = config(env)
@@ -94,6 +107,10 @@ def bundle(env):
         csp = ("connect-src 'self' blob: data: https://cdn.jsdelivr.net%s; img-src 'self' data: blob:%s; "
                "object-src 'none'; base-uri 'none'; form-action 'none'") % (host, host)
         out = out.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n  <meta http-equiv="Content-Security-Policy" content="%s">' % csp, 1)
+    # 휴대폰·태블릿에서 '앱처럼' 설치해 쓰기 (주소창 없는 전체 화면): 운영·새 서버 빌드에만
+    if env in ('prod', 'next'):
+        pre = '' if env == 'prod' else '../'
+        out = out.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n' + PWA_HEAD % (pre, pre), 1)
     if env == 'test':
         out = out.replace('<title>Bundled Page</title>', '<title>[시험] 스마트케어</title>', 1)
     elif env == 'next':
