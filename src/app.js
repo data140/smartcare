@@ -10332,6 +10332,12 @@ class Component extends DCLogic {
           ntGoCloud: () => this.setState({ setTab: 'cloud' }),
           ntTodayLabel: dayTxt + ' · ' + plansToday.length + '건',
           ntHasPlans: plansToday.length > 0, ntNoPlans: plansToday.length === 0,
+          ntRecips: s.roster.filter(m => m.org !== '*' && m.type !== '시스템(알림)' && (isSys ? (m.org === orgIdCur) : (m.org === me.org))).map(m => {
+            const mail = (m.email || '').trim();
+            const st = !mail ? 'Gmail 없음' : (m.notify ? '수신' : '수신 꺼짐');
+            return { name: m.name || '(이름 없음)', mail: mail || '—', st: st, ok: st === '수신', stFg: st === '수신' ? 'var(--color-accent-100)' : 'var(--color-neutral-500)', stBg: st === '수신' ? 'var(--color-accent-900)' : 'var(--color-neutral-900)', stBd: st === '수신' ? 'var(--color-accent)' : 'var(--color-neutral-700)' };
+          }),
+          ntRecipCount: s.roster.filter(m => m.org !== '*' && m.type !== '시스템(알림)' && (isSys ? (m.org === orgIdCur) : (m.org === me.org)) && (m.email || '').trim() && m.notify).length,
           ntRows: plansToday.map(p => {
             const ok = (p.staff || []).filter(n => reach(n));
             const miss = (p.staff || []).filter(n => !reach(n));
@@ -10614,7 +10620,7 @@ class Component extends DCLogic {
       posOpts: ['실장', '팀장', '병동장', '수간호사', '주임간호사', '간호사', '사회복지사', '물리치료사', '임상병리사', '행정', '자원봉사자', '실습생', '본사', '시스템(알림)', '기타'],
       acctOrgChips: (isSys ? [{ id: 'ALL', name: '전체' }].concat(s.orgs) : s.orgs.filter(o => o.id === me.org)).map(o => ({
         name: o.name,
-        count: s.roster.filter(m => m.org !== '*' && (o.id === 'ALL' || m.org === o.id)).length,
+        count: s.roster.filter(m => m.org !== '*' && m.type !== '시스템(알림)' && (o.id === 'ALL' || m.org === o.id)).length,
         on: acctOrg === o.id, off: acctOrg !== o.id,
         go: () => { if (isSys) this.setState({ acctOrg: o.id }); }
       })),

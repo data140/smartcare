@@ -3228,6 +3228,19 @@
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                  <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;"><span style="font-size: 16px;">메일 알림 수신 명단</span><span class="tag tag-outline" style="font-size: 12px;">받는 사람 {{ ntRecipCount }}명</span></div>
+                  <div style="font-size: 13px; color: var(--color-neutral-500); line-height: 1.6;">이 기관 계정 중 Gmail이 입력되고 수신이 켜진 사람에게 발송됩니다. 바꾸려면 설정 › 계정 · 권한에서 해당 계정의 Gmail·수신을 수정하세요.</div>
+                  <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                    <sc-for list="{{ ntRecips }}" as="r" hint-placeholder-count="3">
+                      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); font-size: 14px;">
+                        <span style="min-width: 90px;">{{ r.name }}</span><span style="flex: 1; min-width: 160px; color: var(--color-neutral-400); word-break: break-all;">{{ r.mail }}</span>
+                        <span style="padding: 2px 10px; border-radius: 999px; border: 1px solid {{ r.stBd }}; background: {{ r.stBg }}; color: {{ r.stFg }}; font-size: 12.5px; white-space: nowrap;">{{ r.st }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
                   <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
                     <span style="font-size: 16px;">오늘 알림 미리보기</span>
                     <span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ ntTodayLabel }}</span>
