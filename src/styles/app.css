@@ -251,3 +251,6 @@
 .sc-ai-fab-ring { position: absolute; inset: -5px; border-radius: 50%; pointer-events: none; border: 2px solid rgba(120, 110, 255, 0.55); animation: scAiPulse 2.8s ease-out infinite; }
 @keyframes scAiPulse { 0% { transform: scale(0.92); opacity: 0.8; } 70%, 100% { transform: scale(1.28); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sc-ai-fab-ring { animation: none; opacity: 0.35; } }
+
+/* 접힌 메뉴 아이콘 설명: 아이콘 오른쪽에 떠서 커서와 겹치지 않음 */
+#sc-mini-tip { position: fixed; z-index: 400; display: none; transform: translateY(-50%); padding: 7px 12px; border-radius: 8px; font-size: 13.5px; line-height: 1.3; white-space: nowrap; pointer-events: none; background: #1f2433; color: #f4f5fa; box-shadow: 0 6px 18px rgba(0,0,0,0.35); }

@@ -757,6 +757,23 @@ class Component extends DCLogic {
       else if (e.key === 'Backspace' && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') && !(e.target && e.target.isContentEditable)) { if (this.navGoBack()) e.preventDefault(); }
     };
     window.addEventListener('keydown', this._onNavKey);
+    // 접힌 메뉴: 아이콘 설명을 커서와 겹치지 않게 오른쪽에 띄움 (기본 title 말풍선 대신)
+    this._miniTipOver = (e) => {
+      try {
+        const t = e.target && e.target.closest ? e.target.closest('aside [title]') : null;
+        if (!t) return;
+        const ab = t.closest('aside'); if (!ab || ab.getBoundingClientRect().width > 110) return;
+        const txt = t.getAttribute('title'); if (!txt) return;
+        t.setAttribute('data-ttl', txt); t.removeAttribute('title');
+        let tip = document.getElementById('sc-mini-tip');
+        if (!tip) { tip = document.createElement('div'); tip.id = 'sc-mini-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+        tip.textContent = txt; const r = t.getBoundingClientRect();
+        tip.style.left = (r.right + 12) + 'px'; tip.style.top = (r.top + r.height / 2) + 'px'; tip.style.display = 'block';
+        t._tipOut = () => { t.setAttribute('title', t.getAttribute('data-ttl') || ''); t.removeAttribute('data-ttl'); tip.style.display = 'none'; t.removeEventListener('mouseleave', t._tipOut); t.removeEventListener('click', t._tipOut); };
+        t.addEventListener('mouseleave', t._tipOut); t.addEventListener('click', t._tipOut);
+      } catch (_) {}
+    };
+    document.addEventListener('mouseover', this._miniTipOver);
     Component.installOrgNs();
     if (this.state.orgId !== window.__scOrg) this.setState({ orgId: window.__scOrg });
     this.idleStart();
@@ -2532,6 +2549,7 @@ class Component extends DCLogic {
     if (this._onResize) window.removeEventListener('resize', this._onResize);
     if (this._onPop) window.removeEventListener('popstate', this._onPop);
     if (this._onNavKey) window.removeEventListener('keydown', this._onNavKey);
+    if (this._miniTipOver) document.removeEventListener('mouseover', this._miniTipOver);
     if (this._onSbScroll) window.removeEventListener('scroll', this._onSbScroll);
     if (this._verT) { clearInterval(this._verT); this._verT = null; }
     try { document.documentElement.style.zoom = ''; } catch (e) {}
@@ -7670,6 +7688,7 @@ class Component extends DCLogic {
           },
           sbResizeReset: () => { this.setState({ sbW: 248 }); try { localStorage.removeItem('smartcare.sbW.v1'); } catch (e) {} },
           sbJustify: mini ? 'center' : 'flex-start',
+          sbIcoG: mini ? '23px' : '17px', sbIcoGBox: mini ? '36px' : '28px', sbIcoI: mini ? '22px' : '16px', sbItemH: mini ? '44px' : '38px',
           sbItemPad: mini ? 'var(--space-3)' : 'var(--space-3)',
           sbSubIndent: mini ? '0' : '17px',
           sbSubPad: mini ? '0' : '10px',
