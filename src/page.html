@@ -3027,6 +3027,29 @@
             </sc-if>
 
             <sc-if value="{{ setConsentTab }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); margin-bottom: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><span style="font-size: 17px; font-weight: 600;">서명란 구성</span><span style="font-size: 13px; color: var(--color-neutral-500);">PC · 태블릿 · 휴대폰 동의서에 같이 적용됩니다 (기본: 동의인 · 보호자)</span></div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <sc-for list="{{ sgRows }}" as="r" hint-placeholder-count="2">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--color-neutral-900);">
+                      <span style="width: 22px; text-align: center; color: var(--color-neutral-500);">{{ r.n }}</span>
+                      <input class="input" value="{{ r.label }}" sc-camel-on-change="{{ r.onLabel }}" aria-label="서명란 이름" placeholder="예) 환자 본인" style="min-height: 40px; flex: 1 1 130px; min-width: 110px;">
+                      <input class="input" value="{{ r.hint }}" sc-camel-on-change="{{ r.onHint }}" aria-label="서명란 안내" placeholder="예) (대리 동의 시)" style="min-height: 40px; flex: 1 1 130px; min-width: 110px;">
+                      <sc-raw-select class="input" value="{{ r.who }}" sc-camel-on-change="{{ r.onWho }}" aria-label="서명하는 사람" style="min-height: 40px; flex: 0 1 150px;"><sc-for list="{{ r.whoOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.t }}</option></sc-for></sc-raw-select>
+                      <sc-if value="{{ r.showReq }}" hint-placeholder-val="{{ false }}"><button type="button" class="{{ r.reqCls }}" sc-camel-on-click="{{ r.onReq }}" data-keep="1" title="필수로 하면 이 서명이 없으면 저장할 수 없습니다" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13px; cursor: pointer;">{{ r.reqLabel }}</button></sc-if>
+                      <button type="button" sc-camel-on-click="{{ r.up }}" disabled="{{ r.isFirst }}" class="btn btn-ghost" aria-label="위로" style="min-height: 36px; width: 36px; padding: 0;"><i class="ph ph-caret-up"></i></button>
+                      <button type="button" sc-camel-on-click="{{ r.down }}" disabled="{{ r.isLast }}" class="btn btn-ghost" aria-label="아래로" style="min-height: 36px; width: 36px; padding: 0;"><i class="ph ph-caret-down"></i></button>
+                      <button type="button" sc-camel-on-click="{{ r.remove }}" class="btn btn-ghost" aria-label="서명란 빼기" style="min-height: 36px; width: 36px; padding: 0;"><i class="ph ph-trash"></i></button>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"><span style="font-size: 13px; color: var(--color-neutral-500);">서명란 추가</span>
+                  <sc-for list="{{ sgPresets }}" as="p" hint-placeholder-count="4"><button type="button" sc-camel-on-click="{{ p.go }}" class="btn btn-secondary" style="min-height: 36px; font-size: 13.5px;">{{ p.label }}</button></sc-for>
+                  <button type="button" sc-camel-on-click="{{ sgReset }}" class="btn btn-ghost" style="min-height: 36px; font-size: 13px; margin-left: auto;"><i class="ph ph-arrow-counter-clockwise"></i> 기본으로 되돌리기</button></div>
+                <div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.7;">환자 본인·보호자 칸은 둘 중 하나만 서명해도 저장됩니다. 촬영자 같은 다른 칸은 [필수]로 정하면 서명이 없을 때 저장되지 않습니다. 이미 받은 서명 기록은 서명란을 바꿔도 그대로 보존되어 조회·인쇄됩니다.</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ setConsentTab }}" hint-placeholder-val="{{ false }}">
               <!-- 서식 목록 (기관별) -->
               <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); margin-bottom: var(--space-6); border-radius: var(--radius-md); background: linear-gradient(180deg, var(--color-surface), var(--color-neutral-900)); box-shadow: inset 0 1px 0 rgba(233,233,237,0.06), 0 4px 12px rgba(0,0,0,0.3);">
                 <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
@@ -3116,9 +3139,7 @@
                   </sc-for>
                   <div style="text-align: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em; margin: 14px 0 8px;">{{ cfpYear }}년 　 월 　 일</div>
                   <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px; font-size: 12px; font-weight: 700;">
-                    <span>동의인 : <span style="display: inline-block; width: 80px; border-bottom: 1px solid #555;"></span> (인)</span>
-                    <span>보호자 : <span style="display: inline-block; width: 80px; border-bottom: 1px solid #555;"></span> (인)</span>
-                    <span>촬영자 : <span style="display: inline-block; width: 80px; border-bottom: 1px solid #555;"></span> (인)</span>
+                    <sc-for list="{{ sgPreview }}" as="g" hint-placeholder-count="2"><span>{{ g.label }} : <span style="display: inline-block; width: 80px; border-bottom: 1px solid #555;"></span> (인)</span></sc-for>
                   </div>
                   <div style="text-align: center; font-size: 15px; font-weight: 700; margin-top: auto; padding-top: 14px;">{{ cfOrg }}</div>
                 </div>
