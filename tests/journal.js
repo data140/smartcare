@@ -83,8 +83,9 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     const save = async (label, goLabel, name) => { early = false; await p.locator('button:has-text("' + label + '") >> visible=true').first().click(); await sleep(500); lastEarly = early; if (early) throw new Error('미리보기 없이 바로 내려받음'); const d = p.waitForEvent('download', { timeout: 15000 }); await p.locator('button:has-text("' + goLabel + '") >> visible=true').first().click(); const dl = await d; const f = path.join(tmp, name); await dl.saveAs(f); return f; };
     const docx = await save('Word', 'Word 파일 다운로드', 'a.docx'); check('Word 단추를 누르면 먼저 미리보기(다운로드는 다음 단추)', !lastEarly); const hwpx = await save('한글(hwpx)', '한글 파일 다운로드', 'a.hwpx');
     const py = (code, f) => execFileSync('python3', ['-I', '-c', code, f], { encoding: 'utf8' }).trim();
-    check('Word 파일이 정상 문서이고 사진(그림)이 들어 있음', py("import sys,zipfile\nz=zipfile.ZipFile(sys.argv[1]);assert z.testzip() is None\nprint(any(n.startswith('word/media/') for n in z.namelist()) and b'\\xed\\x94\\x84' in z.read('word/document.xml'))", docx) === 'True');
-    check('한글(.hwpx) 파일이 올바른 구조(mimetype 첫 항목, XML 정상)', py("import sys,zipfile,xml.dom.minidom as m\nz=zipfile.ZipFile(sys.argv[1]);n=z.namelist();assert n[0]=='mimetype' and z.read('mimetype')==b'application/hwp+zip'\n[m.parseString(z.read(x)) for x in n if x.endswith(('.xml','.hpf'))]\nprint('ok')", hwpx) === 'ok');
+    check('Word 파일이 정상 문서이고 사진(그림)이 들어 있음', py("import sys,zipfile\nz=zipfile.ZipFile(sys.argv[1]);assert z.testzip() is None\nprint(any(n.startswith('word/media/') for n in z.namelist()) and b'\\xed\\x94\\x84' in z.read('word/document.xml') and 'word/footer1.xml' in z.namelist() and b'footerReference' in z.read('word/document.xml'))", docx) === 'True');
+    const hwpxCheck = (() => { try { return execFileSync('python3', ['-I', path.join(__dirname, '..', 'tools', 'check-hwpx.py'), hwpx], { encoding: 'utf8' }); } catch (e) { return 'FAIL ' + (e.stdout || '') + (e.stderr || ''); } })();
+    check('한글(.hwpx) 파일 구조 점검 통과 (표·그림·번호 참조, 사진 포함)', /errors \[\]/.test(hwpxCheck) && /pics [1-9]/.test(hwpxCheck), hwpxCheck.trim().slice(0, 120));
     check('화면 오류 없음(PC)', p.errs.length === 0, p.errs.slice(0, 2).join('|'));
 
     // 휴대폰: 음성 입력 단추
@@ -95,7 +96,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
         start() { const me = this; window.__sr = me; setTimeout(() => me.onaudiostart && me.onaudiostart(), 50); setTimeout(() => me.onsoundstart && me.onsoundstart(), 150);
           setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '시험 중간 문장' }], { isFinal: false })] }), 300);
           setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '음성으로 입력한 문장' }], { isFinal: true })] }), 700);
-          setTimeout(() => { if (!me.stopped) me.onend && me.onend(); }, 900); }
+        }
         stop() { this.stopped = true; this.onend && this.onend(); } };
       Object.defineProperty(window, 'webkitSpeechRecognition', { value: Mock, configurable: true, writable: true });
       Object.defineProperty(window, 'SpeechRecognition', { value: Mock, configurable: true, writable: true });
