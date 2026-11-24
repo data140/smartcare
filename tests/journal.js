@@ -83,9 +83,28 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
 
     // 휴대폰: 음성 입력 단추
     const cm = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' });
+    await cm.addInitScript(() => {
+      // 시험용 가짜 음성 인식: 마이크 연결 → 소리 감지 → 중간 결과 → 최종 결과 순서로 알려 줌
+      const Mock = class { constructor() { this.s = 0; }
+        start() { const me = this; window.__sr = me; setTimeout(() => me.onaudiostart && me.onaudiostart(), 50); setTimeout(() => me.onsoundstart && me.onsoundstart(), 150);
+          setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '시험 중간 문장' }], { isFinal: false })] }), 300);
+          setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '음성으로 입력한 문장' }], { isFinal: true })] }), 700);
+          setTimeout(() => { if (!me.stopped) me.onend && me.onend(); }, 900); }
+        stop() { this.stopped = true; this.onend && this.onend(); } };
+      Object.defineProperty(window, 'webkitSpeechRecognition', { value: Mock, configurable: true, writable: true });
+      Object.defineProperty(window, 'SpeechRecognition', { value: Mock, configurable: true, writable: true });
+    });
     const m = await login(cm, 'button:has-text("운영일지")');
     await m.locator('button:has-text("운영일지") >> visible=true').first().click(); await sleep(1000);
     check('휴대폰: 운영일지 탭에서 음성 입력 단추가 보임', (await m.locator('button:has-text("음성 입력") >> visible=true').count()) >= 1);
+    await m.locator('button:has-text("음성 입력") >> visible=true').first().click(); await sleep(250);
+    check('녹음 중 표시와 음파가 보임 (마이크 연결·소리 감지를 실제 이벤트로 표시)', (await m.locator('text=/녹음 중/').count()) >= 1 && (await m.locator('.sc-wave').count()) >= 1);
+    await sleep(300);
+    check('말하는 동안 인식 중인 글자가 실시간으로 보임', (await m.locator('text=/인식 중: 시험 중간 문장/').count()) >= 1);
+    await sleep(700);
+    check('말한 내용이 칸에 들어감', await m.evaluate(() => [...document.querySelectorAll('textarea')].some(x => x.value.includes('음성으로 입력한 문장'))));
+    await m.locator('button:has-text("중지") >> visible=true').first().click(); await sleep(300);
+    check('[중지]를 누르면 녹음 표시가 사라짐', (await m.locator('.sc-wave').count()) === 0);
     check('화면 오류 없음(휴대폰)', m.errs.length === 0, m.errs.slice(0, 2).join('|'));
   } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
   console.log('스마트케어 운영일지 시험\n' + results.join('\n'));

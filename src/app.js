@@ -103,7 +103,7 @@ class Component extends DCLogic {
     staff: [],
     calMonth: null, planDay: null, planStatus: '전체', planOpen: false, planForm: null, planErr: '',
     // 예시 일정 없음 — 서버에 저장된 실제 일정만 사용
-    plans: [], journals: {}, jrnPh: {}, jrnOpt: {}, jrnSel: null, jrnPrev: false, jrnFmt: 'pdf', jrnMic: null,
+    plans: [], journals: {}, jrnPh: {}, jrnOpt: {}, jrnSel: null, jrnPrev: false, jrnFmt: 'pdf', jrnMic: null, jrnMicPhase: '', jrnInterim: '',
     consent: { portrait: false, face: false },
     paperSign: {},
     signed: { '동의인': false, '보호자': false, '촬영자': false },
@@ -2228,22 +2228,58 @@ class Component extends DCLogic {
       this.jrnPhSave(key, this.jrnPhotos(key, this.state).concat(add).slice(0, 4)); this.flash('사진 ' + add.length + '장을 추가했습니다');
     });
   }
+  jrnMicStop() {
+    this._jrnWant = null;
+    const r = this._jrnRec; this._jrnRec = null;
+    if (r) { try { r.onend = null; r.stop(); } catch (e) {} }
+    this.setState({ jrnMic: null, jrnMicPhase: '', jrnInterim: '' });
+  }
   jrnMic(name, key) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { this.flash('이 브라우저는 음성 입력을 지원하지 않습니다 — 키보드의 마이크 버튼을 써 주세요'); return; }
-    if (this._jrnRec) { try { this._jrnRec.stop(); } catch (e) {} this._jrnRec = null; this.setState({ jrnMic: null }); if (this.state.jrnMic === name) return; }
-    const rec = new SR(); rec.lang = 'ko-KR'; rec.continuous = true; rec.interimResults = false;
-    rec.onresult = (ev) => {
-      let t = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) if (ev.results[i].isFinal) t += ev.results[i][0].transcript;
-      t = t.trim(); if (!t) return;
-      const j = this.jrnGet(key, this.state); if (!j) return;
-      const cur = j.f[name] || '';
-      this.jrnSetField(key, name, cur + (cur && !/\s$/.test(cur) ? ' ' : '') + t, this.state);
+    if (this.state.jrnMic === name) { this.jrnMicStop(); return; }
+    if (this._jrnRec) this.jrnMicStop();
+    this._jrnWant = { name, key };
+    this.setState({ jrnMic: name, jrnMicPhase: 'connecting', jrnInterim: '' });
+    const startOne = () => {
+      if (!this._jrnWant) return;
+      const rec = new SR(); rec.lang = 'ko-KR'; rec.continuous = false; rec.interimResults = true; rec.maxAlternatives = 1;
+      let gotAny = false;
+      rec.onaudiostart = () => { if (this._jrnRec === rec) this.setState({ jrnMicPhase: 'listening' }); };   // 마이크가 실제로 연결됨
+      rec.onsoundstart = () => { if (this._jrnRec === rec) this.setState({ jrnMicPhase: 'hearing' }); };    // 소리가 들어옴
+      rec.onspeechstart = () => { if (this._jrnRec === rec) this.setState({ jrnMicPhase: 'hearing' }); };
+      rec.onspeechend = () => { if (this._jrnRec === rec) this.setState({ jrnMicPhase: 'listening' }); };
+      rec.onresult = (ev) => {
+        let fin = '', tmp = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) { const tx = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += tx; else tmp += tx; }
+        if (tmp) this.setState({ jrnInterim: tmp.trim() });
+        fin = fin.trim();
+        if (fin) {
+          gotAny = true;
+          const w = this._jrnWant; if (!w) return;
+          const j = this.jrnGet(w.key, this.state); if (!j) return;
+          const cur = j.f[w.name] || '';
+          this.jrnSetField(w.key, w.name, cur + (cur && !/\s$/.test(cur) ? ' ' : '') + fin, this.state);
+          this.setState({ jrnInterim: '' });
+        }
+      };
+      rec.onerror = (e) => {
+        const er = e && e.error;
+        const MSG = { 'not-allowed': '마이크 사용이 막혀 있습니다 — 주소창 왼쪽 자물쇠 › 사이트 설정에서 마이크를 허용해 주세요', 'service-not-allowed': '이 기기의 음성 인식(받아쓰기)이 꺼져 있습니다 — 기기 설정에서 켜 주세요', 'network': '음성 인식 서버에 연결하지 못했습니다 — 인터넷 연결을 확인해 주세요', 'audio-capture': '마이크를 찾을 수 없습니다', 'language-not-supported': '한국어 음성 인식을 지원하지 않는 기기입니다' };
+        if (er === 'no-speech' || er === 'aborted') return;   // 조용했거나 직접 멈춘 경우 — 오류로 알리지 않음
+        this.flash('음성 입력 중지 — ' + (MSG[er] || ('오류 (' + (er || '알 수 없음') + ')')));
+        this._jrnWant = null;
+      };
+      rec.onend = () => {
+        if (this._jrnRec !== rec) return;
+        this._jrnRec = null;
+        if (this._jrnWant) { this.setState({ jrnMicPhase: 'connecting' }); setTimeout(startOne, 250); }   // 말이 끊겨도 계속 듣기 (사용자가 [중지]할 때까지)
+        else this.setState({ jrnMic: null, jrnMicPhase: '', jrnInterim: '' });
+      };
+      this._jrnRec = rec;
+      try { rec.start(); } catch (e) { this._jrnRec = null; this._jrnWant = null; this.setState({ jrnMic: null, jrnMicPhase: '' }); this.flash('음성 입력을 시작하지 못했습니다 — 잠시 뒤 다시 눌러 주세요'); }
     };
-    rec.onend = () => { if (this._jrnRec === rec) { this._jrnRec = null; this.setState({ jrnMic: null }); } };
-    rec.onerror = (e) => { this.flash('음성 입력 오류 — ' + (e && e.error === 'not-allowed' ? '마이크 사용을 허용해 주세요' : (e && e.error) || '다시 시도')); };
-    this._jrnRec = rec; this.setState({ jrnMic: name });
-    try { rec.start(); } catch (e) { this._jrnRec = null; this.setState({ jrnMic: null }); }
+    startOne();
   }
   static xmlEsc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   jrnApBox(titles) {
@@ -2418,7 +2454,8 @@ class Component extends DCLogic {
       jrnFields: j ? Component.JRN_FIELDS.map(f => ({ k: f.k, label: f.label, multi: f.multi, single: !f.multi, rows: f.rows || 3, val: j.f[f.k] || '',
         on: (e) => this.jrnSetField(selKey, f.k, e.target.value, this.state),
         blur: () => this.jrnFlush(),
-        hasMic: phone && f.multi, micOn: s.jrnMic === f.k, micCls: s.jrnMic === f.k ? 'sel-chip' : '', micLabel: s.jrnMic === f.k ? '듣는 중… (누르면 멈춤)' : '음성 입력',
+        hasMic: phone && f.multi, micOn: s.jrnMic === f.k, micCls: s.jrnMic === f.k ? 'sel-chip' : '', micLabel: s.jrnMic === f.k ? '중지' : '음성 입력',
+        micPhaseTxt: s.jrnMicPhase === 'hearing' ? '녹음 중 · 소리가 들립니다' : (s.jrnMicPhase === 'listening' ? '녹음 중 · 말씀해 주세요' : '마이크 연결 중…'), micWave: s.jrnMicPhase === 'hearing' ? 'sc-wave hear' : (s.jrnMicPhase === 'listening' ? 'sc-wave' : 'sc-wave idle'), micInterim: s.jrnInterim || '', micHasInterim: !!s.jrnInterim,
         mic: () => this.jrnMic(f.k, selKey) })) : [],
       jrnPhone: phone,
       jrnRedo: () => { if (!selKey) return; const all = Object.assign({}, this.state.journals || {}); delete all[selKey]; this.setState({ journals: all }); this.jrnFlush(); this.flash('자동 초안으로 다시 작성했습니다'); },

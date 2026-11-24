@@ -283,3 +283,14 @@ html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[
 .sc-flow-line { background-size: 200% 100%; }
 @media (prefers-reduced-motion: reduce) { .sc-flow-node { animation: none; } }
 @media (max-width: 700px) { .sc-flow { display: none !important; } }
+
+/* 음성 입력: 녹음 중 표시와 음파 */
+.sc-rec-dot { width: 12px; height: 12px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.6); animation: scRec 1.2s ease-out infinite; flex: none; }
+@keyframes scRec { 0% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.55); } 100% { box-shadow: 0 0 0 12px rgba(229, 72, 77, 0); } }
+.sc-wave { display: inline-flex; align-items: center; gap: 3px; height: 26px; }
+.sc-wave i { display: block; width: 4px; height: 6px; border-radius: 3px; background: #e5484d; animation: scWave 1.1s ease-in-out infinite; }
+.sc-wave i:nth-child(2) { animation-delay: .1s } .sc-wave i:nth-child(3) { animation-delay: .2s } .sc-wave i:nth-child(4) { animation-delay: .3s } .sc-wave i:nth-child(5) { animation-delay: .4s } .sc-wave i:nth-child(6) { animation-delay: .5s } .sc-wave i:nth-child(7) { animation-delay: .6s }
+.sc-wave.hear i { animation-duration: .45s; background: #ff6369; }
+.sc-wave.idle i { animation: none; opacity: .35; }
+@keyframes scWave { 0%, 100% { height: 5px; } 50% { height: 24px; } }
+@media (prefers-reduced-motion: reduce) { .sc-wave i, .sc-rec-dot { animation: none; } }
