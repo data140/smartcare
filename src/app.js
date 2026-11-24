@@ -2085,6 +2085,7 @@ class Component extends DCLogic {
       const user = this._userName || '';
       const esc = (v) => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+      const thumb = (cv) => { const k = Math.min(1, 1100 / cv.width); const t = document.createElement('canvas'); t.width = Math.round(cv.width * k); t.height = Math.round(cv.height * k); const x = t.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, t.width, t.height); x.drawImage(cv, 0, 0, t.width, t.height); return t.toDataURL('image/jpeg', 0.8); };
       if (kind === 'print') {
         const pages = shots.map((s, i) => '<section class="pg ' + (s.land ? 'land' : 'port') + '"><header><div><div class="k">사회사업실 · 스마트케어 프로그램 통계</div><h1>' + esc(s.title || '통계') + '</h1></div><div class="m">' + (i + 1) + ' / ' + shots.length + '<br>출력 ' + stamp + (user ? ' · ' + esc(user) : '') + '</div></header><div class="fig"><img src="' + s.canvas.toDataURL('image/png') + '"></div><footer>확정 데이터만 집계 · 개인정보 포함 문서이므로 열람 후 파기하세요</footer></section>').join('');
         const html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + name + '</title><style>'
@@ -2107,6 +2108,7 @@ class Component extends DCLogic {
         setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { this.flash('인쇄 창을 열 수 없습니다'); } setTimeout(() => fr.remove(), 60000); }, 150);
         this.flash('인쇄 창을 엽니다 — 통계 ' + shots.length + '개, 1통계 1페이지');
       } else if (kind === 'pdf') {
+        const runPdf = async () => {
         const lib = await this.loadLib('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', 'jspdf.jsPDF');
         const pdf = new lib({ orientation: shots[0].land ? 'l' : 'p', unit: 'mm', format: 'a4' });
         const m = 10, headH = 16, footH = 8;
@@ -2129,6 +2131,10 @@ class Component extends DCLogic {
         });
         pdf.save(name + '.pdf');
         this.flash('PDF 다운로드 — 통계 ' + shots.length + '페이지');
+        };
+        this._expRun = runPdf;
+        this.setState({ expPrev: { kind: 'PDF', file: name + '.pdf', imgs: shots.map((s, i) => ({ src: thumb(s.canvas), cap: (i + 1) + ' / ' + shots.length + ' · ' + (s.title || '통계') })) } });
+        this.flash('미리보기를 확인하고 [다운로드]를 누르세요');
       } else {
         const gap = 48, pad = 60, headH = 110;
         const W = Math.max(...shots.map(s => s.canvas.width)) + pad * 2;
@@ -2140,9 +2146,13 @@ class Component extends DCLogic {
         ctx.fillStyle = '#666'; ctx.font = '24px Inter, "Malgun Gothic", sans-serif'; ctx.fillText('출력 ' + stamp + (user ? ' · ' + user : '') + ' · 개인정보 포함 — 열람 후 파기', pad, pad + 84);
         let y = pad + headH;
         shots.forEach(s => { ctx.drawImage(s.canvas, pad, y); y += s.canvas.height + gap; });
-        const a = document.createElement('a'); a.href = out.toDataURL('image/jpeg', 0.92); a.download = name + '.jpg';
-        document.body.appendChild(a); a.click(); a.remove();
-        this.flash('JPG 다운로드 — ' + name + '.jpg');
+        this._expRun = async () => {
+          const a = document.createElement('a'); a.href = out.toDataURL('image/jpeg', 0.92); a.download = name + '.jpg';
+          document.body.appendChild(a); a.click(); a.remove();
+          this.flash('JPG 다운로드 — ' + name + '.jpg');
+        };
+        this.setState({ expPrev: { kind: 'JPG', file: name + '.jpg', imgs: [{ src: thumb(out), cap: '통계 ' + shots.length + '개 · 한 장 이미지' }] } });
+        this.flash('미리보기를 확인하고 [다운로드]를 누르세요');
       }
     } catch (e) {
       this.flash('내보내기 실패 — ' + (e && e.message ? e.message : '네트워크를 확인하세요'));
@@ -6792,7 +6802,7 @@ class Component extends DCLogic {
           name: g.label, color: col, icon: byWard ? 'ph ph-buildings' : (ICON[g.label] || 'ph ph-squares-four'),
           tint: 'color-mix(in oklch, ' + col + ' 24%, transparent)',
           meta: '구성 비중 ' + (totP ? Math.round(g.people / totP * 100) : 0) + '% · ' + rankOf[i] + '위',
-          kpis: [{ label: '참여 건수', v: g.count, u: '건' }, { label: '실인원', v: g.people, u: '명' }, { label: '1인당', v: g.people ? (g.count / g.people).toFixed(1) : '0', u: '회' }],
+          kpis: [{ label: '연인원', v: g.count, u: '건' }, { label: '실인원', v: g.people, u: '명' }, { label: '1인당', v: g.people ? (g.count / g.people).toFixed(1) : '0', u: '회' }],
           rateLabel: byWard ? '재원 환자 대비 참여율' : '정원 대비 참여율',
           fillTxt: rate == null ? (byWard ? '—' : '정원 미입력') : rate + '%', fillW: (rate || 0) + '%', capTxt: denTxt
         };
@@ -9394,7 +9404,14 @@ class Component extends DCLogic {
       }),
       accentHex: s.accent || '#9184d9',
       customRing: ['#9184d9', '#4f8fe0', '#2fa59a', '#5aa55a', '#e08a3c', '#d9668f'].indexOf((s.accent || '#9184d9').toLowerCase()) < 0 ? '0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent)' : 'none',
-      onAccentPick: (e) => { const v = e.target.value; this.setState({ accent: v }); this.applyTheme(this.state.theme || 'dark', v); },
+      onAccentPick: (e) => {
+        const v = e.target.value;
+        // 색상 판을 끄는 동안 화면 전체를 다시 그리면 끊기므로, 색만 바로 바꾸고 저장은 잠시 멈춘 뒤 한 번만
+        if (this._accRaf) cancelAnimationFrame(this._accRaf);
+        this._accRaf = requestAnimationFrame(() => { this._accRaf = 0; this.applyTheme(this.state.theme || 'dark', v); });
+        clearTimeout(this._accT);
+        this._accT = setTimeout(() => this.setState({ accent: v }), 350);
+      },
       planSplitRef: this._planSplit,
       // 캘린더를 넓혀 오른쪽 목록 폭이 380px보다 좁아지면 목록을 캘린더 아래로 자동 이동
       ...(() => {
@@ -9538,7 +9555,7 @@ class Component extends DCLogic {
         return {
           ws06Cards: this.buildKpiCards([
             { key: 'w6p', label: '실인원', icon: 'ph ph-users-three', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', val: String(pp), unit: '명', sub: inWard ? '재원 ' + inWard + '명 중 ' + Math.round(pp / inWard * 100) + '% · 중복 제외' : '중복 제외 환자 수', pct: inWard ? pp / inWard * 100 : 0, arr: wk.map(w => w.pp), dUnit: '명' },
-            { key: 'w6n', label: '참여 건수', icon: 'ph ph-list-checks', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', val: String(n), unit: '건', sub: '연인원 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.n))) + '%', pct: peakPct(wk.map(w => w.n)), arr: wk.map(w => w.n), dUnit: '건' },
+            { key: 'w6n', label: '연인원', icon: 'ph ph-list-checks', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', val: String(n), unit: '건', sub: '연인원 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.n))) + '%', pct: peakPct(wk.map(w => w.n)), arr: wk.map(w => w.n), dUnit: '건' },
             { key: 'w6a', label: '1인당 평균', icon: 'ph ph-user-circle-plus', color: 'var(--color-accent)', val: pp ? (n / pp).toFixed(1) : '0', unit: '회', sub: '참여 건수 ÷ 실인원 · 기준 4회', pct: pp ? Math.min(100, n / pp / 4 * 100) : 0, target: null, arr: wk.map(w => w.avg), dUnit: '회', dDig: 1 },
             { key: 'w6s', label: '진행 회차', icon: 'ph ph-calendar-check', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', val: String(ss), unit: '회', sub: '일자 × 프로그램 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.ss))) + '%', pct: peakPct(wk.map(w => w.ss)), arr: wk.map(w => w.ss), dUnit: '회' }
           ]),
@@ -9636,6 +9653,9 @@ class Component extends DCLogic {
       statsPrint: () => { this._userName = userName; this.runStatsReport('print'); },
       statsPdf: () => { this._userName = userName; this.runStatsReport('pdf'); },
       statsJpg: () => { this._userName = userName; this.runStatsReport('jpg'); },
+      expPrevOpen: !!s.expPrev, expPrevKind: s.expPrev ? s.expPrev.kind : '', expPrevFile: s.expPrev ? s.expPrev.file : '', expPrevImgs: s.expPrev ? s.expPrev.imgs : [],
+      expPrevClose: () => { this._expRun = null; this.setState({ expPrev: null }); },
+      expPrevGo: async () => { const r = this._expRun; this._expRun = null; this.setState({ expPrev: null, exportBusy: true }); try { if (r) await r(); } catch (e) { this.flash('내보내기 실패 — ' + (e && e.message ? e.message : '')); } finally { this.setState({ exportBusy: false }); } },
       printAtt: () => {
         const byPatient = attPatient === '전체' && attMode === 'patient';
         if (byPatient ? !attGroupsRaw.length : !attView.length) { this.flash('인쇄할 출석 기록이 없습니다'); return; }
@@ -9959,8 +9979,8 @@ class Component extends DCLogic {
         cats: groups.map(g => g.label), catSubs: groups.map(g => g.sub),
         catColors: groups.map((g, i) => wsWard === '전체' ? ST06_PAL[i % ST06_PAL.length] : progColor(g.label)),
         series: [
-          { name: '실인원', unit: '명', values: groups.map(g => g.people), noSum: wsWard !== '전체' },
-          { name: '참여 건수', unit: '건', values: groups.map(g => g.count) }
+          { name: '실인원 (명)', unit: '명', values: groups.map(g => g.people), noSum: wsWard !== '전체' },
+          { name: '연인원 (건)', unit: '건', values: groups.map(g => g.count) }
         ],
         footFor: [wsPeople + '명', null],
         extraCols: [{ name: '1인당', values: groups.map(g => g.people ? (g.count / g.people).toFixed(1) + '회' : '—'), foot: wsPeople ? (wsScope.length / wsPeople).toFixed(1) + '회' : '—' }],
@@ -10106,8 +10126,8 @@ class Component extends DCLogic {
             ...statList,
             cats: pStats.map(x => x.p), catColors: pStats.map(x => progColor(x.p)),
             series: [
-              { name: '참여 건수', unit: '건', values: pStats.map(x => x.n) },
-              { name: '실인원', unit: '명', values: pStats.map(x => x.people), noSum: true }
+              { name: '연인원 (건)', unit: '건', values: pStats.map(x => x.n) },
+              { name: '실인원 (명)', unit: '명', values: pStats.map(x => x.people), noSum: true }
             ],
             footFor: [null, uniq(scope.map(r => r.name)).length + '명'],
             donutCaption: '전체 참여 건수', catHead: '프로그램', height: 260, note: periodTxt,
@@ -10128,7 +10148,7 @@ class Component extends DCLogic {
                 name: x.p, color: col, icon: ICON[x.p] || 'ph ph-squares-four',
                 tint: 'color-mix(in oklch, ' + col + ' 24%, transparent)',
                 meta: '구성 비중 ' + (tot ? Math.round(x.n / tot * 100) : 0) + '% · ' + (i + 1) + '위',
-                kpis: [{ label: '참여 건수', v: x.n, u: '건' }, { label: '실인원', v: x.people, u: '명' }, { label: '1인당', v: x.people ? (x.n / x.people).toFixed(1) : '0', u: '회' }],
+                kpis: [{ label: '연인원', v: x.n, u: '건' }, { label: '실인원', v: x.people, u: '명' }, { label: '1인당', v: x.people ? (x.n / x.people).toFixed(1) : '0', u: '회' }],
                 fillTxt: fill == null ? '정원 미입력' : fill + '%', fillW: (fill || 0) + '%',
                 capTxt: cap ? '일정 ' + pl.length + '회 · 정원 합계 ' + cap + '명' : '일정에 정원을 입력하면 표시됩니다'
               };
