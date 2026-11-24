@@ -70,6 +70,22 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const pv = await p.evaluate(() => { try { return JSON.parse(localStorage.getItem('smartcare.patients.v1') || '[]'); } catch (e) { return []; } });
     check("환자의 동의 상태가 모두 '확인전'으로 돌아가고 이름은 유지", pv.length > 0 && pv.every(x => x.consent === '확인전' && x.face === '확인전' && x.name), pv.length + '명 · ' + [...new Set(pv.map(x => x.consent))].join('/'));
     check('환자 명부는 그대로 유지', /유지되는 환자 명부: [1-9]\d*명/.test(await p.evaluate(() => document.body.innerText)));
+    // 환자 명부까지 지우는 선택: 따로 켜야 하고, 다른 확인 문구가 필요
+    await p.locator('button:has-text("환자 명부 전체 삭제")').click(); await sleep(300);
+    await p.locator('button:has-text("삭제될 항목 확인")').click(); await sleep(1200);
+    check('환자 명부 삭제를 켜면 확인 문구가 "환자 포함 운영 데이터 초기화"로 바뀜', (await p.locator('input[aria-label="확인 문구"]').getAttribute('placeholder')) === '환자 포함 운영 데이터 초기화');
+    const dl2 = p.waitForEvent('download', { timeout: 15000 }); await p.locator('button:has-text("백업 파일 내려받기")').click(); await dl2;
+    await p.locator('input[aria-label="확인 문구"]').fill('운영 데이터 초기화'); await sleep(200);
+    check('일반 문구로는 환자 포함 초기화를 실행할 수 없음', await p.locator('button:has-text("운영 데이터 초기화 실행")').isDisabled());
+    await p.locator('input[aria-label="확인 문구"]').fill('환자 포함 운영 데이터 초기화'); await sleep(200);
+    await p.locator('button:has-text("운영 데이터 초기화 실행")').click();
+    await p.waitForSelector('text=초기화가 끝났습니다', { timeout: 15000 }).then(() => check('환자 포함 초기화가 끝남', true), () => check('환자 포함 초기화가 끝남', false));
+    await sleep(4500); await p.waitForSelector('input[autocomplete="username"]', { timeout: 30000 });
+    await p.click('button:has-text("시스템 관리자")');
+    await p.locator('input[autocomplete="username"]').first().fill('admin'); await p.locator('input[autocomplete="current-password"]').first().fill('demo1234');
+    await p.locator('button:has-text("로그인")').last().click(); await sleep(4500);
+    const pv2 = await p.evaluate(() => { try { return JSON.parse(localStorage.getItem('smartcare.patients.v1') || '[]'); } catch (e) { return ['x']; } });
+    check('환자 명부가 비어 있음(0명)', Array.isArray(pv2) && pv2.length === 0, pv2.length + '명');
     check('화면 오류 없음', errs.length === 0, errs.slice(0, 2).join('|'));
   } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
   console.log('스마트케어 운영 데이터 초기화 시험\n' + results.join('\n'));
