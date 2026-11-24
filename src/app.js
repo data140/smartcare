@@ -11387,11 +11387,19 @@ class Component extends DCLogic {
         // 홈 화면에 설치해 주소창 없이 앱처럼 쓰기
         const standalone = (() => { try { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; } catch (e) { return false; } })();
         const ua = navigator.userAgent || '';
+        // 카카오톡·네이버·라인 같은 메신저/앱 안의 보기 창에서는 앱 설치가 되지 않음 → 기본 브라우저로 열도록 안내
+        const inApp = /KAKAOTALK|NAVER\(inapp|NAVER|Line\/|FBAN|FBAV|Instagram|DaumApps/i.test(ua);
+        const openOut = () => {
+          const url = location.href.split('#')[0];
+          if (/KAKAOTALK/i.test(ua)) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); return; }
+          if (/Android/i.test(ua)) { location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end'; return; }
+          this.flash('오른쪽 위 메뉴에서 [다른 브라우저로 열기]를 눌러 주세요');
+        };
         const help = /iPhone|iPad|iPod/.test(ua) ? '사파리 아래 [공유] 단추(네모에 화살표) → [홈 화면에 추가]를 누르세요.'
           : /SamsungBrowser/.test(ua) ? '삼성 인터넷 오른쪽 아래 [≡] 메뉴 → [현재 페이지 추가] → [홈 화면]을 누르세요.'
           : '크롬 오른쪽 위 [⋮] 메뉴 → [앱 설치] 또는 [홈 화면에 추가]를 누르세요.';
         return {
-          installShow: !standalone, installIsApp: standalone,
+          installShow: !standalone, installIsApp: standalone, installInApp: inApp, installNotInApp: !inApp, installOpenOut: openOut,
           installHelp: s.installHelpOn ? help + ' 설치하면 홈 화면 아이콘으로 열고, 주소창 없이 전체 화면으로 쓸 수 있습니다.' : '',
           installHasHelp: !!s.installHelpOn,
           installGo: async () => {
