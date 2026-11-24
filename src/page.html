@@ -237,12 +237,12 @@
               <button sc-camel-on-click="{{ sbToggleEdit }}" class="btn btn-primary" style="min-height: 32px; padding: 0 10px; font-size: 12.5px;"><i class="ph ph-check"></i> 완료</button>
             </sc-if>
             <sc-if value="{{ sbNotEditing }}" hint-placeholder-val="{{ true }}">
-              <button sc-camel-on-click="{{ sbToggleEdit }}" class="btn btn-ghost" title="메뉴 순서 편집" aria-label="메뉴 순서 편집" style="min-height: 32px; width: 32px; padding: 0; justify-content: center; color: var(--color-neutral-500);"><i class="ph ph-arrows-down-up" style="font-size: 16px;"></i></button>
+              <button sc-camel-on-click="{{ sbToggleEdit }}" class="btn btn-ghost" title="메뉴 순서·색상 편집" aria-label="메뉴 순서 편집" style="min-height: 32px; width: 32px; padding: 0; justify-content: center; color: var(--color-neutral-500);"><i class="ph ph-arrows-down-up" style="font-size: 16px;"></i></button>
             </sc-if>
           </sc-if>
         </div>
         <sc-if value="{{ sbEditing }}" hint-placeholder-val="{{ false }}">
-          <div style="margin: 0 var(--space-1) var(--space-2); padding: 8px 10px; border-radius: 6px; box-shadow: 0 0 0 1px var(--color-accent-800); font-size: 12.5px; line-height: 1.6; color: var(--color-accent-300);">메뉴 묶음과 항목을 끌어서 순서를 바꾸세요. 자동 저장됩니다.</div>
+          <div style="margin: 0 var(--space-1) var(--space-2); padding: 8px 10px; border-radius: 6px; box-shadow: 0 0 0 1px var(--color-accent-800); font-size: 12.5px; line-height: 1.6; color: var(--color-accent-300);">메뉴 묶음과 항목을 끌어서 순서를 바꾸고, 묶음 아래 색 점으로 원하는 색을 고르세요. 자동 저장됩니다.</div>
         </sc-if>
         <nav style="display: flex; flex-direction: column; gap: var(--space-4);">
           <sc-for list="{{ sbGroups }}" as="g" hint-placeholder-count="4">
@@ -256,6 +256,11 @@
                   <i class="{{ g.caret }}" style="font-size: 14px; color: var(--color-neutral-500);"></i>
                 </sc-if>
               </button>
+              <sc-if value="{{ sbEditing }}" hint-placeholder-val="{{ false }}">
+                <div role="group" aria-label="{{ g.label }} 메뉴 색상" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px 4px;"><i class="ph ph-palette" style="font-size: 15px; color: var(--color-neutral-500);"></i>
+                  <sc-for list="{{ g.colors }}" as="cl" hint-placeholder-count="8"><button type="button" sc-camel-on-click="{{ cl.go }}" data-keep="1" title="{{ cl.name }}" aria-label="{{ cl.name }}" aria-pressed="{{ cl.on }}" style="width: 20px; height: 20px; flex: none; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: {{ cl.bg }}; box-shadow: {{ cl.ring }};"></button></sc-for>
+                </div>
+              </sc-if>
               <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
                 <div data-sb-sub="1" style="display: flex; flex-direction: column; gap: 2px; margin: 6px 0 4px {{ sbSubIndent }}; padding: 6px 6px 6px {{ sbSubPad }}; border-left: {{ g.subLine }}; border-radius: 0 12px 12px 0; background: {{ g.subBg }};">
                 <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">

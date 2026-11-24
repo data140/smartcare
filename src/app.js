@@ -7657,9 +7657,13 @@ class Component extends DCLogic {
           const isOverG = dr && dr.t === 'g' && ov === 'g:' + g.k && !isDragG;
           const open = mini || editing || !col[g.k];
           const gOn = g.items.some(i => i.on);
-          const TONES = { patients: 0.74 + ' 0.12 230', logs: '0.74 0.13 300', stats: '0.76 0.13 150', settings: '0.80 0.12 70' };
-          const tp = (TONES[g.k] || '0.74 0.12 260').split(' ');
-          const tone = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * ' + (tp.length === 3 ? tp[0] : '0.74') + ') ' + (tp.length === 3 ? tp[1] + ' ' + tp[2] : '0.12 230') + ')';
+          // 묶음마다 기본 색이 있고, 사용자가 메뉴 편집(↕)에서 원하는 색으로 바꿀 수 있음 (계정별 저장)
+          const PAL = { '파랑': '0.74 0.12 230', '보라': '0.74 0.13 300', '초록': '0.76 0.13 150', '주황': '0.80 0.12 70', '분홍': '0.76 0.14 355', '청록': '0.76 0.11 195', '빨강': '0.72 0.15 25', '회색': '0.74 0.02 260' };
+          const DEFC = { patient: '파랑', program: '보라', stats: '초록', settings: '주황' };
+          const pick = ((ord.colors || {})[g.k]);
+          const colName = PAL[pick] ? pick : (DEFC[g.k] || '파랑');
+          const toneOf = (nm) => { const t = PAL[nm].split(' '); return 'oklch(calc(var(--lf1,0) + var(--lf2,1) * ' + t[0] + ') ' + t[1] + ' ' + t[2] + ')'; };
+          const tone = toneOf(colName);
           const gCount = g.items.reduce((n, i) => n + (parseInt(i.badge, 10) || 0), 0);
           return {
             label: g.label, icon: g.icon, open: open, openStr: open ? '1' : '0', key: g.k,
@@ -7670,6 +7674,10 @@ class Component extends DCLogic {
             iconFg: tone,
             // 메뉴 묶음마다 고유한 색 (하위 메뉴 영역의 세로선·바탕에도 같은 색을 써서 어느 묶음의 메뉴인지 한눈에 보이게)
             subTone: tone,
+            colors: Object.keys(PAL).map(nm => ({
+              name: nm, bg: toneOf(nm), on: nm === colName, ring: nm === colName ? '0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text)' : 'inset 0 0 0 1px rgba(0,0,0,0.25)',
+              go: (e) => { if (e && e.stopPropagation) e.stopPropagation(); saveOrder(Object.assign({}, ord, { colors: Object.assign({}, ord.colors || {}, { [g.k]: nm }) })); this.flash(g.label + ' 메뉴 색: ' + nm); }
+            })),
             subBg: 'linear-gradient(90deg, color-mix(in oklch, ' + tone + ' 10%, transparent), color-mix(in oklch, ' + tone + ' 3%, transparent) 70%, transparent)',
             subLine: mini ? 'none' : '2px solid color-mix(in oklch, ' + tone + ' 70%, transparent)',
             hasCount: !open && gCount > 0, count: String(gCount),
