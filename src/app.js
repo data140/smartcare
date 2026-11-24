@@ -6350,15 +6350,24 @@ class Component extends DCLogic {
       mWeekNext: () => shift(7),
       onMDay: (e) => { if (e.target.value) this.setState({ mDay: e.target.value, logDate: null }); },
       mWeekDays: days.map((d, i) => {
-        const k = iso(d), on = k === mDay, has = plansOn(k).length > 0;
+        const k = iso(d), on = k === mDay, cnt = plansOn(k).length;
         const t = k === TODAY;
         const tone = this.dayTone(k, d.getDay());
+        // 찢어 쓰는 달력 한 장 모양: 위쪽 색 띠(요일) · 큰 날짜 숫자 · 일정 개수 점 · 위 고리 두 개
+        const bandBase = tone.color ? 'color-mix(in oklch, ' + tone.color + ' 74%, black)' : 'color-mix(in oklch, var(--color-accent) 52%, black)';
+        const bandOn = tone.color ? 'color-mix(in oklch, ' + tone.color + ' 86%, black)' : 'color-mix(in oklch, var(--color-accent) 74%, black)';
         return {
-          wd: t ? '오늘' : (tone.name ? tone.name.split('·')[0].slice(0, 4) : WD[i]), num: d.getDate(), on: on, off: !on,
-          numColor: tone.color || 'var(--color-neutral-300)',
-          offBorder: t ? 'var(--color-accent)' : 'var(--color-neutral-700)',
-          wdColor: t ? 'var(--color-accent-300)' : (tone.color || 'var(--color-neutral-500)'),
-          dot: has ? (on ? 'var(--color-accent-200)' : 'var(--color-accent)') : 'transparent',
+          wd: t ? '오늘' : WD[i], num: d.getDate(), on: on, off: !on,
+          aria: (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + WD[i] + '요일' + (cnt ? ' · 일정 ' + cnt + '건' : ''),
+          btn: 'position: relative; display: flex; flex-direction: column; align-items: center; min-height: clamp(70px, 11vw, 92px); padding: 0; margin-top: 4px; border-radius: 12px; overflow: hidden; cursor: pointer; font: inherit; color: var(--color-text); '
+            + 'border: ' + (on ? '2px solid var(--color-accent)' : '1px solid var(--color-neutral-700)') + '; '
+            + 'background: linear-gradient(180deg, color-mix(in oklch, var(--color-neutral-800) 70%, white 8%), var(--color-neutral-900)); '
+            + 'box-shadow: ' + (on ? '0 0 0 3px color-mix(in oklch, var(--color-accent) 30%, transparent), 0 12px 20px rgba(0,0,0,0.38)' : '0 3px 8px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)') + '; '
+            + 'transform: ' + (on ? 'translateY(-3px)' : 'none') + '; transition: transform 120ms ease, box-shadow 120ms ease;',
+          band: 'align-self: stretch; padding: 5px 0 4px; text-align: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; color: #ffffff; background: ' + (on ? bandOn : bandBase) + '; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.25);',
+          numStyle: 'flex: 1; display: grid; place-items: center; font-size: clamp(20px, 3.4vw, 27px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; padding: 4px 0 2px; color: ' + (tone.color || 'var(--color-text)') + ';',
+          dots: Array.from({ length: Math.min(cnt, 3) }, () => 1).map(() => ({ c: on ? 'var(--color-accent-200)' : 'var(--color-accent)' })),
+          hasDots: cnt > 0, more: cnt > 3 ? '+' + (cnt - 3) : '', hasMore: cnt > 3,
           pick: () => this.setState({ mDay: k, logDate: null })
         };
       }),
