@@ -93,7 +93,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await cm.addInitScript(() => {
       // 시험용 가짜 음성 인식: 마이크 연결 → 소리 감지 → 중간 결과 → 최종 결과 순서로 알려 줌
       const Mock = class { constructor() { this.s = 0; }
-        start() { const me = this; window.__sr = me; setTimeout(() => me.onaudiostart && me.onaudiostart(), 50); setTimeout(() => me.onsoundstart && me.onsoundstart(), 150);
+        start() { const me = this; window.__sr = me; window.__srStarts = (window.__srStarts || 0) + 1; setTimeout(() => me.onaudiostart && me.onaudiostart(), 50); setTimeout(() => me.onsoundstart && me.onsoundstart(), 150);
           setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '시험 중간 문장' }], { isFinal: false })] }), 300);
           setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '음성으로 입력한 문장' }], { isFinal: true })] }), 700);
         }
@@ -110,6 +110,9 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     check('말하는 동안 인식 중인 글자가 실시간으로 보임', (await m.locator('text=/인식 중: 시험 중간 문장/').count()) >= 1);
     await sleep(700);
     check('말한 내용이 칸에 들어감', await m.evaluate(() => [...document.querySelectorAll('textarea')].some(x => x.value.includes('음성으로 입력한 문장'))));
+    const startsBefore = await m.evaluate(() => window.__srStarts || 0);
+    await m.locator('button:has-text("음성 입력") >> visible=true').first().click(); await sleep(300);
+    check('다른 칸의 음성 입력을 눌러도 다시 시작하지 않음(허용 창 반복 방지)', (await m.evaluate(() => window.__srStarts || 0)) === startsBefore);
     await m.locator('button:has-text("중지") >> visible=true').first().click(); await sleep(300);
     check('[중지]를 누르면 녹음 표시가 사라짐', (await m.locator('.sc-wave').count()) === 0);
     check('휴대폰: 사진 추가·사진 찍기·빼기 단추가 보임', (await m.locator('label:has-text("사진 추가") >> visible=true').count()) >= 1 && (await m.locator('label:has-text("사진 찍기") >> visible=true').count()) >= 1 && (await m.locator('button[aria-label="사진 빼기"] >> visible=true').count()) >= 1);

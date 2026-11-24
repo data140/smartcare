@@ -2238,6 +2238,8 @@ class Component extends DCLogic {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { this.flash('이 브라우저는 음성 입력을 지원하지 않습니다 — 키보드의 마이크 버튼을 써 주세요'); return; }
     if (this.state.jrnMic === name) { this.jrnMicStop(); return; }
+    // 이미 듣는 중이면 다시 시작하지 않고 받아쓸 칸만 바꿈 → 허용 창이 다시 뜨지 않음
+    if (this._jrnRec && this._jrnWant) { this._jrnWant = { name, key }; this._jrnLastFin = ''; this.setState({ jrnMic: name, jrnInterim: '' }); return; }
     try { if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: 'microphone' }).then(p => { if (p.state === 'denied') this.flash('마이크가 차단되어 있습니다 — 주소창 자물쇠 › 권한 › 마이크를 [허용]으로 바꿔 주세요'); }).catch(() => {}); } catch (e) {}
     if (this._jrnRec) this.jrnMicStop();
     this._jrnWant = { name, key }; this._jrnLastFin = '';
