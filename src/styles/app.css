@@ -76,8 +76,8 @@
   .nav select { min-width: 0; max-width: 200px; }
 
   /* 달력 색: 일요일·공휴일(빨강) · 토요일(파랑) · 법정휴일(주황) */
-  :root { --cal-red: oklch(0.74 0.15 22); --cal-red-bg: oklch(0.32 0.07 22); --cal-blue: oklch(0.76 0.11 245); --cal-blue-bg: oklch(0.30 0.05 245); --cal-orange: oklch(0.80 0.12 65); }
-  html[data-theme="light"] { --cal-red: oklch(0.52 0.19 25); --cal-red-bg: oklch(0.95 0.03 22); --cal-blue: oklch(0.50 0.15 250); --cal-blue-bg: oklch(0.95 0.025 245); --cal-orange: oklch(0.55 0.14 60); }
+  :root { --cal-red: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.15 22); --cal-red-bg: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.07 * var(--lc,1)) 22); --cal-blue: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.11 245); --cal-blue-bg: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.05 * var(--lc,1)) 245); --cal-orange: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 65); }
+  html[data-theme="light"] { --cal-red: oklch(0.52 0.19 25); --cal-red-bg: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.03 22); --cal-blue: oklch(0.50 0.15 250); --cal-blue-bg: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.025 245); --cal-orange: oklch(0.55 0.14 60); }
 
   /* 상태 태그는 글자 중간에서 줄바꿈하지 않음 — 자리가 모자라면 태그째 다음 줄로 */
   .tag { white-space: nowrap; flex: none; }
@@ -245,3 +245,6 @@
   }
   .has-tip:hover::after, .has-tip:focus-visible::after { opacity: 1; transform: translateY(0); }
   .has-tip:hover::before, .has-tip:focus-visible::before { opacity: 1; }
+
+  /* 라이트 모드: 선택된 메뉴(진한 파란 바탕) 안의 숫자 배지는 어두운 바탕 + 흰 글씨로 */
+  html[data-theme="light"] [data-sb-sub] button[aria-current="page"] span[style*="999px"] { background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; }

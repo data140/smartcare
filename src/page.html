@@ -257,7 +257,7 @@
                 </sc-if>
               </button>
               <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
-                <div data-sb-sub="1" style="display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px {{ sbSubIndent }}; padding-left: {{ sbSubPad }}; border-left: {{ sbSubLine }};">
+                <div data-sb-sub="1" style="display: flex; flex-direction: column; gap: 2px; margin: 6px 0 4px {{ sbSubIndent }}; padding: 6px 6px 6px {{ sbSubPad }}; border-left: {{ g.subLine }}; border-radius: 0 12px 12px 0; background: {{ g.subBg }};">
                 <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
                   <div draggable="{{ it.draggable }}" sc-camel-on-drag-start="{{ it.dragStart }}" sc-camel-on-drag-over="{{ it.dragOver }}" sc-camel-on-drop="{{ it.drop }}" sc-camel-on-drag-end="{{ sbDragEnd }}" style="border-radius: 6px; box-shadow: {{ it.ring }}; opacity: {{ it.opacity }};">
                     <button sc-camel-on-click="{{ it.go }}" aria-current="{{ it.current }}" title="{{ it.label }}" style="display: flex; width: 100%; align-items: center; gap: var(--space-3); min-height: 38px; padding: 0 var(--space-3) 0 {{ sbItemPad }}; border: 1px solid {{ it.bd }}; border-radius: 6px; background: {{ it.bg }}; color: {{ it.fg }}; font: inherit; font-size: 14px; font-weight: 400; cursor: {{ it.cursor }}; text-align: left; justify-content: {{ sbJustify }}; box-shadow: {{ it.shadow }}; transition: background 100ms ease, color 100ms ease;" style-hover="color: var(--color-text); background: var(--color-neutral-800);" style-active="transform: translateY(1px);">
@@ -371,8 +371,8 @@
               </span>
             </div>
             <sc-if value="{{ emrDupHas }}" hint-placeholder-val="{{ false }}">
-              <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 6px 8px 6px 12px; border-radius: 8px; background: oklch(0.26 0.05 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
-                <i class="ph-fill ph-warning-circle" style="font-size: 17px; color: oklch(0.82 0.13 25);"></i>
+              <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 6px 8px 6px 12px; border-radius: 8px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.26) calc(0.05 * var(--lc,1)) 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
+                <i class="ph-fill ph-warning-circle" style="font-size: 17px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.13 25);"></i>
                 <span style="flex: 1 1 260px; min-width: 0; font-size: 13.5px; line-height: 1.5;">{{ emrDupText }}</span>
                 <button sc-camel-on-click="{{ askMergeDups }}" class="btn btn-primary" style="flex: none; min-height: 30px; font-size: 13px; white-space: nowrap;"><i class="ph ph-git-merge"></i> 중복 정리</button>
               </div>
@@ -912,7 +912,7 @@
               <div style="order: 9; display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
                 <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                   <button sc-camel-on-click="{{ askRevoke }}" class="btn btn-ghost" style="flex: 1 1 120px; min-height: 40px; justify-content: center; font-size: 13.5px;"><i class="ph ph-arrow-u-up-left"></i> 동의 철회</button>
-                  <sc-if value="{{ canDeletePatient }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ askDeletePatient }}" class="btn btn-ghost" style="flex: 1 1 120px; min-height: 40px; justify-content: center; font-size: 13.5px; color: oklch(0.82 0.10 25);"><i class="ph ph-trash"></i> 환자 정보 삭제</button></sc-if>
+                  <sc-if value="{{ canDeletePatient }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ askDeletePatient }}" class="btn btn-ghost" style="flex: 1 1 120px; min-height: 40px; justify-content: center; font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.10 25);"><i class="ph ph-trash"></i> 환자 정보 삭제</button></sc-if>
                 </div>
                 <sc-if value="{{ canDeletePatient }}" hint-placeholder-val="{{ false }}"><div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.6;">삭제하면 명부·증명사진·안면인식 등록이 지워집니다. 지난 출석 기록은 통계 보존을 위해 이름만 남습니다.</div></sc-if>
               </div>
@@ -1108,10 +1108,10 @@
                       <button sc-camel-on-click="{{ editIdPhoto }}" class="btn btn-secondary" style="margin-left: auto; min-height: 34px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-pencil-simple-line"></i> 편집 (자르기)</button>
                       <button sc-camel-on-click="{{ openFaceCrop }}" class="btn btn-ghost" style="font-size: 13.5px; color: var(--color-neutral-500);"><i class="ph ph-crop"></i> 단체 사진에서 오리기</button>
                       <button sc-camel-on-click="{{ resetUpload }}" class="btn btn-ghost" style="font-size: 13.5px; color: var(--color-neutral-500);">다시 선택</button>
-                      <button sc-camel-on-click="{{ askDeleteIdPhoto }}" class="btn btn-ghost" style="font-size: 13.5px; color: oklch(0.78 0.12 25);"><i class="ph ph-trash"></i> 사진 삭제</button>
+                      <button sc-camel-on-click="{{ askDeleteIdPhoto }}" class="btn btn-ghost" style="font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.12 25);"><i class="ph ph-trash"></i> 사진 삭제</button>
                     </div>
                     <sc-if value="{{ idFaceMulti }}" hint-placeholder-val="{{ false }}">
-                      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin: 0 var(--space-6) var(--space-4); padding: 8px 12px; border-radius: 8px; background: oklch(0.28 0.06 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 13.5px; color: oklch(0.92 0.06 70);">
+                      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin: 0 var(--space-6) var(--space-4); padding: 8px 12px; border-radius: 8px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.28) calc(0.06 * var(--lc,1)) 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.06 70);">
                         <i class="ph-fill ph-warning" style="font-size: 17px;"></i>
                         <span style="flex: 1 1 220px;">사진에 다른 사람이 함께 있습니다. 본인 얼굴만 남기면 AI 판독이 정확해집니다.</span>
                         <button sc-camel-on-click="{{ editIdPhotoMain }}" class="btn btn-primary" style="min-height: 32px; font-size: 13px; white-space: nowrap;"><i class="ph ph-crop"></i> 가장 큰 얼굴만 자르기</button>
@@ -1149,9 +1149,9 @@
             <!-- 1줄: 제목 · 안내(?) · 환자 불러오기 · 접기 -->
             <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
             <button sc-camel-on-click="{{ toggleCpPend }}" title="목록 접기/펼치기" style="display: flex; align-items: center; gap: 6px; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left; white-space: nowrap;">
-              <i class="ph ph-warning-circle" style="font-size: 18px; color: oklch(0.70 0.17 25);"></i>
+              <i class="ph ph-warning-circle" style="font-size: 18px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25);"></i>
               <span style="font-size: 15.5px;">동의 미완료</span>
-              <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: oklch(0.70 0.17 25);">{{ cpPendCount }}명</span>
+              <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25);">{{ cpPendCount }}명</span>
             </button>
             <span tabindex="0" title="재원 환자 중 모바일 동의 또는 서면 동의서 파일이 없거나, 동의 항목이 완료되지 않은 환자" aria-label="동의 미완료 기준 설명" style="width: 20px; height: 20px; border-radius: 50%; background: var(--color-neutral-800); color: var(--color-neutral-300); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; cursor: help; flex: none;"><i class="ph ph-question"></i></span>
             <button sc-camel-on-click="{{ toggleCpPend }}" aria-label="목록 접기/펼치기" class="btn btn-ghost" style="margin-left: auto; min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;">
@@ -1419,7 +1419,7 @@
                     <span style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px var(--space-3);">
                       <span style="font-size: 19px; white-space: nowrap;">{{ l.program }}</span>
                       <sc-for list="{{ l.badges }}" as="b" hint-placeholder-count="3">
-                        <span style="display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ b.bd }}; background: {{ b.bg }}; color: {{ b.fg }}; font-size: 12.5px; white-space: nowrap; box-shadow: 0 1px 0 rgba(0,0,0,0.3);"><i class="{{ b.icon }}" style="font-size: 14px;"></i>{{ b.label }}</span>
+                        <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 4px; border-radius: 999px; border: 1px solid {{ b.bd }}; background: {{ b.bg }}; color: {{ b.fg }}; font-size: 12.5px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);"><span style="width: 18px; height: 18px; flex: none; border-radius: 50%; display: grid; place-items: center; background: {{ b.dot }};"><i class="{{ b.icon }}" style="font-size: 11px;"></i></span>{{ b.label }}</span>
                       </sc-for>
                     </span>
                     <span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ l.meta }}</span>
@@ -1486,7 +1486,7 @@
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--color-accent-800);"></span>예정</span>
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--color-neutral-700);"></span>완료</span>
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--color-neutral-600);"></span>취소</span>
-                  <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(0.36 0.10 25); color: oklch(0.90 0.06 25);">미작성</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(0.38 0.08 80); color: oklch(0.92 0.07 85);">검수</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(0.36 0.07 150); color: oklch(0.90 0.07 150);">확정</span>일지 상태</span>
+                  <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.10 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.06 25);">미작성</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.38) calc(0.08 * var(--lc,1)) 80); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.07 85);">검수</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.07 * var(--lc,1)) 150); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.07 150);">확정</span>일지 상태</span>
                   <span style="margin-left: auto;">날짜 클릭 → 그날 일정 · 더블클릭 → 바로 등록</span>
                 </div>
                </div>
@@ -1513,7 +1513,7 @@
                     <sc-if value="{{ plDayMode }}" hint-placeholder-val="{{ false }}">
                       <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex-wrap: wrap;">
                         <button sc-camel-on-click="{{ plDayPrev }}" class="btn btn-secondary" aria-label="전날" style="min-height: 36px; width: 36px; padding: 0; justify-content: center;"><i class="ph ph-caret-left"></i></button>
-                        <span style="min-width: 128px; text-align: center; display: flex; flex-direction: column; line-height: 1.25;"><span style="font-size: 17px; color: {{ plDayColor }}; white-space: nowrap;">{{ plDayLabel }}</span><sc-if value="{{ plDayHasHoli }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; color: oklch(0.85 0.08 25);">{{ plDayHoli }}</span></sc-if></span>
+                        <span style="min-width: 128px; text-align: center; display: flex; flex-direction: column; line-height: 1.25;"><span style="font-size: 17px; color: {{ plDayColor }}; white-space: nowrap;">{{ plDayLabel }}</span><sc-if value="{{ plDayHasHoli }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.08 25);">{{ plDayHoli }}</span></sc-if></span>
                         <button sc-camel-on-click="{{ plDayNext }}" class="btn btn-secondary" aria-label="다음날" style="min-height: 36px; width: 36px; padding: 0; justify-content: center;"><i class="ph ph-caret-right"></i></button>
                         <button sc-camel-on-click="{{ plDayToday }}" disabled="{{ plDayIsToday }}" class="btn btn-ghost" style="min-height: 36px; font-size: 13.5px; white-space: nowrap;">오늘</button>
                       </span>
@@ -1707,13 +1707,13 @@
             <div style="display: flex; flex-direction: column; gap: var(--space-6);">
               <sc-if value="{{ alMissingHas }}" hint-placeholder-val="{{ false }}">
                 <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; background: var(--color-surface); box-shadow: inset 0 0 0 1px oklch(0.55 0.13 30);">
-                  <i class="ph ph-image-broken" style="font-size: 19px; color: oklch(0.78 0.13 30);"></i>
+                  <i class="ph ph-image-broken" style="font-size: 19px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.13 30);"></i>
                   <span style="font-size: 14px; flex: 1 1 260px;">{{ alMissingMsg }}</span>
                   <button sc-camel-on-click="{{ alMissingFix }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-broom"></i> 목록에서 빼기</button>
                 </div>
               </sc-if>
               <sc-if value="{{ alSrvSlow }}" hint-placeholder-val="{{ false }}">
-                <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; background: oklch(0.28 0.06 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 14px; color: oklch(0.92 0.06 70);">
+                <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.28) calc(0.06 * var(--lc,1)) 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 14px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.06 70);">
                   <i class="ph-fill ph-cloud-warning" style="font-size: 19px;"></i>
                   <span style="flex: 1 1 280px; line-height: 1.55;">{{ alSrvMsg }}</span>
                   <button sc-camel-on-click="{{ alSrvRetry }}" class="btn btn-secondary" style="min-height: 32px; font-size: 13px; white-space: nowrap;"><i class="ph ph-arrows-clockwise"></i> 다시 시도</button>
@@ -1741,7 +1741,7 @@
                 <sc-if value="{{ plHasOrphans }}" hint-placeholder-val="{{ false }}">
                   <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
                     <span style="flex: 1 1 360px; font-size: 13.5px; color: var(--color-neutral-300); line-height: 1.6;">아래 사진은 서버에 저장돼 있지만 <b>어느 일지에도 연결되어 있지 않습니다.</b> 필요한 사진은 일지를 골라 [연결]하고, 지운 사진이면 [영구 삭제]하세요.</span>
-                    <button sc-camel-on-click="{{ plDelAll }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px; white-space: nowrap; color: oklch(0.82 0.10 25);"><i class="ph ph-trash"></i> 연결 끊긴 사진 {{ plOrphanN }}장 모두 영구 삭제</button>
+                    <button sc-camel-on-click="{{ plDelAll }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px; white-space: nowrap; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.10 25);"><i class="ph ph-trash"></i> 연결 끊긴 사진 {{ plOrphanN }}장 모두 영구 삭제</button>
                   </div>
                   <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-3);">
                     <sc-for list="{{ plOrphanRows }}" as="o" hint-placeholder-count="3">
@@ -1754,7 +1754,7 @@
                         </sc-raw-select>
                         <span style="display: flex; gap: var(--space-2);">
                           <button sc-camel-on-click="{{ o.attach }}" class="btn btn-primary" style="flex: 1; min-height: 36px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-link"></i> 연결</button>
-                          <button sc-camel-on-click="{{ o.del }}" class="btn btn-secondary" style="flex: 1; min-height: 36px; font-size: 13.5px; white-space: nowrap; color: oklch(0.82 0.10 25);"><i class="ph ph-trash"></i> 영구 삭제</button>
+                          <button sc-camel-on-click="{{ o.del }}" class="btn btn-secondary" style="flex: 1; min-height: 36px; font-size: 13.5px; white-space: nowrap; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.10 25);"><i class="ph ph-trash"></i> 영구 삭제</button>
                         </span>
                       </div>
                     </sc-for>
@@ -2427,9 +2427,9 @@
               </div>
               <!-- 사진 불일치 점검: 이 일지에 없는 사진에서 나온 인식 결과 -->
               <sc-if value="{{ strayHas }}" hint-placeholder-val="{{ false }}">
-                <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(0.28 0.08 25); box-shadow: 0 0 0 1px oklch(0.60 0.16 25), 0 4px 12px rgba(0,0,0,0.3);">
-                  <span style="display: flex; align-items: center; gap: var(--space-3);"><i class="ph-fill ph-link-break" style="font-size: 24px; color: oklch(0.85 0.12 25);"></i><b style="font-size: 16px; color: oklch(0.95 0.04 25);">사진과 맞지 않는 인식 결과 {{ strayN }}명</b></span>
-                  <span style="font-size: 13.5px; line-height: 1.6; color: oklch(0.90 0.04 25);">{{ strayText }}</span>
+                <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.28) calc(0.08 * var(--lc,1)) 25); box-shadow: 0 0 0 1px oklch(0.60 0.16 25), 0 4px 12px rgba(0,0,0,0.3);">
+                  <span style="display: flex; align-items: center; gap: var(--space-3);"><i class="ph-fill ph-link-break" style="font-size: 24px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.12 25);"></i><b style="font-size: 16px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.04 25);">사진과 맞지 않는 인식 결과 {{ strayN }}명</b></span>
+                  <span style="font-size: 13.5px; line-height: 1.6; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.04 25);">{{ strayText }}</span>
                   <span style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                     <button sc-camel-on-click="{{ strayClear }}" class="btn btn-secondary" style="min-height: 36px; font-size: 13.5px;"><i class="ph ph-broom"></i> 맞지 않는 결과 {{ strayN }}명 비우기</button>
                     <sc-if value="{{ strayHasOwner }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ strayGoOwner }}" class="btn btn-ghost" style="min-height: 36px; font-size: 13.5px;"><i class="ph ph-arrow-square-out"></i> 사진이 있는 일지 열기 ({{ strayOwner }})</button></sc-if>
@@ -2437,11 +2437,11 @@
                 </div>
               </sc-if>
               <sc-if value="{{ hasUnknownAlert }}" hint-placeholder-val="{{ false }}">
-                <div role="alert" style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(0.30 0.07 60); box-shadow: 0 0 0 1px oklch(0.62 0.13 70), 0 4px 12px rgba(0,0,0,0.3);">
-                  <i class="ph-fill ph-warning-circle" style="font-size: 26px; color: oklch(0.86 0.14 80);"></i>
+                <div role="alert" style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.07 * var(--lc,1)) 60); box-shadow: 0 0 0 1px oklch(0.62 0.13 70), 0 4px 12px rgba(0,0,0,0.3);">
+                  <i class="ph-fill ph-warning-circle" style="font-size: 26px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.14 80);"></i>
                   <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px;">
-                    <span style="font-size: 16px; color: oklch(0.95 0.04 80);">미확인 환자가 발견되었습니다 — {{ unknownAlertCount }}명</span>
-                    <span style="font-size: 13.5px; color: oklch(0.86 0.05 80);">{{ unknownAlertSub }}</span>
+                    <span style="font-size: 16px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.04 80);">미확인 환자가 발견되었습니다 — {{ unknownAlertCount }}명</span>
+                    <span style="font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.05 80);">{{ unknownAlertSub }}</span>
                   </span>
                   <span style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                     <button sc-camel-on-click="{{ assignFirstUnknown }}" class="btn btn-primary" style="min-height: 40px; white-space: nowrap;"><i class="ph ph-user-focus"></i> 첫 미확인 환자 지정</button>
@@ -2456,7 +2456,7 @@
                     <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
                       <span style="font-size: 16px;">{{ r.name }} <span style="font-size: 13.5px; color: var(--color-neutral-500); white-space: nowrap;">{{ r.room }}</span></span>
                       <span style="font-size: 13px; color: var(--color-neutral-600);">{{ r.method }}</span>
-                      <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(0.32 0.08 25); color: oklch(0.88 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 28px; padding: 0 10px; font-size: 12.5px;">중복 제외</button></span></sc-if>
+                      <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.08 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.88) 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 28px; padding: 0 10px; font-size: 12.5px;">중복 제외</button></span></sc-if>
                     </span>
                     <sc-if value="{{ r.low }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if>
                     <span style="display: flex; align-items: center; gap: var(--space-2);"><sc-if value="{{ r.high }}" hint-placeholder-val="{{ true }}"><span class="tag tag-neutral" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if><sc-if value="{{ r.isUnknown }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-primary" style="min-height: 38px; font-size: 14px; white-space: nowrap;"><i class="ph ph-user-focus"></i> 환자 지정</button></sc-if><sc-if value="{{ r.isKnown }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-secondary" aria-label="환자 변경" title="환자 변경 — 사진과 환자가 다르면 바른 환자로 바꾸기" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-arrows-left-right" style="font-size: 16px;"></i></button></sc-if></span>
@@ -2610,7 +2610,7 @@
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2);">
                       <sc-for list="{{ p.kpis }}" as="k" hint-placeholder-count="3">
-                        <div style="padding: 8px 10px; border-radius: 8px; background: rgba(22,24,38,0.55); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
+                        <div style="padding: 8px 10px; border-radius: 8px; background: var(--tile-bg, rgba(22,24,38,0.55)); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
                           <div style="font-size: 12px; color: var(--color-neutral-400); white-space: nowrap;">{{ k.label }}</div>
                           <div style="font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2;">{{ k.v }}<span style="font-size: 12px; color: var(--color-neutral-500);"> {{ k.u }}</span></div>
                         </div>
@@ -2618,7 +2618,7 @@
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                       <div style="display: flex; justify-content: space-between; gap: var(--space-2); font-size: 12.5px; color: var(--color-neutral-400);"><span>{{ p.rateLabel }}</span><span style="color: {{ p.color }}; font-variant-numeric: tabular-nums;">{{ p.fillTxt }}</span></div>
-                      <div style="height: 10px; border-radius: 5px; background: rgba(22,24,38,0.7); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
+                      <div style="height: 10px; border-radius: 5px; background: var(--tile-bg, rgba(22,24,38,0.7)); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
                       <div style="font-size: 12px; color: var(--color-neutral-500);">{{ p.capTxt }}</div>
                     </div>
                   </div>
@@ -2745,7 +2745,7 @@
                       </div>
                       <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2);">
                         <sc-for list="{{ p.kpis }}" as="k" hint-placeholder-count="3">
-                          <div style="padding: 8px 10px; border-radius: 8px; background: rgba(22,24,38,0.55); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
+                          <div style="padding: 8px 10px; border-radius: 8px; background: var(--tile-bg, rgba(22,24,38,0.55)); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
                             <div style="font-size: 12px; color: var(--color-neutral-400); white-space: nowrap;">{{ k.label }}</div>
                             <div style="font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2;">{{ k.v }}<span style="font-size: 12px; color: var(--color-neutral-500);"> {{ k.u }}</span></div>
                           </div>
@@ -2753,7 +2753,7 @@
                       </div>
                       <div style="display: flex; flex-direction: column; gap: 6px;">
                         <div style="display: flex; justify-content: space-between; gap: var(--space-2); font-size: 12.5px; color: var(--color-neutral-400);"><span>정원 대비 참여율</span><span style="color: {{ p.color }}; font-variant-numeric: tabular-nums;">{{ p.fillTxt }}</span></div>
-                        <div style="height: 10px; border-radius: 5px; background: rgba(22,24,38,0.7); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
+                        <div style="height: 10px; border-radius: 5px; background: var(--tile-bg, rgba(22,24,38,0.7)); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
                         <div style="font-size: 12px; color: var(--color-neutral-500);">{{ p.capTxt }}</div>
                       </div>
                     </div>
@@ -3904,7 +3904,7 @@
                       <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
                         <span style="font-size: 16px;">{{ r.name }}</span>
                         <span style="font-size: 12.5px; color: var(--color-neutral-600);">{{ r.room }} · {{ r.method }}</span>
-                        <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(0.32 0.08 25); color: oklch(0.88 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px;">중복 제외</button></span></sc-if>
+                        <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.08 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.88) 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px;">중복 제외</button></span></sc-if>
                       </span>
                       <sc-if value="{{ r.low }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if>
                       <span style="display: flex; align-items: center; gap: var(--space-2);"><sc-if value="{{ r.high }}" hint-placeholder-val="{{ true }}"><span class="tag tag-neutral" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if><sc-if value="{{ r.isUnknown }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-primary" style="min-height: 38px; font-size: 14px; white-space: nowrap;"><i class="ph ph-user-focus"></i> 환자 지정</button></sc-if><sc-if value="{{ r.isKnown }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-secondary" title="사진과 환자가 다르면 바른 환자로 바꾸기" style="min-height: 40px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-arrows-left-right"></i> 변경</button></sc-if></span>
@@ -4225,7 +4225,7 @@
           <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
             <button sc-camel-on-click="{{ toggleEmrCols }}" class="btn btn-secondary" style="flex: none; min-height: 38px; white-space: nowrap;"><i class="ph ph-columns" style="font-size: 17px;"></i> {{ emrColsBtn }}</button>
             <span style="flex: 1 1 260px; min-width: 0; font-size: 13px; color: var(--color-neutral-500); line-height: 1.5;">EMR 화면의 열 순서대로 맞춰 두면 저장되어 다른 PC에서도 같은 구성으로 읽습니다.</span>
-            <sc-if value="{{ emrColsWarn }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: oklch(0.85 0.12 25);">{{ emrColsWarn }}</span></sc-if>
+            <sc-if value="{{ emrColsWarn }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.12 25);">{{ emrColsWarn }}</span></sc-if>
           </div>
           <sc-if value="{{ emrColsOpen }}" hint-placeholder-val="{{ false }}">
             <div style="display: flex; gap: var(--space-2); overflow-x: auto; padding: 2px 2px 6px;">
@@ -4236,7 +4236,7 @@
                     <span style="margin-left: auto; display: flex; gap: 2px;">
                       <button sc-camel-on-click="{{ c.left }}" disabled="{{ c.isFirst }}" aria-label="왼쪽으로" title="왼쪽으로" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: var(--color-neutral-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-caret-left"></i></button>
                       <button sc-camel-on-click="{{ c.right }}" disabled="{{ c.isLast }}" aria-label="오른쪽으로" title="오른쪽으로" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: var(--color-neutral-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-caret-right"></i></button>
-                      <button sc-camel-on-click="{{ c.del }}" aria-label="열 삭제" title="열 삭제" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: oklch(0.80 0.10 25); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button>
+                      <button sc-camel-on-click="{{ c.del }}" aria-label="열 삭제" title="열 삭제" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.10 25); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button>
                     </span>
                   </div>
                   <input class="input" value="{{ c.label }}" sc-camel-on-change="{{ c.onLabel }}" placeholder="머리글 (예: 수진자)" aria-label="머리글 이름" style="min-height: 32px; font-size: 13px; padding: 4px 8px;">
@@ -4266,9 +4266,9 @@
             <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;"><input type="checkbox" checked="{{ emrDischarge }}" sc-camel-on-change="{{ toggleEmrDischarge }}" style="width: 18px; height: 18px; accent-color: var(--color-accent);">이번 명부에 없는 기존 재원 환자를 자동 '퇴원' 처리 <span style="color: var(--color-neutral-500);">{{ emrDischargeNote }}</span></label>
           </div>
           <sc-if value="{{ emrHasOut }}" hint-placeholder-val="{{ false }}">
-            <div style="flex: none; display: flex; flex-direction: column; gap: var(--space-2); padding: 10px 12px; border-radius: 6px; background: var(--color-neutral-900); box-shadow: inset 0 0 0 1px oklch(0.40 0.08 25);">
+            <div style="flex: none; display: flex; flex-direction: column; gap: var(--space-2); padding: 10px 12px; border-radius: 6px; background: var(--color-neutral-900); box-shadow: inset 0 0 0 1px oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.40) calc(0.08 * var(--lc,1)) 25);">
               <button sc-camel-on-click="{{ emrOutToggleOpen }}" aria-expanded="{{ emrOutOpenStr }}" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 2px 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: 13.5px; cursor: pointer; text-align: left;">
-                <i class="ph ph-sign-out" style="font-size: 17px; color: oklch(0.80 0.12 25);"></i><b style="font-weight: 500; flex: 1 1 auto;">{{ emrOutTitle }}</b>
+                <i class="ph ph-sign-out" style="font-size: 17px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 25);"></i><b style="font-weight: 500; flex: 1 1 auto;">{{ emrOutTitle }}</b>
                 <span style="display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-800); font-size: 12.5px; color: var(--color-neutral-300); white-space: nowrap;">{{ emrOutOpenLabel }} <i class="{{ emrOutChevron }}"></i></span>
               </button>
               <div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.5;">퇴원 처리한 환자는 지워지지 않고 퇴원일과 함께 '퇴원' 명단에 보관됩니다. 참여 기록·동의서도 그대로 남고, 나중 명부에 다시 나오면 재원으로 돌아옵니다. 아직 재원 중인 환자는 체크를 풀어 제외하세요.</div>
@@ -4298,8 +4298,8 @@
             </div>
           </sc-if>
           <sc-if value="{{ emrHasReadmit }}" hint-placeholder-val="{{ false }}">
-            <div style="flex: none; display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 12px; border-radius: 6px; background: oklch(0.26 0.05 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
-              <i class="ph-fill ph-warning-circle" style="font-size: 18px; color: oklch(0.82 0.13 25);"></i>
+            <div style="flex: none; display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 12px; border-radius: 6px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.26) calc(0.05 * var(--lc,1)) 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
+              <i class="ph-fill ph-warning-circle" style="font-size: 18px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.13 25);"></i>
               <span style="flex: 1 1 260px; min-width: 0; font-size: 13.5px; line-height: 1.5;"><b style="color: {{ emrReadmitColor }};">{{ emrReadmitNote }}</b><br><span style="color: var(--color-neutral-400);">차트번호는 같지만 입원일이 달라 재입원으로 판단했습니다. '다시 받기'를 고르면 초상권·안면인식 동의가 '확인전'으로 바뀌고, 이전 동의 기록과 첨부 파일은 보관됩니다.</span></span>
               <span style="flex: none; display: flex; gap: var(--space-2);">
                 <button sc-camel-on-click="{{ emrReKeepAll }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px; white-space: nowrap;">모두 기존 사용</button>
@@ -4397,7 +4397,7 @@
         <div style="display: flex; flex-direction: column; gap: 6px; padding-top: var(--space-2); border-top: 1px solid var(--color-divider);">
           <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
             <sc-for list="{{ hvFaces }}" as="f" hint-placeholder-count="3">
-              <span title="{{ f.name }}" style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; flex: none; box-sizing: border-box; background: var(--color-neutral-800); box-shadow: {{ f.ring }}; border: {{ f.border }}; display: grid; place-items: center; font-size: 14px; color: oklch(0.82 0.12 25);">
+              <span title="{{ f.name }}" style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; flex: none; box-sizing: border-box; background: var(--color-neutral-800); box-shadow: {{ f.ring }}; border: {{ f.border }}; display: grid; place-items: center; font-size: 14px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.12 25);">
                 <sc-if value="{{ f.hasUrl }}" hint-placeholder-val="{{ false }}">{{ f.el }}</sc-if>
                 <sc-if value="{{ f.noUrl }}" hint-placeholder-val="{{ true }}">{{ f.initial }}</sc-if>
               </span>
@@ -4619,10 +4619,10 @@
 
   <!-- 예전 버전 경고 (저장 중지) -->
   <sc-if value="{{ outdated }}" hint-placeholder-val="{{ false }}">
-    <div role="alert" style="position: fixed; left: 0; right: 0; top: 0; z-index: 300; display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); background: oklch(0.34 0.10 25); color: oklch(0.95 0.03 25); box-shadow: 0 6px 20px rgba(0,0,0,0.45);">
+    <div role="alert" style="position: fixed; left: 0; right: 0; top: 0; z-index: 300; display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.34) calc(0.10 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.03 25); box-shadow: 0 6px 20px rgba(0,0,0,0.45);">
       <i class="ph ph-warning-circle" style="font-size: 24px;"></i>
       <span style="font-size: 15.5px; flex: 1 1 320px;">{{ outdatedMsg }} 새로고침하면 최신 버전으로 계속 작업할 수 있습니다.</span>
-      <button sc-camel-on-click="{{ reloadNow }}" class="btn btn-primary" style="min-height: 42px; white-space: nowrap; background: oklch(0.95 0.03 25); color: oklch(0.30 0.10 25); border-color: transparent;"><i class="ph ph-arrow-clockwise"></i> 지금 새로고침</button>
+      <button sc-camel-on-click="{{ reloadNow }}" class="btn btn-primary" style="min-height: 42px; white-space: nowrap; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.03 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.10 * var(--lc,1)) 25); border-color: transparent;"><i class="ph ph-arrow-clockwise"></i> 지금 새로고침</button>
     </div>
   </sc-if>
 
