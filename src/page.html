@@ -4617,6 +4617,25 @@
       <i class="{{ aiFabIcon }}" style="font-size: 26px; position: relative; filter: drop-shadow(0 1px 3px rgba(20,20,80,0.45));"></i>
       <sc-if value="{{ aiHasBadge }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; top: -2px; right: -2px; min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #e03131; color: #ffffff; font-size: 12px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px #ffffff;">{{ aiBadge }}</span></sc-if>
     </button>
+    <sc-if value="{{ expPrevOpen }}" hint-placeholder-val="{{ false }}">
+      <div role="dialog" aria-modal="true" aria-label="내보내기 미리보기" style="position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10, 14, 30, 0.62); backdrop-filter: blur(3px);">
+        <div style="display: flex; flex-direction: column; width: min(980px, 100%); max-height: 100%; border-radius: 18px; background: var(--color-surface); color: var(--color-text); box-shadow: 0 30px 80px rgba(0,0,0,0.5);">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--color-divider);">
+            <i class="ph ph-eye" style="font-size: 20px; color: var(--color-accent-300);"></i>
+            <span style="font-size: 17px; font-weight: 600;">{{ expPrevKind }} 미리보기</span><span style="font-size: 13px; color: var(--color-neutral-500);">{{ expPrevFile }}</span>
+            <span style="margin-left: auto; display: flex; gap: 8px;">
+              <button type="button" sc-camel-on-click="{{ expPrevClose }}" class="btn btn-secondary" style="min-height: 40px;">닫기</button>
+              <button type="button" sc-camel-on-click="{{ expPrevGo }}" class="btn btn-primary" style="min-height: 40px;"><i class="ph ph-download-simple"></i> 다운로드</button>
+            </span>
+          </div>
+          <div style="overflow: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; background: var(--color-neutral-900);">
+            <sc-for list="{{ expPrevImgs }}" as="im" hint-placeholder-count="1">
+              <figure style="margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: center;"><img src="{{ im.src }}" alt="{{ im.cap }}" style="max-width: 100%; height: auto; background: #fff; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);"><figcaption style="font-size: 12.5px; color: var(--color-neutral-500);">{{ im.cap }}</figcaption></figure>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
     <sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
       <div role="dialog" aria-label="AI 비서" style="position: fixed; right: {{ aiRight }}; bottom: {{ aiDlgBottom }}; z-index: 123; width: {{ aiW }}; height: {{ aiH }}; display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; background: #f6f8fb; color: #111827; box-shadow: 0 24px 60px rgba(20, 30, 50, 0.30), 0 0 0 1px rgba(20, 30, 50, 0.06);">
         <!-- 크기 조절: 왼쪽 가장자리 · 위쪽 가장자리 · 왼쪽 위 모서리 (두 번 누르면 기본 크기) -->

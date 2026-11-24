@@ -2085,6 +2085,7 @@ class Component extends DCLogic {
       const user = this._userName || '';
       const esc = (v) => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+      const thumb = (cv) => { const k = Math.min(1, 1100 / cv.width); const t = document.createElement('canvas'); t.width = Math.round(cv.width * k); t.height = Math.round(cv.height * k); const x = t.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, t.width, t.height); x.drawImage(cv, 0, 0, t.width, t.height); return t.toDataURL('image/jpeg', 0.8); };
       if (kind === 'print') {
         const pages = shots.map((s, i) => '<section class="pg ' + (s.land ? 'land' : 'port') + '"><header><div><div class="k">사회사업실 · 스마트케어 프로그램 통계</div><h1>' + esc(s.title || '통계') + '</h1></div><div class="m">' + (i + 1) + ' / ' + shots.length + '<br>출력 ' + stamp + (user ? ' · ' + esc(user) : '') + '</div></header><div class="fig"><img src="' + s.canvas.toDataURL('image/png') + '"></div><footer>확정 데이터만 집계 · 개인정보 포함 문서이므로 열람 후 파기하세요</footer></section>').join('');
         const html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + name + '</title><style>'
@@ -2107,6 +2108,7 @@ class Component extends DCLogic {
         setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { this.flash('인쇄 창을 열 수 없습니다'); } setTimeout(() => fr.remove(), 60000); }, 150);
         this.flash('인쇄 창을 엽니다 — 통계 ' + shots.length + '개, 1통계 1페이지');
       } else if (kind === 'pdf') {
+        const runPdf = async () => {
         const lib = await this.loadLib('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', 'jspdf.jsPDF');
         const pdf = new lib({ orientation: shots[0].land ? 'l' : 'p', unit: 'mm', format: 'a4' });
         const m = 10, headH = 16, footH = 8;
@@ -2129,6 +2131,10 @@ class Component extends DCLogic {
         });
         pdf.save(name + '.pdf');
         this.flash('PDF 다운로드 — 통계 ' + shots.length + '페이지');
+        };
+        this._expRun = runPdf;
+        this.setState({ expPrev: { kind: 'PDF', file: name + '.pdf', imgs: shots.map((s, i) => ({ src: thumb(s.canvas), cap: (i + 1) + ' / ' + shots.length + ' · ' + (s.title || '통계') })) } });
+        this.flash('미리보기를 확인하고 [다운로드]를 누르세요');
       } else {
         const gap = 48, pad = 60, headH = 110;
         const W = Math.max(...shots.map(s => s.canvas.width)) + pad * 2;
@@ -2140,9 +2146,13 @@ class Component extends DCLogic {
         ctx.fillStyle = '#666'; ctx.font = '24px Inter, "Malgun Gothic", sans-serif'; ctx.fillText('출력 ' + stamp + (user ? ' · ' + user : '') + ' · 개인정보 포함 — 열람 후 파기', pad, pad + 84);
         let y = pad + headH;
         shots.forEach(s => { ctx.drawImage(s.canvas, pad, y); y += s.canvas.height + gap; });
-        const a = document.createElement('a'); a.href = out.toDataURL('image/jpeg', 0.92); a.download = name + '.jpg';
-        document.body.appendChild(a); a.click(); a.remove();
-        this.flash('JPG 다운로드 — ' + name + '.jpg');
+        this._expRun = async () => {
+          const a = document.createElement('a'); a.href = out.toDataURL('image/jpeg', 0.92); a.download = name + '.jpg';
+          document.body.appendChild(a); a.click(); a.remove();
+          this.flash('JPG 다운로드 — ' + name + '.jpg');
+        };
+        this.setState({ expPrev: { kind: 'JPG', file: name + '.jpg', imgs: [{ src: thumb(out), cap: '통계 ' + shots.length + '개 · 한 장 이미지' }] } });
+        this.flash('미리보기를 확인하고 [다운로드]를 누르세요');
       }
     } catch (e) {
       this.flash('내보내기 실패 — ' + (e && e.message ? e.message : '네트워크를 확인하세요'));
@@ -9643,6 +9653,9 @@ class Component extends DCLogic {
       statsPrint: () => { this._userName = userName; this.runStatsReport('print'); },
       statsPdf: () => { this._userName = userName; this.runStatsReport('pdf'); },
       statsJpg: () => { this._userName = userName; this.runStatsReport('jpg'); },
+      expPrevOpen: !!s.expPrev, expPrevKind: s.expPrev ? s.expPrev.kind : '', expPrevFile: s.expPrev ? s.expPrev.file : '', expPrevImgs: s.expPrev ? s.expPrev.imgs : [],
+      expPrevClose: () => { this._expRun = null; this.setState({ expPrev: null }); },
+      expPrevGo: async () => { const r = this._expRun; this._expRun = null; this.setState({ expPrev: null, exportBusy: true }); try { if (r) await r(); } catch (e) { this.flash('내보내기 실패 — ' + (e && e.message ? e.message : '')); } finally { this.setState({ exportBusy: false }); } },
       printAtt: () => {
         const byPatient = attPatient === '전체' && attMode === 'patient';
         if (byPatient ? !attGroupsRaw.length : !attView.length) { this.flash('인쇄할 출석 기록이 없습니다'); return; }
