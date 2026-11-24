@@ -36,7 +36,7 @@
   <div style="width: 100%; max-width: 1440px; margin: 0 auto; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: 0 var(--space-6);">
     <span role="group" aria-label="보기 모드" style="display: inline-flex; gap: 4px; padding: 3px; border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: inset 0 1px 3px rgba(0,0,0,0.35);">
       <sc-for list="{{ deviceOpts }}" as="d" hint-placeholder-count="4">
-        <sc-if value="{{ d.active }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ d.go }}" aria-pressed="true" title="{{ d.title }}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);"><i class="{{ d.icon }}" style="font-size: 17px;"></i>{{ d.label }}</button></sc-if>
+        <sc-if value="{{ d.active }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ d.go }}" aria-pressed="true" title="{{ d.title }}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);"><i class="{{ d.icon }}" style="font-size: 17px;"></i>{{ d.label }}</button></sc-if>
         <sc-if value="{{ d.inactive }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ d.go }}" aria-pressed="false" title="{{ d.title }}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid var(--color-neutral-700); border-radius: 6px; background: linear-gradient(180deg, var(--color-neutral-700), var(--color-neutral-800)); color: var(--color-neutral-300); font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.35);" style-hover="color: var(--color-text); border-color: var(--color-accent-700);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);"><i class="{{ d.icon }}" style="font-size: 17px;"></i>{{ d.label }}</button></sc-if>
       </sc-for>
     </span>
@@ -46,7 +46,7 @@
       <button sc-camel-on-click="{{ cycleFetch }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13.5px; white-space: nowrap;">데이터 상태 · {{ fetchLabel }}</button>
       <span role="group" aria-label="화면 모드" style="display: inline-flex; gap: 4px; padding: 3px; border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: inset 0 1px 3px rgba(0,0,0,0.35);">
         <sc-for list="{{ themeOpts }}" as="tm" hint-placeholder-count="2">
-          <sc-if value="{{ tm.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ tm.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);"><i class="{{ tm.icon }}" style="font-size: 14px;"></i>{{ tm.label }}</button></sc-if>
+          <sc-if value="{{ tm.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ tm.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);"><i class="{{ tm.icon }}" style="font-size: 14px;"></i>{{ tm.label }}</button></sc-if>
           <sc-if value="{{ tm.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ tm.go }}" aria-pressed="false" style="display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border: 1px solid var(--color-neutral-700); border-radius: 6px; background: linear-gradient(180deg, var(--color-neutral-700), var(--color-neutral-800)); color: var(--color-neutral-300); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 0 rgba(0,0,0,0.3);" style-hover="color: var(--color-text);"><i class="{{ tm.icon }}" style="font-size: 14px;"></i>{{ tm.label }}</button></sc-if>
         </sc-for>
       </span>
@@ -145,7 +145,7 @@
             <div class="field"><label>로그인 방식</label>
               <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin-top: var(--space-2);">
                 <sc-for list="{{ lgModes }}" as="lm" hint-placeholder-count="3">
-                  <sc-if value="{{ lm.on }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ lm.go }}" aria-pressed="true" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 4px 8px; border-radius: var(--radius-md); border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; text-align: center; line-height: 1.3; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);"><i class="{{ lm.icon }}" style="font-size: 16px;"></i>{{ lm.label }}</button></sc-if>
+                  <sc-if value="{{ lm.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" type="button" sc-camel-on-click="{{ lm.go }}" aria-pressed="true" style="display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 4px 8px; border-radius: var(--radius-md); border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; text-align: center; line-height: 1.3; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);"><i class="{{ lm.icon }}" style="font-size: 16px;"></i>{{ lm.label }}</button></sc-if>
                   <sc-if value="{{ lm.off }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ lm.go }}" aria-pressed="false" class="btn btn-secondary" style="min-height: 48px; padding: 4px 8px; justify-content: center; font-size: 14.5px; line-height: 1.3; text-align: center;"><i class="{{ lm.icon }}" style="font-size: 16px;"></i>{{ lm.label }}</button></sc-if>
                 </sc-for>
               </div>
@@ -224,8 +224,8 @@
       <!-- 좌측 메뉴 -->
       <aside aria-label="기능 메뉴" ref="{{ sbRef }}" style="position: sticky; top: 0; align-self: flex-start; height: {{ sbH }}; max-height: {{ sbH }}; overflow-y: auto; overscroll-behavior: contain; z-index: 20; flex: none; width: {{ sbWidth }}; box-sizing: border-box; border-right: 1px solid var(--color-divider); background: var(--color-surface); display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-3); transition: width 140ms ease;">
         <sc-if value="{{ sbResizable }}" hint-placeholder-val="{{ true }}">
-          <div role="separator" aria-orientation="vertical" aria-label="메뉴 너비 조절" title="끌어서 메뉴 너비 조절 · 더블클릭하면 기본 너비" sc-camel-on-mouse-down="{{ sbResizeStart }}" sc-camel-on-double-click="{{ sbResizeReset }}" style="position: absolute; top: 0; right: -4px; bottom: 0; width: 8px; cursor: col-resize; z-index: 5; display: flex; align-items: center; justify-content: center;" style-hover="background: color-mix(in oklch, var(--color-accent) 25%, transparent);">
-            <span style="width: 3px; height: 36px; border-radius: 2px; background: var(--color-neutral-600);"></span>
+          <div role="separator" aria-orientation="vertical" aria-label="메뉴 너비 조절" title="끌어서 메뉴 너비 조절 · 더블클릭하면 기본 너비" sc-camel-on-mouse-down="{{ sbResizeStart }}" sc-camel-on-double-click="{{ sbResizeReset }}" style="position: absolute; top: 0; right: -4px; bottom: 0; width: 8px; cursor: col-resize; z-index: 5; display: flex; align-items: center; justify-content: center;" style-hover="background: color-mix(in oklch, var(--color-accent) 22%, transparent); border-radius: 4px;">
+            <i class="ph ph-dots-six-vertical" aria-hidden="true" style="font-size: 14px; color: var(--color-neutral-500); opacity: 0.55; pointer-events: none;"></i>
           </div>
         </sc-if>
         <div style="display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-1) var(--space-2);">
@@ -249,7 +249,7 @@
             <div data-sb-group="1" data-open="{{ g.openStr }}" draggable="{{ g.draggable }}" sc-camel-on-drag-start="{{ g.dragStart }}" sc-camel-on-drag-over="{{ g.dragOver }}" sc-camel-on-drop="{{ g.drop }}" sc-camel-on-drag-end="{{ sbDragEnd }}" style="display: flex; flex-direction: column; gap: 2px; border-radius: var(--radius-md); box-shadow: {{ g.ring }}; opacity: {{ g.opacity }}; padding: 2px;">
               <button data-sb-head="1" sc-camel-on-click="{{ g.toggle }}" title="{{ g.label }}" style="display: flex; align-items: center; gap: var(--space-3); min-height: 46px; padding: 0 var(--space-3); border: 1px solid {{ g.headBd }}; border-radius: var(--radius-md); background: {{ g.headBg }}; color: {{ g.headFg }}; font: inherit; font-size: 15.5px; font-weight: 500; cursor: {{ g.cursor }}; text-align: left; justify-content: {{ sbJustify }}; box-shadow: inset 0 1px 0 rgba(233,233,237,0.07), 0 2px 0 rgba(0,0,0,0.35);" style-hover="color: var(--color-text); border-color: var(--color-accent-700);" style-active="transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,0.4);">
                 <sc-if value="{{ g.showGrip }}" hint-placeholder-val="{{ false }}"><i class="ph ph-dots-six-vertical" style="font-size: 16px; color: var(--color-neutral-500);"></i></sc-if>
-                <span data-sb-icon="{{ g.key }}" style="width: 28px; height: 28px; flex: none; border-radius: 7px; display: grid; place-items: center; background: {{ g.iconBg }}; color: {{ g.iconFg }};"><i class="{{ g.icon }}" style="font-size: 17px;"></i></span>
+                <span data-sb-icon="{{ g.key }}" style="width: {{ sbIcoGBox }}; height: {{ sbIcoGBox }}; flex: none; border-radius: 7px; display: grid; place-items: center; background: {{ g.iconBg }}; color: {{ g.iconFg }};"><i class="{{ g.icon }}" style="font-size: {{ sbIcoG }};"></i></span>
                 <sc-if value="{{ sbFull }}" hint-placeholder-val="{{ true }}">
                   <span style="flex: 1;">{{ g.label }}</span>
                   <sc-if value="{{ g.hasCount }}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--color-accent-800); color: var(--color-accent-100); font-weight: 400; font-variant-numeric: tabular-nums;">{{ g.count }}</span></sc-if>
@@ -257,12 +257,12 @@
                 </sc-if>
               </button>
               <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
-                <div data-sb-sub="1" style="display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px {{ sbSubIndent }}; padding-left: {{ sbSubPad }}; border-left: {{ sbSubLine }};">
+                <div data-sb-sub="1" style="display: flex; flex-direction: column; gap: 2px; margin: 6px 0 4px {{ sbSubIndent }}; padding: 6px 6px 6px {{ sbSubPad }}; border-left: {{ g.subLine }}; border-radius: 0 12px 12px 0; background: {{ g.subBg }};">
                 <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
                   <div draggable="{{ it.draggable }}" sc-camel-on-drag-start="{{ it.dragStart }}" sc-camel-on-drag-over="{{ it.dragOver }}" sc-camel-on-drop="{{ it.drop }}" sc-camel-on-drag-end="{{ sbDragEnd }}" style="border-radius: 6px; box-shadow: {{ it.ring }}; opacity: {{ it.opacity }};">
-                    <button sc-camel-on-click="{{ it.go }}" aria-current="{{ it.current }}" title="{{ it.label }}" style="display: flex; width: 100%; align-items: center; gap: var(--space-3); min-height: 38px; padding: 0 var(--space-3) 0 {{ sbItemPad }}; border: 1px solid {{ it.bd }}; border-radius: 6px; background: {{ it.bg }}; color: {{ it.fg }}; font: inherit; font-size: 14px; font-weight: 400; cursor: {{ it.cursor }}; text-align: left; justify-content: {{ sbJustify }}; box-shadow: {{ it.shadow }}; transition: background 100ms ease, color 100ms ease;" style-hover="color: var(--color-text); background: var(--color-neutral-800);" style-active="transform: translateY(1px);">
+                    <button sc-camel-on-click="{{ it.go }}" aria-current="{{ it.current }}" title="{{ it.label }}" style="display: flex; width: 100%; align-items: center; gap: var(--space-3); min-height: {{ sbItemH }}; padding: 0 var(--space-3) 0 {{ sbItemPad }}; border: 1px solid {{ it.bd }}; border-radius: 6px; background: {{ it.bg }}; color: {{ it.fg }}; font: inherit; font-size: 14px; font-weight: 400; cursor: {{ it.cursor }}; text-align: left; justify-content: {{ sbJustify }}; box-shadow: {{ it.shadow }}; transition: background 100ms ease, color 100ms ease;" style-hover="color: var(--color-text); background: var(--color-neutral-800);" style-active="transform: translateY(1px);">
                       <sc-if value="{{ it.showGrip }}" hint-placeholder-val="{{ false }}"><i class="ph ph-dots-six-vertical" style="font-size: 15px; color: var(--color-neutral-500);"></i></sc-if>
-                      <i class="{{ it.icon }}" style="font-size: 16px; color: {{ it.iconColor }};"></i>
+                      <i class="{{ it.icon }}" style="font-size: {{ sbIcoI }}; color: {{ it.iconColor }};"></i>
                       <sc-if value="{{ sbFull }}" hint-placeholder-val="{{ true }}">
                         <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ it.label }}</span>
                         <sc-if value="{{ it.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--color-accent-800); color: var(--color-accent-100); font-variant-numeric: tabular-nums;">{{ it.badge }}</span></sc-if>
@@ -278,14 +278,14 @@
         <!-- 사용자 정보 · 로그아웃 (메뉴 하단) -->
         <div style="margin-top: auto; position: sticky; bottom: calc(var(--space-4) * -1); z-index: 3; margin-left: calc(var(--space-3) * -1); margin-right: calc(var(--space-3) * -1); margin-bottom: calc(var(--space-4) * -1); padding: var(--space-4) var(--space-3); background: var(--color-surface); border-top: 1px solid var(--color-divider); box-shadow: 0 -6px 12px -6px rgba(0,0,0,0.35); display: flex; flex-direction: column; gap: var(--space-2);">
           <sc-if value="{{ sbFull }}" hint-placeholder-val="{{ true }}">
-            <div title="화면 모드와 강조 색상 (이 기기에 저장)" style="display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0;">
+            <div title="화면 모드와 강조 색상 (이 기기에 저장)" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; row-gap: 6px; min-width: 0;">
               <span role="group" aria-label="화면 모드" style="display: inline-flex; gap: 3px; padding: 3px; border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: inset 0 1px 3px rgba(0,0,0,0.35); flex: none;">
                 <sc-for list="{{ themeOpts }}" as="tm" hint-placeholder-count="2">
-                  <sc-if value="{{ tm.on }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ tm.go }}" aria-pressed="true" aria-label="{{ tm.label }}" title="{{ tm.label }} 모드" style="display: inline-grid; place-items: center; width: 32px; height: 28px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-100); cursor: pointer;"><i class="{{ tm.icon }}" style="font-size: 16px;"></i></button></sc-if>
+                  <sc-if value="{{ tm.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" type="button" sc-camel-on-click="{{ tm.go }}" aria-pressed="true" aria-label="{{ tm.label }}" title="{{ tm.label }} 모드" style="display: inline-grid; place-items: center; width: 32px; height: 28px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-100); cursor: pointer;"><i class="{{ tm.icon }}" style="font-size: 16px;"></i></button></sc-if>
                   <sc-if value="{{ tm.off }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ tm.go }}" aria-pressed="false" aria-label="{{ tm.label }}" title="{{ tm.label }} 모드" style="display: inline-grid; place-items: center; width: 32px; height: 28px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--color-neutral-400); cursor: pointer;"><i class="{{ tm.icon }}" style="font-size: 16px;"></i></button></sc-if>
                 </sc-for>
               </span>
-              <span role="group" aria-label="강조 색상" style="display: inline-flex; align-items: center; gap: 5px; flex: 1; min-width: 0; justify-content: flex-end;">
+              <span role="group" aria-label="강조 색상" style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; flex: 1 1 auto; min-width: 0; justify-content: flex-start;">
                 <sc-for list="{{ accentOpts }}" as="ac" hint-placeholder-count="6">
                   <button type="button" sc-camel-on-click="{{ ac.go }}" title="{{ ac.name }}" aria-label="{{ ac.name }}" aria-pressed="{{ ac.on }}" style="width: 18px; height: 18px; flex: none; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: {{ ac.hex }}; box-shadow: {{ ac.ring }};"></button>
                 </sc-for>
@@ -304,21 +304,18 @@
                 <button sc-camel-on-click="{{ uiScaleUp }}" disabled="{{ uiScaleMaxDis }}" class="btn btn-secondary" aria-label="화면 크게" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-plus" style="font-size: 15px;"></i></button>
               </span>
             </div>
-            <div style="display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-1); min-width: 0;">
-              <span style="width: 34px; height: 34px; flex: none; border-radius: 50%; background: var(--color-accent-800); color: var(--color-accent-300); display: grid; place-items: center; font-size: 13.5px;">{{ userInitial }}</span>
-              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                <span style="font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ userName }}</span>
-                <span style="font-size: 12.5px; color: var(--color-neutral-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ role }}</span>
-              </span>
+            <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+              <span style="width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--color-accent-800); color: var(--color-accent-300); display: grid; place-items: center; font-size: 13.5px;">{{ userInitial }}</span>
+              <span title="{{ userName }} · {{ role }}" style="flex: 1; min-width: 0; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ userName }}</span>
+              <sc-if value="{{ pwcAvail }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ pwcShow }}" class="btn btn-ghost" aria-label="비밀번호 변경" title="비밀번호 변경" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-password" style="font-size: 17px;"></i></button></sc-if>
+              <button type="button" sc-camel-on-click="{{ logout }}" class="btn btn-secondary" aria-label="로그아웃" title="로그아웃" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-sign-out" style="font-size: 17px;"></i><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">로그아웃</span></button>
             </div>
-            <sc-if value="{{ pwcAvail }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ pwcShow }}" class="btn btn-ghost btn-block" style="min-height: 34px; font-size: 13.5px;"><i class="ph ph-password" style="font-size: 15px;"></i> 비밀번호 변경</button></sc-if>
-            <button sc-camel-on-click="{{ logout }}" class="btn btn-secondary btn-block" style="min-height: 38px; font-size: 14px;"><i class="ph ph-sign-out" style="font-size: 16px;"></i> 로그아웃</button>
           </sc-if>
           <sc-if value="{{ sbMini }}" hint-placeholder-val="{{ false }}">
-            <button sc-camel-on-click="{{ uiScaleUp }}" disabled="{{ uiScaleMaxDis }}" class="btn btn-ghost" aria-label="화면 크게" title="화면 크게 · 현재 {{ uiScaleLabel }}" style="min-height: 32px; width: 38px; padding: 0; margin: 0 auto; justify-content: center;"><i class="ph ph-magnifying-glass-plus" style="font-size: 17px;"></i></button>
-            <button sc-camel-on-click="{{ uiScaleDown }}" disabled="{{ uiScaleMinDis }}" class="btn btn-ghost" aria-label="화면 작게" title="화면 작게 · 현재 {{ uiScaleLabel }}" style="min-height: 32px; width: 38px; padding: 0; margin: 0 auto; justify-content: center;"><i class="ph ph-magnifying-glass-minus" style="font-size: 17px;"></i></button>
+            <button sc-camel-on-click="{{ uiScaleUp }}" disabled="{{ uiScaleMaxDis }}" class="btn btn-ghost" aria-label="화면 크게" title="화면 크게 · 현재 {{ uiScaleLabel }}" style="min-height: 32px; width: 38px; padding: 0; margin: 0 auto; justify-content: center;"><i class="ph ph-magnifying-glass-plus" style="font-size: 21px;"></i></button>
+            <button sc-camel-on-click="{{ uiScaleDown }}" disabled="{{ uiScaleMinDis }}" class="btn btn-ghost" aria-label="화면 작게" title="화면 작게 · 현재 {{ uiScaleLabel }}" style="min-height: 32px; width: 38px; padding: 0; margin: 0 auto; justify-content: center;"><i class="ph ph-magnifying-glass-minus" style="font-size: 21px;"></i></button>
             <span title="{{ userName }} · {{ role }}" style="width: 34px; height: 34px; margin: 0 auto; border-radius: 50%; background: var(--color-accent-800); color: var(--color-accent-300); display: grid; place-items: center; font-size: 13.5px;">{{ userInitial }}</span>
-            <button sc-camel-on-click="{{ logout }}" class="btn btn-ghost" aria-label="로그아웃" title="로그아웃" style="min-height: 38px; width: 38px; padding: 0; margin: 0 auto; justify-content: center;"><i class="ph ph-sign-out" style="font-size: 18px;"></i></button>
+            <button sc-camel-on-click="{{ logout }}" class="btn btn-ghost" aria-label="로그아웃" title="로그아웃" style="min-height: 38px; width: 38px; padding: 0; margin: 0 auto; justify-content: center;"><i class="ph ph-sign-out" style="font-size: 22px;"></i></button>
           </sc-if>
         </div>
       </aside>
@@ -371,8 +368,8 @@
               </span>
             </div>
             <sc-if value="{{ emrDupHas }}" hint-placeholder-val="{{ false }}">
-              <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 6px 8px 6px 12px; border-radius: 8px; background: oklch(0.26 0.05 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
-                <i class="ph-fill ph-warning-circle" style="font-size: 17px; color: oklch(0.82 0.13 25);"></i>
+              <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 6px 8px 6px 12px; border-radius: 8px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.26) calc(0.05 * var(--lc,1)) 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
+                <i class="ph-fill ph-warning-circle" style="font-size: 17px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.13 25);"></i>
                 <span style="flex: 1 1 260px; min-width: 0; font-size: 13.5px; line-height: 1.5;">{{ emrDupText }}</span>
                 <button sc-camel-on-click="{{ askMergeDups }}" class="btn btn-primary" style="flex: none; min-height: 30px; font-size: 13px; white-space: nowrap;"><i class="ph ph-git-merge"></i> 중복 정리</button>
               </div>
@@ -504,7 +501,7 @@
                 </sc-raw-select>
                 <span role="group" aria-label="보기 방식" style="display: inline-flex; gap: 2px; padding: 3px; border-radius: 8px; background: var(--color-neutral-900);">
                   <sc-for list="{{ viewModes }}" as="vm" hint-placeholder-count="2">
-                    <sc-if value="{{ vm.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ vm.go }}" aria-pressed="true" title="{{ vm.label }}" aria-label="{{ vm.label }}" style="width: 30px; height: 28px; border: 0; border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-200); box-shadow: inset 0 0 0 1px var(--color-accent); cursor: pointer; display: grid; place-items: center;"><i class="{{ vm.icon }}" style="font-size: 15px;"></i></button></sc-if>
+                    <sc-if value="{{ vm.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ vm.go }}" aria-pressed="true" title="{{ vm.label }}" aria-label="{{ vm.label }}" style="width: 30px; height: 28px; border: 0; border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-200); box-shadow: inset 0 0 0 1px var(--color-accent); cursor: pointer; display: grid; place-items: center;"><i class="{{ vm.icon }}" style="font-size: 15px;"></i></button></sc-if>
                     <sc-if value="{{ vm.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ vm.go }}" aria-pressed="false" title="{{ vm.label }}" aria-label="{{ vm.label }}" style="width: 30px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--color-neutral-400); cursor: pointer; display: grid; place-items: center;" style-hover="color: var(--color-text);"><i class="{{ vm.icon }}" style="font-size: 15px;"></i></button></sc-if>
                   </sc-for>
                 </span>
@@ -912,7 +909,7 @@
               <div style="order: 9; display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
                 <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                   <button sc-camel-on-click="{{ askRevoke }}" class="btn btn-ghost" style="flex: 1 1 120px; min-height: 40px; justify-content: center; font-size: 13.5px;"><i class="ph ph-arrow-u-up-left"></i> 동의 철회</button>
-                  <sc-if value="{{ canDeletePatient }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ askDeletePatient }}" class="btn btn-ghost" style="flex: 1 1 120px; min-height: 40px; justify-content: center; font-size: 13.5px; color: oklch(0.82 0.10 25);"><i class="ph ph-trash"></i> 환자 정보 삭제</button></sc-if>
+                  <sc-if value="{{ canDeletePatient }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ askDeletePatient }}" class="btn btn-ghost" style="flex: 1 1 120px; min-height: 40px; justify-content: center; font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.10 25);"><i class="ph ph-trash"></i> 환자 정보 삭제</button></sc-if>
                 </div>
                 <sc-if value="{{ canDeletePatient }}" hint-placeholder-val="{{ false }}"><div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.6;">삭제하면 명부·증명사진·안면인식 등록이 지워집니다. 지난 출석 기록은 통계 보존을 위해 이름만 남습니다.</div></sc-if>
               </div>
@@ -1108,10 +1105,10 @@
                       <button sc-camel-on-click="{{ editIdPhoto }}" class="btn btn-secondary" style="margin-left: auto; min-height: 34px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-pencil-simple-line"></i> 편집 (자르기)</button>
                       <button sc-camel-on-click="{{ openFaceCrop }}" class="btn btn-ghost" style="font-size: 13.5px; color: var(--color-neutral-500);"><i class="ph ph-crop"></i> 단체 사진에서 오리기</button>
                       <button sc-camel-on-click="{{ resetUpload }}" class="btn btn-ghost" style="font-size: 13.5px; color: var(--color-neutral-500);">다시 선택</button>
-                      <button sc-camel-on-click="{{ askDeleteIdPhoto }}" class="btn btn-ghost" style="font-size: 13.5px; color: oklch(0.78 0.12 25);"><i class="ph ph-trash"></i> 사진 삭제</button>
+                      <button sc-camel-on-click="{{ askDeleteIdPhoto }}" class="btn btn-ghost" style="font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.12 25);"><i class="ph ph-trash"></i> 사진 삭제</button>
                     </div>
                     <sc-if value="{{ idFaceMulti }}" hint-placeholder-val="{{ false }}">
-                      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin: 0 var(--space-6) var(--space-4); padding: 8px 12px; border-radius: 8px; background: oklch(0.28 0.06 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 13.5px; color: oklch(0.92 0.06 70);">
+                      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin: 0 var(--space-6) var(--space-4); padding: 8px 12px; border-radius: 8px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.28) calc(0.06 * var(--lc,1)) 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.06 70);">
                         <i class="ph-fill ph-warning" style="font-size: 17px;"></i>
                         <span style="flex: 1 1 220px;">사진에 다른 사람이 함께 있습니다. 본인 얼굴만 남기면 AI 판독이 정확해집니다.</span>
                         <button sc-camel-on-click="{{ editIdPhotoMain }}" class="btn btn-primary" style="min-height: 32px; font-size: 13px; white-space: nowrap;"><i class="ph ph-crop"></i> 가장 큰 얼굴만 자르기</button>
@@ -1149,9 +1146,9 @@
             <!-- 1줄: 제목 · 안내(?) · 환자 불러오기 · 접기 -->
             <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
             <button sc-camel-on-click="{{ toggleCpPend }}" title="목록 접기/펼치기" style="display: flex; align-items: center; gap: 6px; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left; white-space: nowrap;">
-              <i class="ph ph-warning-circle" style="font-size: 18px; color: oklch(0.70 0.17 25);"></i>
+              <i class="ph ph-warning-circle" style="font-size: 18px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25);"></i>
               <span style="font-size: 15.5px;">동의 미완료</span>
-              <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: oklch(0.70 0.17 25);">{{ cpPendCount }}명</span>
+              <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25);">{{ cpPendCount }}명</span>
             </button>
             <span tabindex="0" title="재원 환자 중 모바일 동의 또는 서면 동의서 파일이 없거나, 동의 항목이 완료되지 않은 환자" aria-label="동의 미완료 기준 설명" style="width: 20px; height: 20px; border-radius: 50%; background: var(--color-neutral-800); color: var(--color-neutral-300); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; cursor: help; flex: none;"><i class="ph ph-question"></i></span>
             <button sc-camel-on-click="{{ toggleCpPend }}" aria-label="목록 접기/펼치기" class="btn btn-ghost" style="margin-left: auto; min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;">
@@ -1164,7 +1161,7 @@
               <sc-if value="{{ cpPendOpen }}" hint-placeholder-val="{{ true }}">
                 <span role="group" aria-label="동의 미완료 필터" style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; padding: 3px; border-radius: 999px; background: var(--color-neutral-900); box-shadow: inset 0 0 0 1px var(--color-neutral-800);">
                 <sc-for list="{{ cpPendFilters }}" as="f" hint-placeholder-count="4">
-                  <sc-if value="{{ f.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ f.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 13.5px; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.35); white-space: nowrap;">{{ f.label }} <span style="font-variant-numeric: tabular-nums; color: var(--color-accent-300);">{{ f.n }}</span></button></sc-if>
+                  <sc-if value="{{ f.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ f.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 13.5px; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.35); white-space: nowrap;">{{ f.label }} <span style="font-variant-numeric: tabular-nums; color: var(--color-accent-300);">{{ f.n }}</span></button></sc-if>
                   <sc-if value="{{ f.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ f.go }}" aria-pressed="false" class="btn btn-secondary" style="min-height: 32px; padding: 0 11px; border-radius: 999px; font-size: 13.5px; white-space: nowrap;">{{ f.label }} <span style="font-variant-numeric: tabular-nums; color: var(--color-neutral-500);">{{ f.n }}</span></button></sc-if>
                 </sc-for>
                 </span>
@@ -1225,7 +1222,7 @@
           </div>
           <sc-if value="{{ cpWide }}" hint-placeholder-val="{{ false }}">
             <div role="separator" aria-orientation="vertical" aria-label="목록과 등록 칸 너비 조절" tabindex="0" sc-camel-on-mouse-down="{{ cpSplitDown }}" sc-camel-on-key-down="{{ cpSplitKey }}" sc-camel-on-double-click="{{ cpSplitReset }}" title="끌어서 너비 조절 · 두 번 누르면 원래대로" style="position: sticky; top: 60px; align-self: start; height: calc(100vh - 72px); width: 18px; cursor: col-resize; display: flex; align-items: center; justify-content: center;" style-hover="background: color-mix(in oklch, var(--color-accent) 10%, transparent); border-radius: 6px;">
-              <span style="width: 4px; height: 56px; border-radius: 2px; background: var(--color-neutral-600); box-shadow: 0 0 0 1px var(--color-neutral-800);"></span>
+              <i class="ph ph-dots-six-vertical" aria-hidden="true" style="font-size: 14px; color: var(--color-neutral-500); opacity: 0.55; pointer-events: none;"></i>
             </div>
           </sc-if>
           <div style="min-width: 0; position: {{ cpRightPos }}; top: 60px; max-height: {{ cpRightMaxH }}; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-6); padding-right: 2px;">
@@ -1419,7 +1416,7 @@
                     <span style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px var(--space-3);">
                       <span style="font-size: 19px; white-space: nowrap;">{{ l.program }}</span>
                       <sc-for list="{{ l.badges }}" as="b" hint-placeholder-count="3">
-                        <span style="display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid {{ b.bd }}; background: {{ b.bg }}; color: {{ b.fg }}; font-size: 12.5px; white-space: nowrap; box-shadow: 0 1px 0 rgba(0,0,0,0.3);"><i class="{{ b.icon }}" style="font-size: 14px;"></i>{{ b.label }}</span>
+                        <span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 4px; border-radius: 999px; border: 1px solid {{ b.bd }}; background: {{ b.bg }}; color: {{ b.fg }}; font-size: 12.5px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);"><span style="width: 18px; height: 18px; flex: none; border-radius: 50%; display: grid; place-items: center; background: {{ b.dot }};"><i class="{{ b.icon }}" style="font-size: 11px;"></i></span>{{ b.label }}</span>
                       </sc-for>
                     </span>
                     <span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ l.meta }}</span>
@@ -1486,7 +1483,7 @@
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--color-accent-800);"></span>예정</span>
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--color-neutral-700);"></span>완료</span>
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--color-neutral-600);"></span>취소</span>
-                  <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(0.36 0.10 25); color: oklch(0.90 0.06 25);">미작성</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(0.38 0.08 80); color: oklch(0.92 0.07 85);">검수</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(0.36 0.07 150); color: oklch(0.90 0.07 150);">확정</span>일지 상태</span>
+                  <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.10 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.06 25);">미작성</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.38) calc(0.08 * var(--lc,1)) 80); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.07 85);">검수</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.07 * var(--lc,1)) 150); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.07 150);">확정</span>일지 상태</span>
                   <span style="margin-left: auto;">날짜 클릭 → 그날 일정 · 더블클릭 → 바로 등록</span>
                 </div>
                </div>
@@ -1513,7 +1510,7 @@
                     <sc-if value="{{ plDayMode }}" hint-placeholder-val="{{ false }}">
                       <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex-wrap: wrap;">
                         <button sc-camel-on-click="{{ plDayPrev }}" class="btn btn-secondary" aria-label="전날" style="min-height: 36px; width: 36px; padding: 0; justify-content: center;"><i class="ph ph-caret-left"></i></button>
-                        <span style="min-width: 128px; text-align: center; display: flex; flex-direction: column; line-height: 1.25;"><span style="font-size: 17px; color: {{ plDayColor }}; white-space: nowrap;">{{ plDayLabel }}</span><sc-if value="{{ plDayHasHoli }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; color: oklch(0.85 0.08 25);">{{ plDayHoli }}</span></sc-if></span>
+                        <span style="min-width: 128px; text-align: center; display: flex; flex-direction: column; line-height: 1.25;"><span style="font-size: 17px; color: {{ plDayColor }}; white-space: nowrap;">{{ plDayLabel }}</span><sc-if value="{{ plDayHasHoli }}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.08 25);">{{ plDayHoli }}</span></sc-if></span>
                         <button sc-camel-on-click="{{ plDayNext }}" class="btn btn-secondary" aria-label="다음날" style="min-height: 36px; width: 36px; padding: 0; justify-content: center;"><i class="ph ph-caret-right"></i></button>
                         <button sc-camel-on-click="{{ plDayToday }}" disabled="{{ plDayIsToday }}" class="btn btn-ghost" style="min-height: 36px; font-size: 13.5px; white-space: nowrap;">오늘</button>
                       </span>
@@ -1707,13 +1704,13 @@
             <div style="display: flex; flex-direction: column; gap: var(--space-6);">
               <sc-if value="{{ alMissingHas }}" hint-placeholder-val="{{ false }}">
                 <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; background: var(--color-surface); box-shadow: inset 0 0 0 1px oklch(0.55 0.13 30);">
-                  <i class="ph ph-image-broken" style="font-size: 19px; color: oklch(0.78 0.13 30);"></i>
+                  <i class="ph ph-image-broken" style="font-size: 19px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.13 30);"></i>
                   <span style="font-size: 14px; flex: 1 1 260px;">{{ alMissingMsg }}</span>
                   <button sc-camel-on-click="{{ alMissingFix }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-broom"></i> 목록에서 빼기</button>
                 </div>
               </sc-if>
               <sc-if value="{{ alSrvSlow }}" hint-placeholder-val="{{ false }}">
-                <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; background: oklch(0.28 0.06 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 14px; color: oklch(0.92 0.06 70);">
+                <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.28) calc(0.06 * var(--lc,1)) 60); box-shadow: inset 0 0 0 1px oklch(0.50 0.10 60); font-size: 14px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.06 70);">
                   <i class="ph-fill ph-cloud-warning" style="font-size: 19px;"></i>
                   <span style="flex: 1 1 280px; line-height: 1.55;">{{ alSrvMsg }}</span>
                   <button sc-camel-on-click="{{ alSrvRetry }}" class="btn btn-secondary" style="min-height: 32px; font-size: 13px; white-space: nowrap;"><i class="ph ph-arrows-clockwise"></i> 다시 시도</button>
@@ -1741,7 +1738,7 @@
                 <sc-if value="{{ plHasOrphans }}" hint-placeholder-val="{{ false }}">
                   <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
                     <span style="flex: 1 1 360px; font-size: 13.5px; color: var(--color-neutral-300); line-height: 1.6;">아래 사진은 서버에 저장돼 있지만 <b>어느 일지에도 연결되어 있지 않습니다.</b> 필요한 사진은 일지를 골라 [연결]하고, 지운 사진이면 [영구 삭제]하세요.</span>
-                    <button sc-camel-on-click="{{ plDelAll }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px; white-space: nowrap; color: oklch(0.82 0.10 25);"><i class="ph ph-trash"></i> 연결 끊긴 사진 {{ plOrphanN }}장 모두 영구 삭제</button>
+                    <button sc-camel-on-click="{{ plDelAll }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px; white-space: nowrap; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.10 25);"><i class="ph ph-trash"></i> 연결 끊긴 사진 {{ plOrphanN }}장 모두 영구 삭제</button>
                   </div>
                   <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-3);">
                     <sc-for list="{{ plOrphanRows }}" as="o" hint-placeholder-count="3">
@@ -1754,7 +1751,7 @@
                         </sc-raw-select>
                         <span style="display: flex; gap: var(--space-2);">
                           <button sc-camel-on-click="{{ o.attach }}" class="btn btn-primary" style="flex: 1; min-height: 36px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-link"></i> 연결</button>
-                          <button sc-camel-on-click="{{ o.del }}" class="btn btn-secondary" style="flex: 1; min-height: 36px; font-size: 13.5px; white-space: nowrap; color: oklch(0.82 0.10 25);"><i class="ph ph-trash"></i> 영구 삭제</button>
+                          <button sc-camel-on-click="{{ o.del }}" class="btn btn-secondary" style="flex: 1; min-height: 36px; font-size: 13.5px; white-space: nowrap; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.10 25);"><i class="ph ph-trash"></i> 영구 삭제</button>
                         </span>
                       </div>
                     </sc-for>
@@ -1840,7 +1837,7 @@
                   <sc-if value="{{ alOnly }}" hint-placeholder-val="{{ false }}">
                     <span role="group" aria-label="사진 크기" style="display: inline-flex; gap: 3px; padding: 3px; border-radius: 8px; background: var(--color-neutral-900);">
                       <sc-for list="{{ alOnlySizes }}" as="z" hint-placeholder-count="3">
-                        <sc-if value="{{ z.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ z.go }}" aria-pressed="true" style="min-height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap;">{{ z.label }}</button></sc-if>
+                        <sc-if value="{{ z.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ z.go }}" aria-pressed="true" style="min-height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap;">{{ z.label }}</button></sc-if>
                         <sc-if value="{{ z.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ z.go }}" aria-pressed="false" style="min-height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--color-neutral-400); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap;" style-hover="color: var(--color-text); background: var(--color-neutral-800);">{{ z.label }}</button></sc-if>
                       </sc-for>
                     </span>
@@ -1879,13 +1876,13 @@
                     <span style="margin-left: auto; display: inline-flex; gap: var(--space-2); flex-wrap: wrap;">
                       <span role="group" aria-label="묶는 기준" style="display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--color-neutral-900);">
                         <sc-for list="{{ alModes }}" as="m" hint-placeholder-count="2">
-                          <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
+                          <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                           <sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="false" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--color-neutral-400); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;" style-hover="color: var(--color-text);"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                         </sc-for>
                       </span>
                       <span role="group" aria-label="보기 방식" style="display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--color-neutral-900);">
                         <sc-for list="{{ alLayouts }}" as="m" hint-placeholder-count="2">
-                          <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
+                          <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                           <sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="false" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--color-neutral-400); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;" style-hover="color: var(--color-text);"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                         </sc-for>
                       </span>
@@ -1918,7 +1915,7 @@
                 <div style="position: sticky; top: var(--space-4); display: {{ alTreeDisp }}; flex-direction: column; gap: 2px; padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); max-height: calc(100vh - 120px); overflow-y: auto;">
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; margin-bottom: var(--space-2); border-radius: 8px; background: var(--color-neutral-900);">
                     <sc-for list="{{ alModes }}" as="m" hint-placeholder-count="2">
-                      <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
+                      <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                       <sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="false" style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--color-neutral-400); font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap;" style-hover="color: var(--color-text); background: var(--color-neutral-800);"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                     </sc-for>
                   </div>
@@ -1944,7 +1941,7 @@
                       <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 0 1 auto;"><span style="font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ alCurTitle }}</span><span style="font-size: 12.5px; color: var(--color-neutral-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ alCurMeta }}</span></span>
                       <span role="group" aria-label="보기" style="display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 8px; background: var(--color-neutral-900); flex: none;">
                         <sc-for list="{{ alLayouts }}" as="m" hint-placeholder-count="2">
-                          <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="true" title="{{ m.label }}" aria-label="{{ m.label }}" style="width: 32px; height: 30px; display: grid; place-items: center; border-radius: 6px; border: 0; background: var(--color-accent-900); box-shadow: inset 0 0 0 1px var(--color-accent); color: var(--color-accent-200); cursor: pointer;"><i class="{{ m.icon }}" style="font-size: 16px;"></i></button></sc-if>
+                          <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ m.go }}" aria-pressed="true" title="{{ m.label }}" aria-label="{{ m.label }}" style="width: 32px; height: 30px; display: grid; place-items: center; border-radius: 6px; border: 0; background: var(--color-accent-900); box-shadow: inset 0 0 0 1px var(--color-accent); color: var(--color-accent-200); cursor: pointer;"><i class="{{ m.icon }}" style="font-size: 16px;"></i></button></sc-if>
                           <sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="false" title="{{ m.label }}" aria-label="{{ m.label }}" style="width: 32px; height: 30px; display: grid; place-items: center; border-radius: 6px; border: 0; background: transparent; color: var(--color-neutral-400); cursor: pointer;" style-hover="color: var(--color-text); background: var(--color-neutral-800);"><i class="{{ m.icon }}" style="font-size: 16px;"></i></button></sc-if>
                         </sc-for>
                         <span style="width: 1px; height: 20px; margin: 0 3px; background: var(--color-neutral-700);"></span>
@@ -1980,13 +1977,13 @@
                       <span style="margin-left: auto; display: inline-flex; gap: var(--space-2); flex-wrap: wrap;">
                         <span role="group" aria-label="사진 크기" style="display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--color-neutral-900);">
                           <sc-for list="{{ alTileSizes }}" as="z" hint-placeholder-count="3">
-                            <sc-if value="{{ z.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ z.go }}" aria-pressed="true" style="min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;">{{ z.label }}</button></sc-if>
+                            <sc-if value="{{ z.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ z.go }}" aria-pressed="true" style="min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;">{{ z.label }}</button></sc-if>
                             <sc-if value="{{ z.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ z.go }}" aria-pressed="false" style="min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--color-neutral-400); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;" style-hover="color: var(--color-text);">{{ z.label }}</button></sc-if>
                           </sc-for>
                         </span>
                         <span role="group" aria-label="보기 방식" style="display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--color-neutral-900);">
                           <sc-for list="{{ alLayouts }}" as="m" hint-placeholder-count="2">
-                            <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
+                            <sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ m.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-200); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                             <sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ m.go }}" aria-pressed="false" style="display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--color-neutral-400); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;" style-hover="color: var(--color-text);"><i class="{{ m.icon }}"></i>{{ m.label }}</button></sc-if>
                           </sc-for>
                         </span>
@@ -2427,9 +2424,9 @@
               </div>
               <!-- 사진 불일치 점검: 이 일지에 없는 사진에서 나온 인식 결과 -->
               <sc-if value="{{ strayHas }}" hint-placeholder-val="{{ false }}">
-                <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(0.28 0.08 25); box-shadow: 0 0 0 1px oklch(0.60 0.16 25), 0 4px 12px rgba(0,0,0,0.3);">
-                  <span style="display: flex; align-items: center; gap: var(--space-3);"><i class="ph-fill ph-link-break" style="font-size: 24px; color: oklch(0.85 0.12 25);"></i><b style="font-size: 16px; color: oklch(0.95 0.04 25);">사진과 맞지 않는 인식 결과 {{ strayN }}명</b></span>
-                  <span style="font-size: 13.5px; line-height: 1.6; color: oklch(0.90 0.04 25);">{{ strayText }}</span>
+                <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.28) calc(0.08 * var(--lc,1)) 25); box-shadow: 0 0 0 1px oklch(0.60 0.16 25), 0 4px 12px rgba(0,0,0,0.3);">
+                  <span style="display: flex; align-items: center; gap: var(--space-3);"><i class="ph-fill ph-link-break" style="font-size: 24px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.12 25);"></i><b style="font-size: 16px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.04 25);">사진과 맞지 않는 인식 결과 {{ strayN }}명</b></span>
+                  <span style="font-size: 13.5px; line-height: 1.6; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.04 25);">{{ strayText }}</span>
                   <span style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                     <button sc-camel-on-click="{{ strayClear }}" class="btn btn-secondary" style="min-height: 36px; font-size: 13.5px;"><i class="ph ph-broom"></i> 맞지 않는 결과 {{ strayN }}명 비우기</button>
                     <sc-if value="{{ strayHasOwner }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ strayGoOwner }}" class="btn btn-ghost" style="min-height: 36px; font-size: 13.5px;"><i class="ph ph-arrow-square-out"></i> 사진이 있는 일지 열기 ({{ strayOwner }})</button></sc-if>
@@ -2437,11 +2434,11 @@
                 </div>
               </sc-if>
               <sc-if value="{{ hasUnknownAlert }}" hint-placeholder-val="{{ false }}">
-                <div role="alert" style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(0.30 0.07 60); box-shadow: 0 0 0 1px oklch(0.62 0.13 70), 0 4px 12px rgba(0,0,0,0.3);">
-                  <i class="ph-fill ph-warning-circle" style="font-size: 26px; color: oklch(0.86 0.14 80);"></i>
+                <div role="alert" style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.07 * var(--lc,1)) 60); box-shadow: 0 0 0 1px oklch(0.62 0.13 70), 0 4px 12px rgba(0,0,0,0.3);">
+                  <i class="ph-fill ph-warning-circle" style="font-size: 26px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.14 80);"></i>
                   <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px;">
-                    <span style="font-size: 16px; color: oklch(0.95 0.04 80);">미확인 환자가 발견되었습니다 — {{ unknownAlertCount }}명</span>
-                    <span style="font-size: 13.5px; color: oklch(0.86 0.05 80);">{{ unknownAlertSub }}</span>
+                    <span style="font-size: 16px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.04 80);">미확인 환자가 발견되었습니다 — {{ unknownAlertCount }}명</span>
+                    <span style="font-size: 13.5px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.05 80);">{{ unknownAlertSub }}</span>
                   </span>
                   <span style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                     <button sc-camel-on-click="{{ assignFirstUnknown }}" class="btn btn-primary" style="min-height: 40px; white-space: nowrap;"><i class="ph ph-user-focus"></i> 첫 미확인 환자 지정</button>
@@ -2456,7 +2453,7 @@
                     <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
                       <span style="font-size: 16px;">{{ r.name }} <span style="font-size: 13.5px; color: var(--color-neutral-500); white-space: nowrap;">{{ r.room }}</span></span>
                       <span style="font-size: 13px; color: var(--color-neutral-600);">{{ r.method }}</span>
-                      <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(0.32 0.08 25); color: oklch(0.88 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 28px; padding: 0 10px; font-size: 12.5px;">중복 제외</button></span></sc-if>
+                      <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.08 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.88) 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 28px; padding: 0 10px; font-size: 12.5px;">중복 제외</button></span></sc-if>
                     </span>
                     <sc-if value="{{ r.low }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if>
                     <span style="display: flex; align-items: center; gap: var(--space-2);"><sc-if value="{{ r.high }}" hint-placeholder-val="{{ true }}"><span class="tag tag-neutral" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if><sc-if value="{{ r.isUnknown }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-primary" style="min-height: 38px; font-size: 14px; white-space: nowrap;"><i class="ph ph-user-focus"></i> 환자 지정</button></sc-if><sc-if value="{{ r.isKnown }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-secondary" aria-label="환자 변경" title="환자 변경 — 사진과 환자가 다르면 바른 환자로 바꾸기" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-arrows-left-right" style="font-size: 16px;"></i></button></sc-if></span>
@@ -2610,7 +2607,7 @@
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2);">
                       <sc-for list="{{ p.kpis }}" as="k" hint-placeholder-count="3">
-                        <div style="padding: 8px 10px; border-radius: 8px; background: rgba(22,24,38,0.55); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
+                        <div style="padding: 8px 10px; border-radius: 8px; background: var(--tile-bg, rgba(22,24,38,0.55)); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
                           <div style="font-size: 12px; color: var(--color-neutral-400); white-space: nowrap;">{{ k.label }}</div>
                           <div style="font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2;">{{ k.v }}<span style="font-size: 12px; color: var(--color-neutral-500);"> {{ k.u }}</span></div>
                         </div>
@@ -2618,7 +2615,7 @@
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                       <div style="display: flex; justify-content: space-between; gap: var(--space-2); font-size: 12.5px; color: var(--color-neutral-400);"><span>{{ p.rateLabel }}</span><span style="color: {{ p.color }}; font-variant-numeric: tabular-nums;">{{ p.fillTxt }}</span></div>
-                      <div style="height: 10px; border-radius: 5px; background: rgba(22,24,38,0.7); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
+                      <div style="height: 10px; border-radius: 5px; background: var(--tile-bg, rgba(22,24,38,0.7)); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
                       <div style="font-size: 12px; color: var(--color-neutral-500);">{{ p.capTxt }}</div>
                     </div>
                   </div>
@@ -2745,7 +2742,7 @@
                       </div>
                       <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2);">
                         <sc-for list="{{ p.kpis }}" as="k" hint-placeholder-count="3">
-                          <div style="padding: 8px 10px; border-radius: 8px; background: rgba(22,24,38,0.55); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
+                          <div style="padding: 8px 10px; border-radius: 8px; background: var(--tile-bg, rgba(22,24,38,0.55)); box-shadow: inset 0 0 0 1px rgba(233,233,237,0.06); min-width: 0;">
                             <div style="font-size: 12px; color: var(--color-neutral-400); white-space: nowrap;">{{ k.label }}</div>
                             <div style="font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2;">{{ k.v }}<span style="font-size: 12px; color: var(--color-neutral-500);"> {{ k.u }}</span></div>
                           </div>
@@ -2753,7 +2750,7 @@
                       </div>
                       <div style="display: flex; flex-direction: column; gap: 6px;">
                         <div style="display: flex; justify-content: space-between; gap: var(--space-2); font-size: 12.5px; color: var(--color-neutral-400);"><span>정원 대비 참여율</span><span style="color: {{ p.color }}; font-variant-numeric: tabular-nums;">{{ p.fillTxt }}</span></div>
-                        <div style="height: 10px; border-radius: 5px; background: rgba(22,24,38,0.7); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
+                        <div style="height: 10px; border-radius: 5px; background: var(--tile-bg, rgba(22,24,38,0.7)); box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);"><div style="width: {{ p.fillW }}; height: 100%; border-radius: 5px; background: {{ p.color }}; box-shadow: 0 0 10px {{ p.color }}; transition: width 500ms ease;"></div></div>
                         <div style="font-size: 12px; color: var(--color-neutral-500);">{{ p.capTxt }}</div>
                       </div>
                     </div>
@@ -3185,6 +3182,28 @@
               </div>
             </sc-if>
 
+            <sc-if value="{{ setPrivacyTab }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-5, 16px); max-width: 860px;">
+                <div style="font-size: 14px; color: var(--color-neutral-400); line-height: 1.7;">환자 이름과 등록번호를 화면에서 일부 가립니다. 화면에 보이는 모양만 바뀌며, 검색·저장·서버 데이터와 환자 정보 수정 화면은 원래 값 그대로입니다. 이 설정은 이 기관의 모든 직원 화면에 적용됩니다.</div>
+              <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                <div style="display: flex; align-items: center; gap: var(--space-3);"><span style="font-size: 17px;">환자 이름</span><span class="tag tag-outline" style="font-size: 12px;">{{ privNameState }}</span></div>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);"><sc-for list="{{ privNameOpts }}" as="o" hint-placeholder-count="3"><sc-if value="{{ o.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" type="button" sc-camel-on-click="{{ o.go }}" aria-pressed="true" style="min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14px; cursor: pointer;"><i class="ph ph-check-circle"></i> {{ o.label }}</button></sc-if><sc-if value="{{ o.off }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ o.go }}" aria-pressed="false" style="min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-300); font: inherit; font-size: 14px; cursor: pointer;">{{ o.label }}</button></sc-if></sc-for></div>
+                <div class="field" style="max-width: 420px;"><label>직접 지정 <span style="font-size: 12px; color: var(--color-neutral-500);">(# = 보임 · * = 가림)</span></label>
+                  <input class="input" value="{{ privNamePat }}" sc-camel-on-change="{{ onPrivNamePat }}" aria-label="환자 이름 가리기 패턴" placeholder="#*#" autocomplete="off" style="min-height: 44px; font-family: ui-monospace, monospace; letter-spacing: 0.12em;"></div>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--space-3);"><span style="font-size: 12.5px; color: var(--color-neutral-500); align-self: center;">미리 보기</span>
+                  <sc-for list="{{ privNameSamples }}" as="x" hint-placeholder-count="2"><span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; background: var(--color-neutral-900); font-variant-numeric: tabular-nums;"><span style="color: var(--color-neutral-500);">{{ x.from }}</span><i class="ph ph-arrow-right" style="color: var(--color-neutral-600);"></i><b style="font-weight: 600;">{{ x.to }}</b></span></sc-for></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                <div style="display: flex; align-items: center; gap: var(--space-3);"><span style="font-size: 17px;">등록번호</span><span class="tag tag-outline" style="font-size: 12px;">{{ privRegState }}</span></div>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);"><sc-for list="{{ privRegOpts }}" as="o" hint-placeholder-count="3"><sc-if value="{{ o.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" type="button" sc-camel-on-click="{{ o.go }}" aria-pressed="true" style="min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14px; cursor: pointer;"><i class="ph ph-check-circle"></i> {{ o.label }}</button></sc-if><sc-if value="{{ o.off }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ o.go }}" aria-pressed="false" style="min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-300); font: inherit; font-size: 14px; cursor: pointer;">{{ o.label }}</button></sc-if></sc-for></div>
+                <div class="field" style="max-width: 420px;"><label>직접 지정 <span style="font-size: 12px; color: var(--color-neutral-500);">(# = 보임 · * = 가림, 예: #####*)</span></label>
+                  <input class="input" value="{{ privRegPat }}" sc-camel-on-change="{{ onPrivRegPat }}" aria-label="등록번호 가리기 패턴" placeholder="#*#" autocomplete="off" style="min-height: 44px; font-family: ui-monospace, monospace; letter-spacing: 0.12em;"></div>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--space-3);"><span style="font-size: 12.5px; color: var(--color-neutral-500); align-self: center;">미리 보기</span>
+                  <sc-for list="{{ privRegSamples }}" as="x" hint-placeholder-count="2"><span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; background: var(--color-neutral-900); font-variant-numeric: tabular-nums;"><span style="color: var(--color-neutral-500);">{{ x.from }}</span><i class="ph ph-arrow-right" style="color: var(--color-neutral-600);"></i><b style="font-weight: 600;">{{ x.to }}</b></span></sc-for></div>
+              </div>
+                <div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.7;">패턴은 첫 글자부터 차례로 적용되고, 글자 수가 패턴보다 길면 마지막 기호를 이어서 씁니다. 예) 이름 <b>#*#</b> → 김명순A는 김*순A, 송인재는 송*재 · 등록번호 <b>#####*</b> → 00010617은 00010***</div>
+              </div>
+            </sc-if>
             <sc-if value="{{ setNotifyTab }}" hint-placeholder-val="{{ false }}">
               <div style="display: flex; flex-direction: column; gap: var(--space-6); max-width: 900px;">
                 <div style="display: flex; flex-direction: column; gap: var(--space-2);">
@@ -3228,13 +3247,37 @@
                   <div style="font-size: 13px; color: var(--color-neutral-500); line-height: 1.7;">받는 사람: 일정 담당자 중 [계정 목록]에서 Gmail이 입력되고 <b style="font-weight: 500; color: var(--color-neutral-300);">수신</b>이 켜진 활성 계정 {{ ntRecvCount }}명</div>
                 </div>
 
+                <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                  <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;"><span style="font-size: 16px;">알림 발송 서버 계정</span><span class="tag tag-outline" style="font-size: 12px;">읽기 전용 · 계정 목록에는 나오지 않음</span></div>
+                  <div style="font-size: 13.5px; color: var(--color-neutral-400); line-height: 1.7;">Gmail 일정 알림(Google Apps Script)이 서버에서 오늘 일정과 받는 사람을 읽어 가는 전용 계정입니다. 일정·환자 정보를 바꾸거나 화면에 로그인할 수 있는 권한은 없습니다.</div>
+                  <sc-if value="{{ botNone }}" hint-placeholder-val="{{ true }}">
+                    <div><button type="button" sc-camel-on-click="{{ botCreate }}" disabled="{{ botBusy }}" class="btn btn-primary" style="min-height: 44px; font-size: 15px;"><i class="ph ph-plus-circle"></i> {{ botCreateLabel }}</button></div>
+                  </sc-if>
+                  <sc-if value="{{ botExists }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; align-items: center; gap: var(--space-3) var(--space-5, 16px); flex-wrap: wrap; font-size: 14px;">
+                      <span><i class="ph ph-check-circle" style="color: var(--color-accent-400);"></i> 등록됨</span>
+                      <span style="color: var(--color-neutral-400);">사번(SB_ID) <b style="font-weight: 600; color: var(--color-text); font-family: ui-monospace, monospace;">{{ botEmp }}</b></span>
+                      <span style="color: var(--color-neutral-500);">최근 접속 {{ botLast }}</span>
+                      <span style="margin-left: auto; display: inline-flex; gap: var(--space-2);">
+                        <button type="button" sc-camel-on-click="{{ botReset }}" disabled="{{ botBusy }}" class="btn btn-secondary" style="min-height: 38px; font-size: 13.5px;"><i class="ph ph-key"></i> 비밀번호 다시 만들기</button>
+                        <button type="button" sc-camel-on-click="{{ botDelete }}" class="btn btn-ghost" style="min-height: 38px; font-size: 13.5px; color: var(--cal-red);"><i class="ph ph-trash"></i> 삭제</button>
+                      </span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ botHasPw }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: 0 0 0 1px var(--color-accent-700);">
+                      <div style="font-size: 13px; color: var(--color-neutral-400);">Apps Script 의 스크립트 속성에 넣을 비밀번호 <b style="font-weight: 500; color: var(--cal-red);">(이 화면에서만 한 번 보입니다 · 다른 곳에 적어 두지 마세요)</b></div>
+                      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;"><code style="font-family: ui-monospace, monospace; font-size: 18px; letter-spacing: 0.06em; user-select: all;">{{ botPw }}</code><button type="button" sc-camel-on-click="{{ botCopy }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px;"><i class="ph ph-copy"></i> 복사</button></div>
+                    </div>
+                  </sc-if>
+                </div>
                 <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-accent-800);">
                   <div style="font-size: 16px;">자동 발송 설정 (처음 한 번, 약 3분)</div>
                   <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: var(--space-2); font-size: 14px; line-height: 1.7; color: var(--color-neutral-300);">
                     <li>알림을 보낼 기관 Gmail 계정으로 로그인한 뒤 <a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com 새 프로젝트</a>를 엽니다.</li>
                     <li>아래 <b style="font-weight: 500; color: var(--color-text);">[스크립트 복사]</b>를 눌러, 편집기의 기존 내용을 지우고 붙여넣은 뒤 저장(Ctrl+S)합니다.</li>
                     <sc-if value="{{ ntStaffMode }}" hint-placeholder-val="{{ false }}">
-                    <li>왼쪽 <b style="font-weight: 500; color: var(--color-text);">프로젝트 설정(⚙)</b> › 맨 아래 <b style="font-weight: 500; color: var(--color-text);">스크립트 속성</b>에 <code style="font-family: ui-monospace, monospace; color: var(--color-accent-200);">SB_ID</code>(알림 전용 계정의 <b style="font-weight: 500; color: var(--color-text);">사번</b>)와 <code style="font-family: ui-monospace, monospace; color: var(--color-accent-200);">SB_PASSWORD</code>(그 계정 비밀번호)를 추가하고 저장합니다. 알림 전용 계정은 [계정 목록]에서 <b style="font-weight: 500; color: var(--color-text);">역할 '조회'</b>(모든 권한의 [사용]을 끔)로 하나 만들어 두세요. 사번은 아무 값(예: NOTI01), Gmail은 비워 둡니다. 비밀번호는 스크립트 코드에 넣지 마세요.</li>
+                    <li>왼쪽 <b style="font-weight: 500; color: var(--color-text);">프로젝트 설정(⚙)</b> › 맨 아래 <b style="font-weight: 500; color: var(--color-text);">스크립트 속성</b>에 <code style="font-family: ui-monospace, monospace; color: var(--color-accent-200);">SB_ID</code>(위 "알림 발송 서버 계정"의 사번)와 <code style="font-family: ui-monospace, monospace; color: var(--color-accent-200);">SB_PASSWORD</code>(계정을 만들 때 한 번 보이는 비밀번호)를 추가하고 저장합니다. 비밀번호는 스크립트 코드에 넣지 마세요.</li>
                     </sc-if>
                     <sc-if value="{{ ntSharedMode }}" hint-placeholder-val="{{ true }}">
                     <li>왼쪽 <b style="font-weight: 500; color: var(--color-text);">프로젝트 설정(⚙)</b> › 맨 아래 <b style="font-weight: 500; color: var(--color-text);">스크립트 속성</b>에 <code style="font-family: ui-monospace, monospace; color: var(--color-accent-200);">SB_EMAIL</code>(데이터 서버 공용 계정 이메일)과 <code style="font-family: ui-monospace, monospace; color: var(--color-accent-200);">SB_PASSWORD</code>(그 비밀번호)를 추가하고 저장합니다. 비밀번호는 스크립트 코드에 넣지 마세요.</li>
@@ -3412,7 +3455,7 @@
                 <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
                   <span style="font-size: 13.5px; color: var(--color-neutral-500);">소속기관</span>
                   <sc-for list="{{ acctOrgChips }}" as="c" hint-placeholder-count="3">
-                    <sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ c.go }}" aria-pressed="true" style="flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);">{{ c.name }} <span style="font-variant-numeric: tabular-nums; color: var(--color-accent-300);">{{ c.count }}</span></button></sc-if>
+                    <sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ c.go }}" aria-pressed="true" style="flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);">{{ c.name }} <span style="font-variant-numeric: tabular-nums; color: var(--color-accent-300);">{{ c.count }}</span></button></sc-if>
                     <sc-if value="{{ c.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ c.go }}" aria-pressed="false" class="btn btn-secondary" style="flex: none; white-space: nowrap; min-height: 38px; border-radius: 999px; font-size: 14.5px;">{{ c.name }} <span style="font-variant-numeric: tabular-nums; color: var(--color-neutral-500);">{{ c.count }}</span></button></sc-if>
                   </sc-for>
                   <div style="margin-left: auto; position: relative; flex: 1 1 220px; max-width: 360px; min-width: 200px;">
@@ -3505,6 +3548,18 @@
                           <div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.6;">사용을 켜면 보기도 함께 켜집니다. 보기를 끄면 사용도 꺼집니다.</div>
                           </div>
                           </div>
+                          <sc-if value="{{ a.showSetAcc }}" hint-placeholder-val="{{ true }}">
+                          <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); min-width: 0;">
+                          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;"><span style="font-size: 12.5px; letter-spacing: 0.08em; color: var(--color-neutral-500); font-weight: 500;">설정 메뉴 접근</span>
+                            <sc-if value="{{ a.setAccCustom }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ a.setAccReset }}" disabled="{{ a.locked }}" class="btn btn-ghost" style="min-height: 26px; padding: 0 8px; font-size: 12.5px;">직책 기본값으로</button></sc-if></div>
+                          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            <sc-for list="{{ a.setAcc }}" as="sa" hint-placeholder-count="10">
+                              <button type="button" class="{{ sa.cls }}" sc-camel-on-click="{{ sa.toggle }}" disabled="{{ sa.locked }}" aria-pressed="{{ sa.on }}" title="{{ sa.tip }}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid {{ sa.Bd }}; background: {{ sa.Bg }}; color: {{ sa.Fg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="{{ sa.mark }}" style="font-size: 15px;"></i>{{ sa.label }}</button>
+                            </sc-for>
+                          </div>
+                          <div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.6;">켠 항목만 이 사용자의 설정 화면에 나타납니다. 기관 관리 · 데이터 서버는 시스템 관리자만 쓸 수 있습니다.</div>
+                          </div>
+                          </sc-if>
                           <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); min-width: 0;">
                           <div style="font-size: 12.5px; letter-spacing: 0.08em; color: var(--color-neutral-500); font-weight: 500;">계정 관리</div>
                           <div style="display: flex; align-items: center; gap: var(--space-3) var(--space-5, 18px); flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">
@@ -3567,7 +3622,7 @@
                   <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: inset 0 2px 5px rgba(0,0,0,0.35);">
                     <span style="display: flex; align-items: center; gap: var(--space-2); font-size: 14px; color: var(--color-neutral-400);"><i class="ph ph-shield-star" style="color: var(--color-accent-400); font-size: 17px;"></i>관리할 기관</span>
                     <sc-for list="{{ staffOrgOpts }}" as="so" hint-placeholder-count="2">
-                      <sc-if value="{{ so.on }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ so.go }}" aria-pressed="true" style="display: flex; align-items: center; gap: var(--space-2); min-height: 42px; padding: 0 16px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.35);"><i class="ph ph-buildings"></i>{{ so.name }} <span style="font-size: 12px; color: var(--color-accent-300);">{{ so.count }}</span></button></sc-if>
+                      <sc-if value="{{ so.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ so.go }}" aria-pressed="true" style="display: flex; align-items: center; gap: var(--space-2); min-height: 42px; padding: 0 16px; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 14.5px; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.35);"><i class="ph ph-buildings"></i>{{ so.name }} <span style="font-size: 12px; color: var(--color-accent-300);">{{ so.count }}</span></button></sc-if>
                       <sc-if value="{{ so.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ so.go }}" aria-pressed="false" class="btn btn-secondary" style="min-height: 42px; font-size: 14.5px;"><i class="ph ph-buildings"></i>{{ so.name }} <span style="font-size: 12px; color: var(--color-neutral-500);">{{ so.count }}</span></button></sc-if>
                     </sc-for>
                   </div>
@@ -3904,7 +3959,7 @@
                       <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
                         <span style="font-size: 16px;">{{ r.name }}</span>
                         <span style="font-size: 12.5px; color: var(--color-neutral-600);">{{ r.room }} · {{ r.method }}</span>
-                        <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(0.32 0.08 25); color: oklch(0.88 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px;">중복 제외</button></span></sc-if>
+                        <sc-if value="{{ r.isDup }}" hint-placeholder-val="{{ false }}"><span style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px;"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.08 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.88) 0.08 25); font-size: 12.5px;"><i class="ph ph-copy"></i>{{ r.dupNote }}</span><button sc-camel-on-click="{{ r.dupRemove }}" class="btn btn-secondary" style="min-height: 32px; padding: 0 10px; font-size: 13px;">중복 제외</button></span></sc-if>
                       </span>
                       <sc-if value="{{ r.low }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if>
                       <span style="display: flex; align-items: center; gap: var(--space-2);"><sc-if value="{{ r.high }}" hint-placeholder-val="{{ true }}"><span class="tag tag-neutral" style="font-variant-numeric: tabular-nums;">{{ r.simLabel }}</span></sc-if><sc-if value="{{ r.isUnknown }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-primary" style="min-height: 38px; font-size: 14px; white-space: nowrap;"><i class="ph ph-user-focus"></i> 환자 지정</button></sc-if><sc-if value="{{ r.isKnown }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ r.assign }}" class="btn btn-secondary" title="사진과 환자가 다르면 바른 환자로 바꾸기" style="min-height: 40px; font-size: 13.5px; white-space: nowrap;"><i class="ph ph-arrows-left-right"></i> 변경</button></sc-if></span>
@@ -3937,14 +3992,14 @@
               </div>
               <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
                 <span style="font-size: 13px; color: var(--color-neutral-500);">화면 모드 · 강조 색상</span>
-                <div title="화면 모드와 강조 색상 (이 기기에 저장)" style="display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0;">
+                <div title="화면 모드와 강조 색상 (이 기기에 저장)" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; row-gap: 6px; min-width: 0;">
               <span role="group" aria-label="화면 모드" style="display: inline-flex; gap: 3px; padding: 3px; border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: inset 0 1px 3px rgba(0,0,0,0.35); flex: none;">
                 <sc-for list="{{ themeOpts }}" as="tm" hint-placeholder-count="2">
-                  <sc-if value="{{ tm.on }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ tm.go }}" aria-pressed="true" aria-label="{{ tm.label }}" title="{{ tm.label }} 모드" style="display: inline-grid; place-items: center; width: 32px; height: 28px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-100); cursor: pointer;"><i class="{{ tm.icon }}" style="font-size: 16px;"></i></button></sc-if>
+                  <sc-if value="{{ tm.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" type="button" sc-camel-on-click="{{ tm.go }}" aria-pressed="true" aria-label="{{ tm.label }}" title="{{ tm.label }} 모드" style="display: inline-grid; place-items: center; width: 32px; height: 28px; border: 1px solid var(--color-accent); border-radius: 6px; background: var(--color-accent-900); color: var(--color-accent-100); cursor: pointer;"><i class="{{ tm.icon }}" style="font-size: 16px;"></i></button></sc-if>
                   <sc-if value="{{ tm.off }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ tm.go }}" aria-pressed="false" aria-label="{{ tm.label }}" title="{{ tm.label }} 모드" style="display: inline-grid; place-items: center; width: 32px; height: 28px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--color-neutral-400); cursor: pointer;"><i class="{{ tm.icon }}" style="font-size: 16px;"></i></button></sc-if>
                 </sc-for>
               </span>
-              <span role="group" aria-label="강조 색상" style="display: inline-flex; align-items: center; gap: 5px; flex: 1; min-width: 0; justify-content: flex-end;">
+              <span role="group" aria-label="강조 색상" style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; flex: 1 1 auto; min-width: 0; justify-content: flex-start;">
                 <sc-for list="{{ accentOpts }}" as="ac" hint-placeholder-count="6">
                   <button type="button" sc-camel-on-click="{{ ac.go }}" title="{{ ac.name }}" aria-label="{{ ac.name }}" aria-pressed="{{ ac.on }}" style="width: 18px; height: 18px; flex: none; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: {{ ac.hex }}; box-shadow: {{ ac.ring }};"></button>
                 </sc-for>
@@ -4225,7 +4280,7 @@
           <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
             <button sc-camel-on-click="{{ toggleEmrCols }}" class="btn btn-secondary" style="flex: none; min-height: 38px; white-space: nowrap;"><i class="ph ph-columns" style="font-size: 17px;"></i> {{ emrColsBtn }}</button>
             <span style="flex: 1 1 260px; min-width: 0; font-size: 13px; color: var(--color-neutral-500); line-height: 1.5;">EMR 화면의 열 순서대로 맞춰 두면 저장되어 다른 PC에서도 같은 구성으로 읽습니다.</span>
-            <sc-if value="{{ emrColsWarn }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: oklch(0.85 0.12 25);">{{ emrColsWarn }}</span></sc-if>
+            <sc-if value="{{ emrColsWarn }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.12 25);">{{ emrColsWarn }}</span></sc-if>
           </div>
           <sc-if value="{{ emrColsOpen }}" hint-placeholder-val="{{ false }}">
             <div style="display: flex; gap: var(--space-2); overflow-x: auto; padding: 2px 2px 6px;">
@@ -4236,7 +4291,7 @@
                     <span style="margin-left: auto; display: flex; gap: 2px;">
                       <button sc-camel-on-click="{{ c.left }}" disabled="{{ c.isFirst }}" aria-label="왼쪽으로" title="왼쪽으로" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: var(--color-neutral-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-caret-left"></i></button>
                       <button sc-camel-on-click="{{ c.right }}" disabled="{{ c.isLast }}" aria-label="오른쪽으로" title="오른쪽으로" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: var(--color-neutral-300); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-caret-right"></i></button>
-                      <button sc-camel-on-click="{{ c.del }}" aria-label="열 삭제" title="열 삭제" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: oklch(0.80 0.10 25); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button>
+                      <button sc-camel-on-click="{{ c.del }}" aria-label="열 삭제" title="열 삭제" style="width: 24px; height: 24px; border: 0; border-radius: 4px; background: var(--color-neutral-800); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.10 25); cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button>
                     </span>
                   </div>
                   <input class="input" value="{{ c.label }}" sc-camel-on-change="{{ c.onLabel }}" placeholder="머리글 (예: 수진자)" aria-label="머리글 이름" style="min-height: 32px; font-size: 13px; padding: 4px 8px;">
@@ -4266,9 +4321,9 @@
             <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;"><input type="checkbox" checked="{{ emrDischarge }}" sc-camel-on-change="{{ toggleEmrDischarge }}" style="width: 18px; height: 18px; accent-color: var(--color-accent);">이번 명부에 없는 기존 재원 환자를 자동 '퇴원' 처리 <span style="color: var(--color-neutral-500);">{{ emrDischargeNote }}</span></label>
           </div>
           <sc-if value="{{ emrHasOut }}" hint-placeholder-val="{{ false }}">
-            <div style="flex: none; display: flex; flex-direction: column; gap: var(--space-2); padding: 10px 12px; border-radius: 6px; background: var(--color-neutral-900); box-shadow: inset 0 0 0 1px oklch(0.40 0.08 25);">
+            <div style="flex: none; display: flex; flex-direction: column; gap: var(--space-2); padding: 10px 12px; border-radius: 6px; background: var(--color-neutral-900); box-shadow: inset 0 0 0 1px oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.40) calc(0.08 * var(--lc,1)) 25);">
               <button sc-camel-on-click="{{ emrOutToggleOpen }}" aria-expanded="{{ emrOutOpenStr }}" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 2px 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: 13.5px; cursor: pointer; text-align: left;">
-                <i class="ph ph-sign-out" style="font-size: 17px; color: oklch(0.80 0.12 25);"></i><b style="font-weight: 500; flex: 1 1 auto;">{{ emrOutTitle }}</b>
+                <i class="ph ph-sign-out" style="font-size: 17px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 25);"></i><b style="font-weight: 500; flex: 1 1 auto;">{{ emrOutTitle }}</b>
                 <span style="display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-800); font-size: 12.5px; color: var(--color-neutral-300); white-space: nowrap;">{{ emrOutOpenLabel }} <i class="{{ emrOutChevron }}"></i></span>
               </button>
               <div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.5;">퇴원 처리한 환자는 지워지지 않고 퇴원일과 함께 '퇴원' 명단에 보관됩니다. 참여 기록·동의서도 그대로 남고, 나중 명부에 다시 나오면 재원으로 돌아옵니다. 아직 재원 중인 환자는 체크를 풀어 제외하세요.</div>
@@ -4298,8 +4353,8 @@
             </div>
           </sc-if>
           <sc-if value="{{ emrHasReadmit }}" hint-placeholder-val="{{ false }}">
-            <div style="flex: none; display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 12px; border-radius: 6px; background: oklch(0.26 0.05 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
-              <i class="ph-fill ph-warning-circle" style="font-size: 18px; color: oklch(0.82 0.13 25);"></i>
+            <div style="flex: none; display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: 10px 12px; border-radius: 6px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.26) calc(0.05 * var(--lc,1)) 25); box-shadow: inset 0 0 0 1px oklch(0.45 0.10 25);">
+              <i class="ph-fill ph-warning-circle" style="font-size: 18px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.13 25);"></i>
               <span style="flex: 1 1 260px; min-width: 0; font-size: 13.5px; line-height: 1.5;"><b style="color: {{ emrReadmitColor }};">{{ emrReadmitNote }}</b><br><span style="color: var(--color-neutral-400);">차트번호는 같지만 입원일이 달라 재입원으로 판단했습니다. '다시 받기'를 고르면 초상권·안면인식 동의가 '확인전'으로 바뀌고, 이전 동의 기록과 첨부 파일은 보관됩니다.</span></span>
               <span style="flex: none; display: flex; gap: var(--space-2);">
                 <button sc-camel-on-click="{{ emrReKeepAll }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px; white-space: nowrap;">모두 기존 사용</button>
@@ -4397,7 +4452,7 @@
         <div style="display: flex; flex-direction: column; gap: 6px; padding-top: var(--space-2); border-top: 1px solid var(--color-divider);">
           <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
             <sc-for list="{{ hvFaces }}" as="f" hint-placeholder-count="3">
-              <span title="{{ f.name }}" style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; flex: none; box-sizing: border-box; background: var(--color-neutral-800); box-shadow: {{ f.ring }}; border: {{ f.border }}; display: grid; place-items: center; font-size: 14px; color: oklch(0.82 0.12 25);">
+              <span title="{{ f.name }}" style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; flex: none; box-sizing: border-box; background: var(--color-neutral-800); box-shadow: {{ f.ring }}; border: {{ f.border }}; display: grid; place-items: center; font-size: 14px; color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.12 25);">
                 <sc-if value="{{ f.hasUrl }}" hint-placeholder-val="{{ false }}">{{ f.el }}</sc-if>
                 <sc-if value="{{ f.noUrl }}" hint-placeholder-val="{{ true }}">{{ f.initial }}</sc-if>
               </span>
@@ -4477,8 +4532,9 @@
         <button sc-camel-on-click="{{ aiBriefClose }}" aria-label="브리핑 닫기" style="width: 26px; height: 26px; border: 0; border-radius: 50%; background: #eef1f5; color: #4a5568; cursor: pointer; display: grid; place-items: center; flex: none;"><i class="ph ph-x"></i></button>
       </div>
     </sc-if>
-    <button sc-camel-on-click="{{ aiToggle }}" aria-label="AI 비서 열기" title="AI 비서 · 끌어서 옮길 수 있어요 (두 번 누르면 처음 위치)" sc-camel-on-pointer-down="{{ aiFabDown }}" sc-camel-on-double-click="{{ aiFabReset }}" style="position: fixed; left: {{ aiFabLeft }}; top: {{ aiFabTop }}; right: {{ aiFabRightPx }}; bottom: {{ aiFabBot }}; touch-action: none; z-index: 122; width: {{ aiFabSize }}; height: {{ aiFabSize }}; border-radius: 50%; border: 0; cursor: pointer; background: linear-gradient(180deg, #2a4aa3, #1e3a8a); color: #ffffff; display: grid; place-items: center; box-shadow: 0 10px 24px rgba(30, 58, 138, 0.40), inset 0 1px 0 rgba(255,255,255,0.25);" style-hover="transform: translateY(-2px);" style-active="transform: translateY(1px);">
-      <i class="{{ aiFabIcon }}" style="font-size: 27px;"></i>
+    <button sc-camel-on-click="{{ aiToggle }}" aria-label="AI 비서 열기" title="AI 비서 · 끌어서 옮길 수 있어요 (두 번 누르면 처음 위치)" sc-camel-on-pointer-down="{{ aiFabDown }}" sc-camel-on-double-click="{{ aiFabReset }}" style="position: fixed; left: {{ aiFabLeft }}; top: {{ aiFabTop }}; right: {{ aiFabRightPx }}; bottom: {{ aiFabBot }}; touch-action: none; z-index: 122; width: {{ aiFabSize }}; height: {{ aiFabSize }}; border-radius: 50%; border: 0; cursor: pointer; background: radial-gradient(circle at 28% 24%, #8fb4ff 0%, transparent 46%), linear-gradient(135deg, #6d5ef0 0%, #3b6fe0 55%, #1fa6d8 100%); color: #ffffff; display: grid; place-items: center; box-shadow: 0 10px 26px rgba(79, 82, 230, 0.45), 0 0 0 3px rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.45);" class="sc-ai-fab" style-hover="transform: translateY(-2px) scale(1.04);" style-active="transform: translateY(1px);">
+      <span class="sc-ai-fab-ring" aria-hidden="true"></span>
+      <i class="{{ aiFabIcon }}" style="font-size: 26px; position: relative; filter: drop-shadow(0 1px 3px rgba(20,20,80,0.45));"></i>
       <sc-if value="{{ aiHasBadge }}" hint-placeholder-val="{{ false }}"><span style="position: absolute; top: -2px; right: -2px; min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #e03131; color: #ffffff; font-size: 12px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px #ffffff;">{{ aiBadge }}</span></sc-if>
     </button>
     <sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
@@ -4619,10 +4675,10 @@
 
   <!-- 예전 버전 경고 (저장 중지) -->
   <sc-if value="{{ outdated }}" hint-placeholder-val="{{ false }}">
-    <div role="alert" style="position: fixed; left: 0; right: 0; top: 0; z-index: 300; display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); background: oklch(0.34 0.10 25); color: oklch(0.95 0.03 25); box-shadow: 0 6px 20px rgba(0,0,0,0.45);">
+    <div role="alert" style="position: fixed; left: 0; right: 0; top: 0; z-index: 300; display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6); background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.34) calc(0.10 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.03 25); box-shadow: 0 6px 20px rgba(0,0,0,0.45);">
       <i class="ph ph-warning-circle" style="font-size: 24px;"></i>
       <span style="font-size: 15.5px; flex: 1 1 320px;">{{ outdatedMsg }} 새로고침하면 최신 버전으로 계속 작업할 수 있습니다.</span>
-      <button sc-camel-on-click="{{ reloadNow }}" class="btn btn-primary" style="min-height: 42px; white-space: nowrap; background: oklch(0.95 0.03 25); color: oklch(0.30 0.10 25); border-color: transparent;"><i class="ph ph-arrow-clockwise"></i> 지금 새로고침</button>
+      <button sc-camel-on-click="{{ reloadNow }}" class="btn btn-primary" style="min-height: 42px; white-space: nowrap; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.95) 0.03 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.10 * var(--lc,1)) 25); border-color: transparent;"><i class="ph ph-arrow-clockwise"></i> 지금 새로고침</button>
     </div>
   </sc-if>
 
