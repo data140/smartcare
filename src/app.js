@@ -3198,7 +3198,7 @@ class Component extends DCLogic {
   static SET_TABS = [
     { k: 'ai', n: 'AI 판독 파라미터' }, { k: 'consent', n: '동의서식 관리' }, { k: 'program', n: '프로그램 관리' },
     { k: 'ward', n: '병동 · 호실' }, { k: 'staff', n: '담당자 명단 및 권한' }, { k: 'notify', n: '일정 알림' },
-    { k: 'privacy', n: '개인정보 표시' }, { k: 'approval', n: '결재라인' },
+    { k: 'privacy', n: '개인정보 표시' }, { k: 'approval', n: '결재라인' }, { k: 'journal', n: '운영일지 서식' },
     { k: 'org', n: '기관 관리', sys: true }, { k: 'cloud', n: '데이터 서버', sys: true }, { k: 'migrate', n: '데이터 이전', sys: true, hidden: true }
   ];
   static setRolesOf(m) { return Array.isArray(m && m.roles) ? m.roles : [m && m.role]; }
@@ -10588,6 +10588,7 @@ class Component extends DCLogic {
       })(),
       setNotifyTab: allowSet('notify') && stEff === 'notify',
       setPrivacyTab: allowSet('privacy') && stEff === 'privacy',
+      setJournalTab: allowSet('journal') && stEff === 'journal',
       ...this.privacyVals(),
       setApprovalTab: allowSet('approval') && stEff === 'approval',
       ...(() => {

@@ -51,8 +51,14 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await p.locator('[role=tab]:has-text("완료") >> visible=true').first().click(); await sleep(400);
     check('완료 탭에는 완료한 일지만 보임', (await p.locator('button[aria-pressed]:has-text("완료") >> visible=true').count()) >= 1);
     await p.locator('[role=tab]:has-text("전체") >> visible=true').first().click(); await sleep(300);
+    check('운영일지 화면에는 로고 올리기가 없음(설정으로 이동)', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) === 0);
+    await p.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(700);
+    await p.locator('button:has-text("운영일지 서식") >> visible=true').first().click(); await sleep(500);
+    check('설정 › 운영일지 서식에 로고 올리기·글자 직접 작성이 있음', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) >= 1 && (await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').count()) >= 1);
     await p.locator('button:has-text("글자만") >> visible=true').first().click(); await sleep(300);
     await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().fill('직접 쓴 하단 글자'); await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().blur(); await sleep(400);
+    await p.locator('aside button:has-text("프로그램 운영일지") >> visible=true').first().click(); await sleep(800);
+    await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(400);
     // 사진 추가·빼기, 결재라인 위치
     const png = path.join(os.tmpdir(), 'jrn-up.png'); fs.writeFileSync(png, Buffer.from(PNG.split(',')[1], 'base64'));
     const before = await p.locator('img[alt="프로그램 사진"]').count();
@@ -105,6 +111,8 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     check('말한 내용이 칸에 들어감', await m.evaluate(() => [...document.querySelectorAll('textarea')].some(x => x.value.includes('음성으로 입력한 문장'))));
     await m.locator('button:has-text("중지") >> visible=true').first().click(); await sleep(300);
     check('[중지]를 누르면 녹음 표시가 사라짐', (await m.locator('.sc-wave').count()) === 0);
+    check('휴대폰: 사진 추가·사진 찍기·빼기 단추가 보임', (await m.locator('label:has-text("사진 추가") >> visible=true').count()) >= 1 && (await m.locator('label:has-text("사진 찍기") >> visible=true').count()) >= 1 && (await m.locator('button[aria-label="사진 빼기"] >> visible=true').count()) >= 1);
+    check('휴대폰: 운영일지 화면에 로고 올리기는 없음', (await m.locator('label:has-text("로고 올리기") >> visible=true').count()) === 0);
     check('화면 오류 없음(휴대폰)', m.errs.length === 0, m.errs.slice(0, 2).join('|'));
   } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
   console.log('스마트케어 운영일지 시험\n' + results.join('\n'));
