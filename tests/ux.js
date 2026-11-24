@@ -32,6 +32,12 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await dark.click(); await sleep(400); const db = await bg();
     check('라이트·다크를 누르면 화면 색이 바뀜', lb !== db, lb + ' ↔ ' + db);
 
+    // 1-2) EMR 붙여넣기 버튼 말풍선 설명
+    const tipBtn = p.locator('button:has-text("EMR 붙여넣기")').first();
+    check('EMR 붙여넣기 버튼에 말풍선 설명이 있음 (eClick 병실현황판 환자 데이터 붙여넣기)', (await tipBtn.getAttribute('data-tip')) === 'eClick 병실현황판 환자 데이터 붙여넣기 하세요!');
+    await tipBtn.hover(); await sleep(350);
+    check('마우스를 올리면 말풍선이 보임', await p.evaluate(() => { const b = [...document.querySelectorAll('button.has-tip')][0]; return b && getComputedStyle(b, '::after').opacity === '1'; }));
+
     // 2) 일정 시각 고르기
     await p.locator('text=캘린더 >> visible=true').first().click(); await sleep(1000);
     await p.locator('button:has-text("일정 등록")').first().click(); await sleep(600);
