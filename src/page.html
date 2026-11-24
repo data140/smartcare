@@ -2189,6 +2189,7 @@
           <sc-if value="{{ logTabJournal }}" hint-placeholder-val="{{ false }}">
             <div style="display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: var(--space-6); align-items: start;">
               <div style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); max-height: 78vh; overflow: auto;">
+                <div role="tablist" aria-label="운영일지 상태" style="display: flex; gap: 6px; flex-wrap: wrap; padding: 2px 2px 6px;"><sc-for list="{{ jrnStTabs }}" as="t" hint-placeholder-count="4"><button type="button" role="tab" class="{{ t.cls }}" aria-selected="{{ t.on }}" sc-camel-on-click="{{ t.go }}" data-keep="1" style="display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-200); font: inherit; font-size: 13px; cursor: pointer;">{{ t.label }}<b style="font-weight: 600; font-variant-numeric: tabular-nums;">{{ t.n }}</b></button></sc-for></div>
                 <span style="font-size: 13px; color: var(--color-neutral-500); padding: 4px 6px;">일정을 고르면 운영일지가 자동으로 작성됩니다</span>
                 <sc-for list="{{ jrnPlans }}" as="r" hint-placeholder-count="4">
                   <button type="button" class="{{ r.cls }}" sc-camel-on-click="{{ r.go }}" aria-pressed="{{ r.on }}" style="display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--color-neutral-800); background: var(--color-neutral-900); color: var(--color-text); font: inherit; cursor: pointer;"><span style="font-size: 14.5px; font-weight: 600;">{{ r.title }}</span><span style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--color-neutral-500);">{{ r.date }}<span style="padding: 1px 8px; border-radius: 999px; background: {{ r.stBg }}; color: {{ r.stFg }}; font-size: 11.5px;">{{ r.st }}</span></span></button>
@@ -2199,32 +2200,40 @@
                 <sc-if value="{{ jrnHas }}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: var(--space-4); min-width: 0;">
               <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <span style="font-size: 20px; font-weight: 700;">{{ jrnTitle }}</span><span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ jrnWhen }}</span>
+                <span style="font-size: 20px; font-weight: 700;">{{ jrnTitle }}</span><span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ jrnWhen }}</span><span style="padding: 2px 10px; border-radius: 999px; background: var(--color-neutral-800); color: var(--color-neutral-200); font-size: 12.5px;">{{ jrnSt }}</span>
                 <span style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button type="button" sc-camel-on-click="{{ jrnRedo }}" class="btn btn-ghost" style="min-height: 38px;" title="수정한 내용을 지우고 일정·사진으로 다시 자동 작성"><i class="ph ph-magic-wand"></i> 자동으로 다시 쓰기</button>
-                  <button type="button" sc-camel-on-click="{{ jrnPreview }}" class="btn btn-primary" style="min-height: 38px;"><i class="ph ph-eye"></i> 미리보기 · 내보내기</button>
+                  <button type="button" sc-camel-on-click="{{ jrnRedo }}" class="btn btn-secondary" style="min-height: 38px;" title="수정한 내용을 지우고 일정·사진으로 다시 자동 작성"><i class="ph ph-magic-wand"></i> 자동으로 다시 쓰기</button>
+                  <sc-if value="{{ jrnNotDone }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ jrnDoneGo }}" class="btn btn-secondary" style="min-height: 38px;"><i class="ph ph-check-circle"></i> 완료 처리</button></sc-if><sc-if value="{{ jrnIsDone }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ jrnDoneGo }}" class="btn btn-secondary" style="min-height: 38px;"><i class="ph ph-arrow-u-up-left"></i> 작성 중으로 되돌리기</button></sc-if><button type="button" sc-camel-on-click="{{ jrnPreview }}" class="btn btn-primary" style="min-height: 38px;"><i class="ph ph-eye"></i> 미리보기 · 내보내기</button>
                 </span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--color-neutral-900); font-size: 13px; color: var(--color-neutral-400);"><i class="ph ph-sparkle" style="color: var(--color-accent-300); font-size: 16px;"></i>{{ jrnAutoNote }}</div>
               <div style="display: flex; flex-direction: column; gap: 6px;">
-                <span style="font-size: 13px; color: var(--color-neutral-500);">프로그램 사진 (앨범에 올린 사진이 자동으로 들어갑니다)</span>
-                <sc-if value="{{ jrnHasPhotos }}" hint-placeholder-val="{{ false }}"><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;"><sc-for list="{{ jrnPhotos }}" as="ph" hint-placeholder-count="2"><img src="{{ ph.u }}" alt="프로그램 사진" style="width: 100%; height: 110px; object-fit: cover; border-radius: 10px; box-shadow: 0 0 0 1px var(--color-neutral-800);"></sc-for></div></sc-if>
-                <sc-if value="{{ jrnNoPhotos }}" hint-placeholder-val="{{ false }}"><div style="padding: 14px; border-radius: 10px; border: 1px dashed var(--color-neutral-700); font-size: 13.5px; color: var(--color-neutral-500); text-align: center;">이 일정에 올린 사진이 없습니다 — 일지 작성에서 사진을 올리면 여기에 들어갑니다</div></sc-if>
+                <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">프로그램 사진 (최대 4장 · 앨범(아카이브) 사진이 자동으로 들어갑니다)
+                  <sc-if value="{{ jrnPhone }}" hint-placeholder-val="{{ false }}"><label class="btn btn-secondary" style="min-height: 40px; cursor: pointer; font-size: 13.5px; margin-left: auto;"><i class="ph ph-camera"></i> 사진 찍기<input type="file" accept="image/*" capture="environment" sc-camel-on-change="{{ jrnPhPick }}" style="display: none;"></label></sc-if>
+                  <label class="btn btn-secondary" style="min-height: 40px; cursor: pointer; font-size: 13.5px;"><i class="ph ph-image-square"></i> 사진 추가<input type="file" accept="image/*" multiple sc-camel-on-change="{{ jrnPhPick }}" style="display: none;"></label>
+                  <sc-if value="{{ jrnPhCustom }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ jrnPhReset }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px;"><i class="ph ph-arrow-counter-clockwise"></i> 앨범 사진으로 되돌리기</button></sc-if></span>
+                <sc-if value="{{ jrnHasPhotos }}" hint-placeholder-val="{{ false }}"><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;"><sc-for list="{{ jrnPhotos }}" as="ph" hint-placeholder-count="2"><div style="position: relative;"><img src="{{ ph.u }}" alt="프로그램 사진" style="width: 100%; height: 120px; object-fit: contain; background: var(--color-neutral-900); border-radius: 10px; box-shadow: 0 0 0 1px var(--color-neutral-800); display: block;">
+                  <button type="button" sc-camel-on-click="{{ ph.del }}" aria-label="사진 빼기" title="사진 빼기" data-keep="1" style="position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(20,24,40,0.82); color: #fff; cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button>
+                  <span style="position: absolute; left: 5px; bottom: 5px; display: flex; gap: 4px;"><sc-if value="{{ ph.hasL }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ ph.left }}" aria-label="앞으로" data-keep="1" style="width: 28px; height: 28px; border-radius: 8px; border: 0; background: rgba(20,24,40,0.82); color: #fff; cursor: pointer;"><i class="ph ph-caret-left"></i></button></sc-if><sc-if value="{{ ph.hasR }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ ph.right }}" aria-label="뒤로" data-keep="1" style="width: 28px; height: 28px; border-radius: 8px; border: 0; background: rgba(20,24,40,0.82); color: #fff; cursor: pointer;"><i class="ph ph-caret-right"></i></button></sc-if></span></div></sc-for></div></sc-if>
+                <sc-if value="{{ jrnNoPhotos }}" hint-placeholder-val="{{ false }}"><div style="padding: 14px; border-radius: 10px; border: 1px dashed var(--color-neutral-700); font-size: 13.5px; color: var(--color-neutral-500); text-align: center;">사진이 없습니다 — [사진 추가]로 올리거나, 앨범(아카이브)에 사진을 올리면 자동으로 들어갑니다</div></sc-if>
               </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: var(--color-neutral-900);"><span style="font-size: 14px; font-weight: 600;">결재라인</span>
+                <sc-for list="{{ jrnApTabs }}" as="t" hint-placeholder-count="3"><button type="button" class="{{ t.cls }}" sc-camel-on-click="{{ t.go }}" aria-pressed="{{ t.on }}" style="min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13.5px; cursor: pointer;">{{ t.label }}</button></sc-for>
+                <span style="font-size: 12.5px; color: var(--color-neutral-500);">{{ jrnApTitles }} · 칸 이름은 설정 › 결재라인에서 바꿉니다</span></div>
               <sc-for list="{{ jrnFields }}" as="f" hint-placeholder-count="7">
                 <label style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"><span style="font-size: 14px; font-weight: 600;">{{ f.label }}</span>
                     <sc-if value="{{ f.hasMic }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ f.mic }}" class="{{ f.micCls }}" data-keep="1" style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13.5px; cursor: pointer;"><i class="ph-fill ph-microphone" style="font-size: 17px;"></i>{{ f.micLabel }}</button></sc-if></span>
+                  <sc-if value="{{ f.micOn }}" hint-placeholder-val="{{ false }}"><div role="status" aria-live="polite" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: color-mix(in oklch, #e5484d 14%, var(--color-surface)); box-shadow: inset 0 0 0 1px color-mix(in oklch, #e5484d 45%, transparent);">
+                    <span aria-hidden="true" class="sc-rec-dot"></span><span style="font-size: 14px; font-weight: 700;">{{ f.micPhaseTxt }}</span>
+                    <span aria-hidden="true" class="{{ f.micWave }}"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                    <sc-if value="{{ f.micHasInterim }}" hint-placeholder-val="{{ false }}"><span style="flex: 1 1 100%; font-size: 14px; color: var(--color-neutral-300); line-height: 1.6;">인식 중: {{ f.micInterim }}</span></sc-if></div></sc-if>
                   <sc-if value="{{ f.multi }}" hint-placeholder-val="{{ false }}"><textarea class="input" rows="{{ f.rows }}" value="{{ f.val }}" sc-camel-on-change="{{ f.on }}" sc-camel-on-blur="{{ f.blur }}" style="min-height: 90px; line-height: 1.7; font-size: 15px; resize: vertical; padding: 10px 12px;"></textarea></sc-if>
                   <sc-if value="{{ f.single }}" hint-placeholder-val="{{ true }}"><input class="input" value="{{ f.val }}" sc-camel-on-change="{{ f.on }}" sc-camel-on-blur="{{ f.blur }}" style="min-height: 42px; font-size: 15px;"></sc-if>
                 </label>
               </sc-for>
               <sc-if value="{{ jrnPhone }}" hint-placeholder-val="{{ false }}"><div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.6;"><i class="ph ph-shield-warning"></i> 음성 입력은 이 기기 브라우저의 음성 인식 서비스를 거칩니다. 환자 이름·등록번호는 말하지 말고, 필요하면 키보드로 입력하세요.</div></sc-if>
-              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--color-divider); font-size: 13px; color: var(--color-neutral-500);">
-                <span>문서 하단 로고</span>
-                <sc-if value="{{ jrnHasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ jrnLogo }}" alt="병원 로고" style="max-height: 34px; background: #fff; padding: 3px; border-radius: 6px;"><button type="button" sc-camel-on-click="{{ jrnLogoClear }}" class="btn btn-ghost" style="min-height: 30px; font-size: 12.5px;">지우기</button></sc-if>
-                <label class="btn btn-secondary" style="min-height: 34px; cursor: pointer; font-size: 13px;"><i class="ph ph-upload-simple"></i> 로고 올리기<input type="file" accept="image/*" sc-camel-on-change="{{ jrnLogoPick }}" style="display: none;"></label>
-              </div>
+              <div style="font-size: 12.5px; color: var(--color-neutral-500);"><i class="ph ph-info"></i> 문서 하단의 로고·글자는 설정 › 운영일지 서식에서 정합니다.</div>
             </div>
                 </sc-if>
               </div>
@@ -3294,6 +3303,21 @@
               </div>
             </sc-if>
 
+            <sc-if value="{{ setJournalTab }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-5, 16px); max-width: 760px;">
+                <div style="font-size: 14px; color: var(--color-neutral-500); line-height: 1.7;">프로그램 운영일지 문서 맨 아래에 찍히는 로고와 글자를 정합니다. 이 기관의 모든 직원에게 같이 적용됩니다.</div>
+                <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                  <div style="font-size: 17px;">문서 하단 (병원 로고 · 글자)</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px;"><sc-for list="{{ jrnFootTabs }}" as="t" hint-placeholder-count="3"><button type="button" class="{{ t.cls }}" aria-pressed="{{ t.on }}" sc-camel-on-click="{{ t.go }}" style="min-height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-text); font: inherit; font-size: 14px; cursor: pointer;">{{ t.label }}</button></sc-for></div>
+                  <label style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 13px; color: var(--color-neutral-500);">직접 작성할 글자 (병원 이름 등)</span><input class="input" value="{{ jrnFootText }}" sc-camel-on-change="{{ jrnFootTextOn }}" aria-label="문서 하단 글자 (직접 작성)" placeholder="예) 가족사랑요양병원" style="min-height: 44px;"></label>
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <sc-if value="{{ jrnHasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ jrnLogo }}" alt="병원 로고" style="max-height: 46px; background: #fff; padding: 4px; border-radius: 8px;"><button type="button" sc-camel-on-click="{{ jrnLogoClear }}" class="btn btn-secondary" style="min-height: 38px;">로고 지우기</button></sc-if>
+                    <label class="btn btn-secondary" style="min-height: 38px; cursor: pointer;"><i class="ph ph-upload-simple"></i> 로고 올리기<input type="file" accept="image/*" sc-camel-on-change="{{ jrnLogoPick }}" style="display: none;"></label>
+                  </div>
+                  <div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.6;">로고는 PC에서 올리는 것을 권장합니다. 올린 로고는 휴대폰·태블릿에서도 같이 쓰입니다.</div>
+                </div>
+              </div>
+            </sc-if>
             <sc-if value="{{ setPrivacyTab }}" hint-placeholder-val="{{ false }}">
               <div style="display: flex; flex-direction: column; gap: var(--space-5, 16px); max-width: 860px;">
                 <div style="font-size: 14px; color: var(--color-neutral-400); line-height: 1.7;">환자 이름과 등록번호를 화면에서 일부 가립니다. 화면에 보이는 모양만 바뀌며, 검색·저장·서버 데이터와 환자 정보 수정 화면은 원래 값 그대로입니다. 이 설정은 이 기관의 모든 직원 화면에 적용됩니다.</div>
@@ -4108,6 +4132,7 @@
           <!-- 모바일 동의서 양식 -->
           <sc-if value="{{ mJournal }}" hint-placeholder-val="{{ false }}">
             <div style="display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-6);">
+              <div role="tablist" aria-label="운영일지 상태" style="display: flex; gap: 6px; overflow-x: auto;"><sc-for list="{{ jrnStTabs }}" as="t" hint-placeholder-count="4"><button type="button" role="tab" class="{{ t.cls }}" aria-selected="{{ t.on }}" sc-camel-on-click="{{ t.go }}" data-keep="1" style="flex: none; display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-200); font: inherit; font-size: 13px; cursor: pointer;">{{ t.label }}<b style="font-weight: 600;">{{ t.n }}</b></button></sc-for></div>
               <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
                 <sc-for list="{{ jrnPlans }}" as="r" hint-placeholder-count="3">
                   <button type="button" class="{{ r.cls }}" sc-camel-on-click="{{ r.go }}" aria-pressed="{{ r.on }}" style="flex: none; display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--color-neutral-800); background: var(--color-neutral-900); color: var(--color-text); font: inherit; cursor: pointer; min-width: 110px;"><span style="font-size: 14px; font-weight: 600; white-space: nowrap;">{{ r.title }}</span><span style="font-size: 12px; color: var(--color-neutral-500); white-space: nowrap;">{{ r.date }} · {{ r.st }}</span></button>
@@ -4119,30 +4144,38 @@
               <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <span style="font-size: 20px; font-weight: 700;">{{ jrnTitle }}</span><span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ jrnWhen }}</span>
                 <span style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button type="button" sc-camel-on-click="{{ jrnRedo }}" class="btn btn-ghost" style="min-height: 38px;" title="수정한 내용을 지우고 일정·사진으로 다시 자동 작성"><i class="ph ph-magic-wand"></i> 자동으로 다시 쓰기</button>
-                  <button type="button" sc-camel-on-click="{{ jrnPreview }}" class="btn btn-primary" style="min-height: 38px;"><i class="ph ph-eye"></i> 미리보기 · 내보내기</button>
+                  <button type="button" sc-camel-on-click="{{ jrnRedo }}" class="btn btn-secondary" style="min-height: 38px;" title="수정한 내용을 지우고 일정·사진으로 다시 자동 작성"><i class="ph ph-magic-wand"></i> 자동으로 다시 쓰기</button>
+                  <sc-if value="{{ jrnNotDone }}" hint-placeholder-val="{{ true }}"><button type="button" sc-camel-on-click="{{ jrnDoneGo }}" class="btn btn-secondary" style="min-height: 38px;"><i class="ph ph-check-circle"></i> 완료 처리</button></sc-if><sc-if value="{{ jrnIsDone }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ jrnDoneGo }}" class="btn btn-secondary" style="min-height: 38px;"><i class="ph ph-arrow-u-up-left"></i> 작성 중으로 되돌리기</button></sc-if><button type="button" sc-camel-on-click="{{ jrnPreview }}" class="btn btn-primary" style="min-height: 38px;"><i class="ph ph-eye"></i> 미리보기 · 내보내기</button>
                 </span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--color-neutral-900); font-size: 13px; color: var(--color-neutral-400);"><i class="ph ph-sparkle" style="color: var(--color-accent-300); font-size: 16px;"></i>{{ jrnAutoNote }}</div>
               <div style="display: flex; flex-direction: column; gap: 6px;">
-                <span style="font-size: 13px; color: var(--color-neutral-500);">프로그램 사진 (앨범에 올린 사진이 자동으로 들어갑니다)</span>
-                <sc-if value="{{ jrnHasPhotos }}" hint-placeholder-val="{{ false }}"><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;"><sc-for list="{{ jrnPhotos }}" as="ph" hint-placeholder-count="2"><img src="{{ ph.u }}" alt="프로그램 사진" style="width: 100%; height: 110px; object-fit: cover; border-radius: 10px; box-shadow: 0 0 0 1px var(--color-neutral-800);"></sc-for></div></sc-if>
-                <sc-if value="{{ jrnNoPhotos }}" hint-placeholder-val="{{ false }}"><div style="padding: 14px; border-radius: 10px; border: 1px dashed var(--color-neutral-700); font-size: 13.5px; color: var(--color-neutral-500); text-align: center;">이 일정에 올린 사진이 없습니다 — 일지 작성에서 사진을 올리면 여기에 들어갑니다</div></sc-if>
+                <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">프로그램 사진 (최대 4장 · 앨범(아카이브) 사진이 자동으로 들어갑니다)
+                  <sc-if value="{{ jrnPhone }}" hint-placeholder-val="{{ false }}"><label class="btn btn-secondary" style="min-height: 40px; cursor: pointer; font-size: 13.5px; margin-left: auto;"><i class="ph ph-camera"></i> 사진 찍기<input type="file" accept="image/*" capture="environment" sc-camel-on-change="{{ jrnPhPick }}" style="display: none;"></label></sc-if>
+                  <label class="btn btn-secondary" style="min-height: 40px; cursor: pointer; font-size: 13.5px;"><i class="ph ph-image-square"></i> 사진 추가<input type="file" accept="image/*" multiple sc-camel-on-change="{{ jrnPhPick }}" style="display: none;"></label>
+                  <sc-if value="{{ jrnPhCustom }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ jrnPhReset }}" class="btn btn-secondary" style="min-height: 34px; font-size: 13px;"><i class="ph ph-arrow-counter-clockwise"></i> 앨범 사진으로 되돌리기</button></sc-if></span>
+                <sc-if value="{{ jrnHasPhotos }}" hint-placeholder-val="{{ false }}"><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;"><sc-for list="{{ jrnPhotos }}" as="ph" hint-placeholder-count="2"><div style="position: relative;"><img src="{{ ph.u }}" alt="프로그램 사진" style="width: 100%; height: 120px; object-fit: contain; background: var(--color-neutral-900); border-radius: 10px; box-shadow: 0 0 0 1px var(--color-neutral-800); display: block;">
+                  <button type="button" sc-camel-on-click="{{ ph.del }}" aria-label="사진 빼기" title="사진 빼기" data-keep="1" style="position: absolute; top: 5px; right: 5px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(20,24,40,0.82); color: #fff; cursor: pointer; display: grid; place-items: center;"><i class="ph ph-x"></i></button>
+                  <span style="position: absolute; left: 5px; bottom: 5px; display: flex; gap: 4px;"><sc-if value="{{ ph.hasL }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ ph.left }}" aria-label="앞으로" data-keep="1" style="width: 28px; height: 28px; border-radius: 8px; border: 0; background: rgba(20,24,40,0.82); color: #fff; cursor: pointer;"><i class="ph ph-caret-left"></i></button></sc-if><sc-if value="{{ ph.hasR }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ ph.right }}" aria-label="뒤로" data-keep="1" style="width: 28px; height: 28px; border-radius: 8px; border: 0; background: rgba(20,24,40,0.82); color: #fff; cursor: pointer;"><i class="ph ph-caret-right"></i></button></sc-if></span></div></sc-for></div></sc-if>
+                <sc-if value="{{ jrnNoPhotos }}" hint-placeholder-val="{{ false }}"><div style="padding: 14px; border-radius: 10px; border: 1px dashed var(--color-neutral-700); font-size: 13.5px; color: var(--color-neutral-500); text-align: center;">사진이 없습니다 — [사진 추가]로 올리거나, 앨범(아카이브)에 사진을 올리면 자동으로 들어갑니다</div></sc-if>
               </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: var(--color-neutral-900);"><span style="font-size: 14px; font-weight: 600;">결재라인</span>
+                <sc-for list="{{ jrnApTabs }}" as="t" hint-placeholder-count="3"><button type="button" class="{{ t.cls }}" sc-camel-on-click="{{ t.go }}" aria-pressed="{{ t.on }}" style="min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13.5px; cursor: pointer;">{{ t.label }}</button></sc-for>
+                <span style="font-size: 12.5px; color: var(--color-neutral-500);">{{ jrnApTitles }} · 칸 이름은 설정 › 결재라인에서 바꿉니다</span></div>
               <sc-for list="{{ jrnFields }}" as="f" hint-placeholder-count="7">
                 <label style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                   <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"><span style="font-size: 14px; font-weight: 600;">{{ f.label }}</span>
                     <sc-if value="{{ f.hasMic }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ f.mic }}" class="{{ f.micCls }}" data-keep="1" style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13.5px; cursor: pointer;"><i class="ph-fill ph-microphone" style="font-size: 17px;"></i>{{ f.micLabel }}</button></sc-if></span>
+                  <sc-if value="{{ f.micOn }}" hint-placeholder-val="{{ false }}"><div role="status" aria-live="polite" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: color-mix(in oklch, #e5484d 14%, var(--color-surface)); box-shadow: inset 0 0 0 1px color-mix(in oklch, #e5484d 45%, transparent);">
+                    <span aria-hidden="true" class="sc-rec-dot"></span><span style="font-size: 14px; font-weight: 700;">{{ f.micPhaseTxt }}</span>
+                    <span aria-hidden="true" class="{{ f.micWave }}"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                    <sc-if value="{{ f.micHasInterim }}" hint-placeholder-val="{{ false }}"><span style="flex: 1 1 100%; font-size: 14px; color: var(--color-neutral-300); line-height: 1.6;">인식 중: {{ f.micInterim }}</span></sc-if></div></sc-if>
                   <sc-if value="{{ f.multi }}" hint-placeholder-val="{{ false }}"><textarea class="input" rows="{{ f.rows }}" value="{{ f.val }}" sc-camel-on-change="{{ f.on }}" sc-camel-on-blur="{{ f.blur }}" style="min-height: 90px; line-height: 1.7; font-size: 15px; resize: vertical; padding: 10px 12px;"></textarea></sc-if>
                   <sc-if value="{{ f.single }}" hint-placeholder-val="{{ true }}"><input class="input" value="{{ f.val }}" sc-camel-on-change="{{ f.on }}" sc-camel-on-blur="{{ f.blur }}" style="min-height: 42px; font-size: 15px;"></sc-if>
                 </label>
               </sc-for>
               <sc-if value="{{ jrnPhone }}" hint-placeholder-val="{{ false }}"><div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.6;"><i class="ph ph-shield-warning"></i> 음성 입력은 이 기기 브라우저의 음성 인식 서비스를 거칩니다. 환자 이름·등록번호는 말하지 말고, 필요하면 키보드로 입력하세요.</div></sc-if>
-              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--color-divider); font-size: 13px; color: var(--color-neutral-500);">
-                <span>문서 하단 로고</span>
-                <sc-if value="{{ jrnHasLogo }}" hint-placeholder-val="{{ false }}"><img src="{{ jrnLogo }}" alt="병원 로고" style="max-height: 34px; background: #fff; padding: 3px; border-radius: 6px;"><button type="button" sc-camel-on-click="{{ jrnLogoClear }}" class="btn btn-ghost" style="min-height: 30px; font-size: 12.5px;">지우기</button></sc-if>
-                <label class="btn btn-secondary" style="min-height: 34px; cursor: pointer; font-size: 13px;"><i class="ph ph-upload-simple"></i> 로고 올리기<input type="file" accept="image/*" sc-camel-on-change="{{ jrnLogoPick }}" style="display: none;"></label>
-              </div>
+              <div style="font-size: 12.5px; color: var(--color-neutral-500);"><i class="ph ph-info"></i> 문서 하단의 로고·글자는 설정 › 운영일지 서식에서 정합니다.</div>
             </div>
               </sc-if>
             </div>
@@ -4728,11 +4761,13 @@
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--color-divider);">
             <i class="ph ph-eye" style="font-size: 20px; color: var(--color-accent-300);"></i><span style="font-size: 16px; font-weight: 600;">운영일지 미리보기</span>
             <span style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap;">
-              <button type="button" sc-camel-on-click="{{ jrnPrintGo }}" class="btn btn-primary" style="min-height: 38px;"><i class="ph ph-printer"></i> 인쇄 · PDF 저장</button>
-              <button type="button" sc-camel-on-click="{{ jrnDocxGo }}" class="btn btn-secondary" style="min-height: 38px;"><i class="ph ph-file-doc"></i> Word</button>
-              <button type="button" sc-camel-on-click="{{ jrnHwpxGo }}" class="btn btn-secondary" style="min-height: 38px;" title="한글 2014 이상 (사진 제외)"><i class="ph ph-file-text"></i> 한글(hwpx)</button>
-              <button type="button" sc-camel-on-click="{{ jrnPrevClose }}" class="btn btn-ghost" style="min-height: 38px;">닫기</button>
+              <button type="button" sc-camel-on-click="{{ jrnGo }}" class="btn btn-primary" style="min-height: 38px;"><i class="{{ jrnGoIcon }}"></i> {{ jrnGoLabel }}</button>
+              <button type="button" sc-camel-on-click="{{ jrnPrevClose }}" class="btn btn-secondary" data-keep="1" style="min-height: 38px; color: var(--color-text); font-weight: 600;"><i class="ph ph-x"></i> 닫기</button>
             </span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 18px; border-bottom: 1px solid var(--color-divider);">
+            <sc-for list="{{ jrnTabs }}" as="t" hint-placeholder-count="3"><button type="button" class="{{ t.cls }}" sc-camel-on-click="{{ t.go }}" data-keep="1" style="display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-200); font: inherit; font-size: 13.5px; cursor: pointer;"><i class="{{ t.icon }}"></i>{{ t.label }}</button></sc-for>
+            <span style="font-size: 12.5px; color: var(--color-neutral-500); flex: 1 1 240px;">{{ jrnFmtNote }}</span>
           </div>
           <iframe title="운영일지 미리보기" srcdoc="{{ jrnDoc }}" style="flex: 1; width: 100%; border: 0; background: #d9dce3;"></iframe>
         </div>

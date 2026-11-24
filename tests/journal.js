@@ -32,7 +32,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await sleep(2000); await p.reload(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
     await p.locator('aside button:has-text("운영일지") >> visible=true').first().click(); await sleep(1000);
     const body = await p.evaluate(() => document.body.innerText);
-    check('프로그램 하위 메뉴에 "운영일지"가 있고 일정 목록이 보임', /자동 초안/.test(body) && /음악치료/.test(body));
+    check('프로그램 하위 메뉴에 "운영일지"가 있고 일정 목록이 보임', /작성 전/.test(body) && /음악치료/.test(body));
     check('일정으로 자동 작성된 초안(내용·특이사항·차기계획)이 채워짐', await p.evaluate(() => [...document.querySelectorAll('textarea')].filter(t => t.offsetParent).every(t => t.value.length > 10)));
     await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
     check('사진이 앨범에서 자동으로 들어감', (await p.locator('img[alt="프로그램 사진"]').count()) >= 1);
@@ -43,13 +43,45 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await sleep(500);
     await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
     check('고친 내용은 새로고침 후에도 유지', (await p.locator('textarea').first().inputValue()) === '시험 내용 직접 수정');
+    // 상태 탭(작성 전·중·완료)과 하단 글자·로고 선택
+    check('상태 탭(전체·작성 전·작성 중·완료)이 있음', (await p.locator('[role=tab]:has-text("작성 전") >> visible=true').count()) >= 1 && (await p.locator('[role=tab]:has-text("완료") >> visible=true').count()) >= 1);
+    await p.locator('button:has-text("완료 처리") >> visible=true').first().click(); await sleep(500);
+    const doneN = await p.locator('[role=tab]:has-text("완료") b >> visible=true').first().innerText();
+    check('완료 처리하면 완료 탭 개수가 늘어남', Number(doneN) >= 1, doneN);
+    await p.locator('[role=tab]:has-text("완료") >> visible=true').first().click(); await sleep(400);
+    check('완료 탭에는 완료한 일지만 보임', (await p.locator('button[aria-pressed]:has-text("완료") >> visible=true').count()) >= 1);
+    await p.locator('[role=tab]:has-text("전체") >> visible=true').first().click(); await sleep(300);
+    check('운영일지 화면에는 로고 올리기가 없음(설정으로 이동)', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) === 0);
+    await p.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(700);
+    await p.locator('button:has-text("운영일지 서식") >> visible=true').first().click(); await sleep(500);
+    check('설정 › 운영일지 서식에 로고 올리기·글자 직접 작성이 있음', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) >= 1 && (await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').count()) >= 1);
+    await p.locator('button:has-text("글자만") >> visible=true').first().click(); await sleep(300);
+    await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().fill('직접 쓴 하단 글자'); await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().blur(); await sleep(400);
+    await p.locator('aside button:has-text("프로그램 운영일지") >> visible=true').first().click(); await sleep(800);
+    await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(400);
+    // 사진 추가·빼기, 결재라인 위치
+    const png = path.join(os.tmpdir(), 'jrn-up.png'); fs.writeFileSync(png, Buffer.from(PNG.split(',')[1], 'base64'));
+    const before = await p.locator('img[alt="프로그램 사진"]').count();
+    await p.locator('label:has-text("사진 추가") input').first().setInputFiles(png); await sleep(900);
+    check('사진 추가 (최대 4장 안에서)', (await p.locator('img[alt="프로그램 사진"]').count()) === before + 1);
+    await p.locator('button[aria-label="사진 빼기"]').first().click(); await sleep(400);
+    check('사진 빼기', (await p.locator('img[alt="프로그램 사진"]').count()) === before);
+    check('결재라인 위치(상단/하단/표시 안 함) 선택 단추가 있음', (await p.locator('button:has-text("상단") >> visible=true').count()) >= 1 && (await p.locator('button:has-text("표시 안 함") >> visible=true').count()) >= 1);
+    await p.locator('button:has-text("상단") >> visible=true').first().click(); await sleep(400);
+    await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click(); await sleep(700);
+    const doc2 = await p.locator('iframe[title="운영일지 미리보기"]').getAttribute('srcdoc');
+    check('결재라인이 문서 상단에 들어감 (제목 바로 아래, 표보다 앞)', doc2.indexOf('class="ap"') > 0 && doc2.indexOf('class="ap"') < doc2.indexOf('프로그램명'));
+    check('하단에 직접 쓴 글자가 들어가고 로고는 빠짐(글자만)', /직접 쓴 하단 글자/.test(doc2));
+    check('사진이 잘리지 않음(object-fit: contain)', /object-fit:contain/.test(doc2) && !/object-fit:cover/.test(doc2));
+    await p.locator('button:has-text("닫기") >> visible=true').first().click(); await sleep(300);
     await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click(); await sleep(700);
     const frame = p.frames().find(f => f !== p.mainFrame() && /프로그램 운영일지|프 로 그 램/.test(f.url() + '')) || p.frames()[1];
     const doc = await p.locator('iframe[title="운영일지 미리보기"]').getAttribute('srcdoc');
-    check('미리보기 문서에 표 항목과 수정 내용·사진이 들어감', /프로그램명/.test(doc) && /진 행 현 황/.test(doc) && /시험 내용 직접 수정/.test(doc) && /<img src="data:image\/png/.test(doc));
+    check('미리보기 문서에 표 항목과 수정 내용·사진이 들어감', /프로그램명/.test(doc) && /진 행 현 황/.test(doc) && /시험 내용 직접 수정/.test(doc) && /<img src="data:image\//.test(doc));
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jrn-'));
-    const save = async (label, name) => { const d = p.waitForEvent('download', { timeout: 15000 }); await p.locator('button:has-text("' + label + '") >> visible=true').first().click(); const dl = await d; const f = path.join(tmp, name); await dl.saveAs(f); return f; };
-    const docx = await save('Word', 'a.docx'), hwpx = await save('한글(hwpx)', 'a.hwpx');
+    let early = false, lastEarly = false; p.once('download', () => { early = true; });
+    const save = async (label, goLabel, name) => { early = false; await p.locator('button:has-text("' + label + '") >> visible=true').first().click(); await sleep(500); lastEarly = early; if (early) throw new Error('미리보기 없이 바로 내려받음'); const d = p.waitForEvent('download', { timeout: 15000 }); await p.locator('button:has-text("' + goLabel + '") >> visible=true').first().click(); const dl = await d; const f = path.join(tmp, name); await dl.saveAs(f); return f; };
+    const docx = await save('Word', 'Word 파일 다운로드', 'a.docx'); check('Word 단추를 누르면 먼저 미리보기(다운로드는 다음 단추)', !lastEarly); const hwpx = await save('한글(hwpx)', '한글 파일 다운로드', 'a.hwpx');
     const py = (code, f) => execFileSync('python3', ['-I', '-c', code, f], { encoding: 'utf8' }).trim();
     check('Word 파일이 정상 문서이고 사진(그림)이 들어 있음', py("import sys,zipfile\nz=zipfile.ZipFile(sys.argv[1]);assert z.testzip() is None\nprint(any(n.startswith('word/media/') for n in z.namelist()) and b'\\xed\\x94\\x84' in z.read('word/document.xml'))", docx) === 'True');
     check('한글(.hwpx) 파일이 올바른 구조(mimetype 첫 항목, XML 정상)', py("import sys,zipfile,xml.dom.minidom as m\nz=zipfile.ZipFile(sys.argv[1]);n=z.namelist();assert n[0]=='mimetype' and z.read('mimetype')==b'application/hwp+zip'\n[m.parseString(z.read(x)) for x in n if x.endswith(('.xml','.hpf'))]\nprint('ok')", hwpx) === 'ok');
@@ -57,9 +89,30 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
 
     // 휴대폰: 음성 입력 단추
     const cm = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' });
+    await cm.addInitScript(() => {
+      // 시험용 가짜 음성 인식: 마이크 연결 → 소리 감지 → 중간 결과 → 최종 결과 순서로 알려 줌
+      const Mock = class { constructor() { this.s = 0; }
+        start() { const me = this; window.__sr = me; setTimeout(() => me.onaudiostart && me.onaudiostart(), 50); setTimeout(() => me.onsoundstart && me.onsoundstart(), 150);
+          setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '시험 중간 문장' }], { isFinal: false })] }), 300);
+          setTimeout(() => me.onresult && me.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: '음성으로 입력한 문장' }], { isFinal: true })] }), 700);
+          setTimeout(() => { if (!me.stopped) me.onend && me.onend(); }, 900); }
+        stop() { this.stopped = true; this.onend && this.onend(); } };
+      Object.defineProperty(window, 'webkitSpeechRecognition', { value: Mock, configurable: true, writable: true });
+      Object.defineProperty(window, 'SpeechRecognition', { value: Mock, configurable: true, writable: true });
+    });
     const m = await login(cm, 'button:has-text("운영일지")');
     await m.locator('button:has-text("운영일지") >> visible=true').first().click(); await sleep(1000);
     check('휴대폰: 운영일지 탭에서 음성 입력 단추가 보임', (await m.locator('button:has-text("음성 입력") >> visible=true').count()) >= 1);
+    await m.locator('button:has-text("음성 입력") >> visible=true').first().click(); await sleep(250);
+    check('녹음 중 표시와 음파가 보임 (마이크 연결·소리 감지를 실제 이벤트로 표시)', (await m.locator('text=/녹음 중/').count()) >= 1 && (await m.locator('.sc-wave').count()) >= 1);
+    await sleep(300);
+    check('말하는 동안 인식 중인 글자가 실시간으로 보임', (await m.locator('text=/인식 중: 시험 중간 문장/').count()) >= 1);
+    await sleep(700);
+    check('말한 내용이 칸에 들어감', await m.evaluate(() => [...document.querySelectorAll('textarea')].some(x => x.value.includes('음성으로 입력한 문장'))));
+    await m.locator('button:has-text("중지") >> visible=true').first().click(); await sleep(300);
+    check('[중지]를 누르면 녹음 표시가 사라짐', (await m.locator('.sc-wave').count()) === 0);
+    check('휴대폰: 사진 추가·사진 찍기·빼기 단추가 보임', (await m.locator('label:has-text("사진 추가") >> visible=true').count()) >= 1 && (await m.locator('label:has-text("사진 찍기") >> visible=true').count()) >= 1 && (await m.locator('button[aria-label="사진 빼기"] >> visible=true').count()) >= 1);
+    check('휴대폰: 운영일지 화면에 로고 올리기는 없음', (await m.locator('label:has-text("로고 올리기") >> visible=true').count()) === 0);
     check('화면 오류 없음(휴대폰)', m.errs.length === 0, m.errs.slice(0, 2).join('|'));
   } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
   console.log('스마트케어 운영일지 시험\n' + results.join('\n'));
