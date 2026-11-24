@@ -3901,6 +3901,14 @@
     </div>
   </sc-if>
 
+  <!-- 카카오톡 등 앱 안 화면 안내 (로그인 화면·앱 화면 어디서든) -->
+  <sc-if value="{{ inAppBanner }}" hint-placeholder-val="{{ false }}">
+    <div role="alert" style="position: fixed; left: 10px; right: 10px; top: calc(10px + env(safe-area-inset-top)); z-index: 400; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(135deg, #3b4fd8, #1e2f8f); color: #ffffff; box-shadow: 0 14px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.3);">
+      <div style="display: flex; gap: 10px; align-items: flex-start;"><i class="ph-fill ph-info" style="font-size: 22px; flex: none; margin-top: 1px;"></i><div style="font-size: 14px; line-height: 1.65;"><b style="font-weight: 700;">카카오톡 같은 앱 안에서 열린 화면입니다.</b><br>앱처럼 전체 화면으로 쓰거나 홈 화면에 설치하려면 <b>기본 브라우저(크롬·삼성 인터넷)</b>로 열어 주세요.</div></div>
+      <div style="display: flex; gap: 8px;"><button type="button" sc-camel-on-click="{{ inAppOpen }}" data-keep="1" style="flex: 1; min-height: 44px; border: 0; border-radius: 12px; background: #ffffff; color: #1e2f8f; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.25);"><i class="ph ph-arrow-square-out"></i> 브라우저로 열기</button><button type="button" sc-camel-on-click="{{ inAppHideGo }}" data-keep="1" style="min-height: 44px; padding: 0 16px; border: 1px solid rgba(255,255,255,0.5); border-radius: 12px; background: transparent; color: #ffffff; font: inherit; font-size: 14px; cursor: pointer;">닫기</button></div>
+    </div>
+  </sc-if>
+
   <!-- ══════════ 현장 앱 (스마트폰 · 태블릿 공통) ══════════ -->
   <sc-if value="{{ showApp }}" hint-placeholder-val="{{ false }}">
     <div style="width: 100%; max-width: {{ appMaxWidth }}; margin: {{ appMargin }}; box-sizing: border-box; border-radius: {{ appOuterRadius }}; padding: {{ appBezel }}; background: var(--color-surface); box-shadow: {{ appShadow }}; {{ appFix }}">
