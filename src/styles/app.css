@@ -275,3 +275,10 @@ html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[
 html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] i { color: #1e3a8a !important; }
 html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] { background: rgba(30, 58, 138, 0.10) !important; color: #14286b !important; font-weight: 700 !important; border: 1.5px solid #1e3a8a !important; box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.12) !important; }
 html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] span[style*="999px"] { background: #1e3a8a !important; color: #ffffff !important; }
+
+/* 로그인 화면 프로세스 인포그래픽 */
+.sc-flow-node { animation: scFlowPop 3.6s ease-in-out infinite; }
+@keyframes scFlowPop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.sc-flow-line { background-size: 200% 100%; }
+@media (prefers-reduced-motion: reduce) { .sc-flow-node { animation: none; } }
+@media (max-width: 700px) { .sc-flow { display: none !important; } }
