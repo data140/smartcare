@@ -2311,7 +2311,8 @@ class Component extends DCLogic {
     { k: 'work', label: '프로그램 일정 · 일지', note: '캘린더 일정, 일지(판독 결과·출석), 현장사진(앨범), 운영일지 문서·사진', exact: ['plans.v1', 'journals.v1', 'journalph.v1'], prefix: ['wsess.', 'wsessbak.', 'wph.'] },
     { k: 'forms', label: '서면 동의서 파일 · 전자 동의 서명', note: '환자별로 올린 서면 동의서 스캔 파일과 전자 동의 서명', exact: ['cfiles.v1', 'signs.v1', 'mconsent.v1'], prefix: ['sign.'] },
     { k: 'consent', label: "환자의 동의 상태 → '확인전'", note: '환자 명부의 초상권·안면인식 동의 값만 되돌림 (이름·병실 등은 유지)', exact: ['emrUndo.v1'], prefix: [] },
-    { k: 'photo', label: '환자 증명사진 (안면 등록)', note: '환자별 증명사진을 삭제 (명부의 사진 표시도 해제)', exact: ['idphotos.v1'], prefix: ['idph.'] }
+    { k: 'photo', label: '환자 증명사진 (안면 등록)', note: '환자별 증명사진을 삭제 (명부의 사진 표시도 해제)', exact: ['idphotos.v1'], prefix: ['idph.'] },
+    { k: 'patients', label: '환자 명부 전체 삭제 (이름·병실·보호자 포함)', note: '모든 환자를 지웁니다. 위 항목이 함께 선택되며, 복구하려면 EMR 붙여넣기나 수기 등록으로 다시 등록해야 합니다', exact: ['emrLast.v1'], prefix: [], danger: true }
   ];
   resetOrFilter(ws, exact, prefix) {
     const L = [];
@@ -2324,7 +2325,8 @@ class Component extends DCLogic {
     const s = this.state; const c = this.cloudCfg();
     if (!c) throw new Error('데이터 서버에 연결되어 있지 않습니다');
     if (!(await this.authEnsure())) throw new Error('서버 로그인이 필요합니다');
-    const sel = Object.assign({ work: true, forms: true, consent: true, photo: true }, s.resetSel || {});
+    const sel = Object.assign({ work: true, forms: true, consent: true, photo: true, patients: false }, s.resetSel || {});
+    if (sel.patients) { sel.work = sel.forms = sel.consent = sel.photo = true; }
     const scopes = Component.RESET_SCOPES.filter(x => sel[x.k]);
     const H = (x) => this.cloudHeaders(c, x);
     const getRows = async (q) => { const r = await fetch(c.url + '/rest/v1/smartcare_kv?' + q, { headers: H({ Prefer: 'count=exact' }) }); if (!r.ok) throw new Error('서버 오류 ' + r.status); return r.json(); };
@@ -2345,6 +2347,7 @@ class Component extends DCLogic {
     patRows.forEach(r => {
       let a; try { a = JSON.parse(r.v); } catch (e) { return; } if (!Array.isArray(a)) return;
       out.patients += a.length;
+      if (sel.patients) { upd.push({ k: r.k, v: '[]', updated_at: new Date().toISOString() }); return; }
       if (!(sel.consent || sel.photo)) return;
       a.forEach(p => {
         if (sel.consent) { p.consent = '확인전'; p.face = '확인전'; delete p.consentRenew; }
@@ -10802,13 +10805,16 @@ class Component extends DCLogic {
       setJournalTab: allowSet('journal') && stEff === 'journal',
       setResetTab: isSys && stEff === 'reset',
       ...(() => {
-        const R = s.resetRes || null, sel = Object.assign({ work: true, forms: true, consent: true, photo: true }, s.resetSel || {});
-        const PH = '운영 데이터 초기화';
+        const R = s.resetRes || null, sel = Object.assign({ work: true, forms: true, consent: true, photo: true, patients: false }, s.resetSel || {});
+        if (sel.patients) { sel.work = sel.forms = sel.consent = sel.photo = true; }
+        const PH = sel.patients ? '환자 포함 운영 데이터 초기화' : '운영 데이터 초기화';
         const can = !!(s.resetScanned && s.resetBacked && (s.resetPhrase || '').trim() === PH && !s.resetBusy);
         return {
-          rsScopes: Component.RESET_SCOPES.map(x => ({ label: x.label, note: x.note, on: !!sel[x.k], cls: sel[x.k] ? 'sel-chip' : '', mark: sel[x.k] ? 'ph-fill ph-check-square' : 'ph ph-square', count: R && R.counts && R.counts[x.k] != null ? String(R.counts[x.k]) : '', hasCount: !!(R && R.counts && R.counts[x.k] != null), go: () => this.setState({ resetSel: Object.assign({}, sel, { [x.k]: !sel[x.k] }), resetScanned: false, resetBacked: false, resetRes: null }) })),
+          rsScopes: Component.RESET_SCOPES.map(x => ({ label: x.label, note: x.note, on: !!sel[x.k], cls: sel[x.k] ? 'sel-chip' : '', danger: !!x.danger, mark: sel[x.k] ? 'ph-fill ph-check-square' : 'ph ph-square', count: (x.k === 'consent' || x.k === 'patients') ? (R ? R.patients + '명 대상' : '') : (R && R.counts && R.counts[x.k] != null ? R.counts[x.k] + '건' : ''), hasCount: (x.k === 'consent' || x.k === 'patients') ? !!R : !!(R && R.counts && R.counts[x.k] != null), go: () => { if (sel.patients && x.k !== 'patients') { this.flash('환자 명부 삭제를 켠 상태에서는 다른 항목을 끌 수 없습니다'); return; } const nx = Object.assign({}, sel, { [x.k]: !sel[x.k] }); this.setState({ resetSel: nx, resetScanned: false, resetBacked: false, resetRes: null, resetPhrase: '' }); } })),
+          rsPhraseText: PH, rsDanger: !!sel.patients,
           rsPatients: R ? String(R.patients) : '', rsHasRes: !!R,
           rsBusy: !!s.resetBusy, rsMsg: s.resetMsg || '', rsHasMsg: !!s.resetMsg,
+          rsHint: !s.resetScanned ? '먼저 1단계에서 [삭제될 항목 확인]을 눌러 주세요' : (!s.resetBacked ? '2단계 [백업 파일 내려받기]를 먼저 눌러 백업을 받아 주세요' : ((s.resetPhrase || '').trim() !== PH ? '확인 문구를 정확히 입력해 주세요' : '')), rsHasHint: !can && !s.resetBusy,
           rsScanned: !!s.resetScanned, rsBacked: !!s.resetBacked, rsPhrase: s.resetPhrase || '', rsCan: can, rsCanNot: !can,
           rsPhraseOn: (e) => this.setState({ resetPhrase: e.target.value }),
           rsScan: async () => { this.setState({ resetBusy: true, resetMsg: '서버에서 삭제될 항목을 세는 중…' }); try { const r = await this.resetCall('scan'); this.setState({ resetRes: r, resetScanned: true, resetBacked: false, resetMsg: '' }); } catch (e) { this.setState({ resetMsg: '확인 실패 — ' + (e && e.message) }); } this.setState({ resetBusy: false }); },
