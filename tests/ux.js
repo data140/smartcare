@@ -32,6 +32,10 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await dark.click(); await sleep(400); const db = await bg();
     check('라이트·다크를 누르면 화면 색이 바뀜', lb !== db, lb + ' ↔ ' + db);
 
+    // 1-3) 사이드바 아래: 계정 · 비밀번호 변경 · 로그아웃이 한 줄
+    const oneLine = await p.evaluate(() => { const lo = document.querySelector('button[aria-label="로그아웃"]'), pw = document.querySelector('button[aria-label="비밀번호 변경"]'); if (!lo || !pw) return null; const a = lo.getBoundingClientRect(), b = pw.getBoundingClientRect(); return { dy: Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)), h: a.height }; });
+    check('계정·비밀번호 변경·로그아웃이 한 줄에 있음', !!oneLine && oneLine.dy < 8, JSON.stringify(oneLine));
+
     // 1-2) EMR 붙여넣기 버튼 말풍선 설명
     const tipBtn = p.locator('button:has-text("EMR 붙여넣기")').first();
     check('EMR 붙여넣기 버튼에 말풍선 설명이 있음 (eClick 병실현황판 환자 데이터 붙여넣기)', (await tipBtn.getAttribute('data-tip')) === 'eClick 병실현황판 환자 데이터 붙여넣기 하세요!');
