@@ -108,6 +108,19 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     check('휴대폰에서 로그아웃하면 로그인 화면으로 돌아감', await pm.waitForSelector('input[autocomplete="username"]', { timeout: 15000 }).then(() => true, () => false));
     await ctxm.close();
 
+    // 4-4) 로그인 화면 위치: PC 는 화면 세로 중앙, 휴대폰은 로그인 버튼이 첫 화면 안에 보임 (운영 화면 기준)
+    const prodRoute = async (c) => c.route('**/*', async (route) => { if (route.request().resourceType() !== 'document') return route.continue(); const r = await route.fetch(); route.fulfill({ response: r, body: (await r.text()).replace("'1' === '1'", "'0' === '1'") }); });
+    const cPc = await browser.newContext({ viewport: { width: 1554, height: 1000 } }); await prodRoute(cPc);
+    const pPc = await cPc.newPage(); await pPc.goto(BASE + '/'); await pPc.waitForSelector('input[autocomplete="username"]', { timeout: 60000 }); await sleep(500);
+    const mPc = await pPc.evaluate(() => { const r = document.querySelector('form').getBoundingClientRect(); return { top: r.top, bottom: window.innerHeight - r.bottom }; });
+    check('PC 로그인 화면: 로그인 입력이 화면 세로 중앙에 있음', Math.abs(mPc.top - mPc.bottom) < 140 && mPc.top > 150, '위 ' + Math.round(mPc.top) + 'px · 아래 ' + Math.round(mPc.bottom) + 'px');
+    await cPc.close();
+    const cPh = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }); await prodRoute(cPh);
+    const pPh = await cPh.newPage(); await pPh.goto(BASE + '/'); await pPh.waitForSelector('input[autocomplete="username"]', { timeout: 60000 }); await sleep(500);
+    const bPh = await pPh.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.type === 'submit'); return b.getBoundingClientRect().bottom <= window.innerHeight; });
+    check('휴대폰 로그인 화면: 스크롤 없이 로그인 버튼까지 보임', bPh);
+    await cPh.close();
+
     // 5) 아이디 저장 (비밀번호는 저장하지 않음) · Enter 로 로그인
     const p6 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
     p6.on('pageerror', e => errors.push(e.message));

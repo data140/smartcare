@@ -245,3 +245,12 @@
   }
   .has-tip:hover::after, .has-tip:focus-visible::after { opacity: 1; transform: translateY(0); }
   .has-tip:hover::before, .has-tip:focus-visible::before { opacity: 1; }
+
+
+  /* 좁은 화면(휴대폰): 로그인 입력이 첫 화면에 들어오도록 소개 영역을 줄임 */
+  @media (max-width: 700px) {
+    .sc-login-intro { padding: 28px 22px 6px !important; gap: 10px !important; border-right: 0 !important; }
+    .sc-login-intro h1, .sc-login-intro [style*="font-size: 4"], .sc-login-intro [style*="font-size: 5"] { font-size: 30px !important; line-height: 1.2 !important; }
+    .sc-login-intro ul, .sc-login-intro [style*="flex-direction: column; gap: var(--space-3)"] { display: none !important; }
+    .sc-login-form { padding: 14px 22px 30px !important; justify-content: flex-start !important; }
+  }
