@@ -757,6 +757,23 @@ class Component extends DCLogic {
       else if (e.key === 'Backspace' && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') && !(e.target && e.target.isContentEditable)) { if (this.navGoBack()) e.preventDefault(); }
     };
     window.addEventListener('keydown', this._onNavKey);
+    // 접힌 메뉴: 아이콘 설명을 커서와 겹치지 않게 오른쪽에 띄움 (기본 title 말풍선 대신)
+    this._miniTipOver = (e) => {
+      try {
+        const t = e.target && e.target.closest ? e.target.closest('aside [title]') : null;
+        if (!t) return;
+        const ab = t.closest('aside'); if (!ab || ab.getBoundingClientRect().width > 110) return;
+        const txt = t.getAttribute('title'); if (!txt) return;
+        t.setAttribute('data-ttl', txt); t.removeAttribute('title');
+        let tip = document.getElementById('sc-mini-tip');
+        if (!tip) { tip = document.createElement('div'); tip.id = 'sc-mini-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+        tip.textContent = txt; const r = t.getBoundingClientRect();
+        tip.style.left = (r.right + 12) + 'px'; tip.style.top = (r.top + r.height / 2) + 'px'; tip.style.display = 'block';
+        t._tipOut = () => { t.setAttribute('title', t.getAttribute('data-ttl') || ''); t.removeAttribute('data-ttl'); tip.style.display = 'none'; t.removeEventListener('mouseleave', t._tipOut); t.removeEventListener('click', t._tipOut); };
+        t.addEventListener('mouseleave', t._tipOut); t.addEventListener('click', t._tipOut);
+      } catch (_) {}
+    };
+    document.addEventListener('mouseover', this._miniTipOver);
     Component.installOrgNs();
     if (this.state.orgId !== window.__scOrg) this.setState({ orgId: window.__scOrg });
     this.idleStart();
@@ -2532,6 +2549,7 @@ class Component extends DCLogic {
     if (this._onResize) window.removeEventListener('resize', this._onResize);
     if (this._onPop) window.removeEventListener('popstate', this._onPop);
     if (this._onNavKey) window.removeEventListener('keydown', this._onNavKey);
+    if (this._miniTipOver) document.removeEventListener('mouseover', this._miniTipOver);
     if (this._onSbScroll) window.removeEventListener('scroll', this._onSbScroll);
     if (this._verT) { clearInterval(this._verT); this._verT = null; }
     try { document.documentElement.style.zoom = ''; } catch (e) {}
@@ -2835,6 +2853,65 @@ class Component extends DCLogic {
   // 로그인 방식: 'shared' = 기관 공용 서버 계정 + 화면 안 직원 확인, 'staff' = 직원마다 서버 계정 (서버가 권한 확인)
   static AUTH_MODE = '__SC_AUTH_MODE__';
   static isStaffMode() { return Component.AUTH_MODE === 'staff'; }
+  // ───── 환자 개인정보 가리기 (이름·등록번호) ─────
+  // 패턴: '#' = 그 자리 글자 보임, '*' = 가림. 글자 수가 패턴보다 길면 마지막 기호를 이어서 적용
+  //   이름   '#*#'  → 김명순A → 김*순A,  송인재 → 송*재     '#*' → 김명순 → 김**
+  //   번호   '#####*' → 00010617 → 00010***    '***####*' → 00010617 → ***1061*
+  static maskByPattern(str, pat) {
+    const v = String(str == null ? '' : str);
+    const pt = String(pat || '').replace(/[^#*]/g, '');
+    if (!v || !pt) return v;
+    let out = '';
+    for (let i = 0; i < v.length; i++) { const sym = pt[Math.min(i, pt.length - 1)]; out += sym === '*' ? '*' : v[i]; }
+    return out;
+  }
+  static PRIV_DEFAULT = { nameOn: false, namePat: '#*#', regOn: false, regPat: '#####*' };
+  privacyCfg() {
+    let raw = null; try { raw = localStorage.getItem('smartcare.privacy.v1'); } catch (e) {}
+    if (this._privRaw === raw && this._privCfg) return this._privCfg;
+    let o = {}; try { o = JSON.parse(raw || '{}') || {}; } catch (e) { o = {}; }
+    this._privRaw = raw; this._privCfg = Object.assign({}, Component.PRIV_DEFAULT, o);
+    return this._privCfg;
+  }
+  privacyVals() {
+    const c = this.privacyCfg();
+    const NP = [
+      { label: '가리지 않음', on: !c.nameOn, set: { nameOn: false } },
+      { label: '김** · 성만 보임', pat: '#*' },
+      { label: '김*순 · 가운데만 가림', pat: '#*#' }
+    ];
+    const RP = [
+      { label: '가리지 않음', on: !c.regOn, set: { regOn: false } },
+      { label: '00010*** · 앞 5자리만 보임', pat: '#####*' },
+      { label: '***1021*** · 가운데만 보임', pat: '***####*' },
+      { label: '*****617 · 뒤 3자리만 보임', pat: '*****###' }
+    ];
+    const opt = (o, kind) => {
+      const on = o.pat ? (kind === 'name' ? c.nameOn && c.namePat === o.pat : c.regOn && c.regPat === o.pat) : o.on;
+      return { label: o.label, on: on, off: !on,
+        go: () => this.savePrivacy(o.pat ? (kind === 'name' ? { nameOn: true, namePat: o.pat } : { regOn: true, regPat: o.pat }) : o.set) };
+    };
+    const clean = (v) => String(v || '').replace(/[^#*]/g, '').slice(0, 24);
+    return {
+      privNameOpts: NP.map(o => opt(o, 'name')), privRegOpts: RP.map(o => opt(o, 'reg')),
+      privNamePat: c.namePat, privRegPat: c.regPat,
+      onPrivNamePat: (e) => { const v = clean(e.target.value); this.savePrivacy({ namePat: v || '#*#', nameOn: true }); },
+      onPrivRegPat: (e) => { const v = clean(e.target.value); this.savePrivacy({ regPat: v || '#####*', regOn: true }); },
+      privNameSamples: ['김명순A', '송인재', '남궁민수'].map(n => ({ from: n, to: c.nameOn ? Component.maskByPattern(n, c.namePat) : n })),
+      privRegSamples: ['00010617', '1021345678'].map(n => ({ from: n, to: c.regOn ? Component.maskByPattern(n, c.regPat) : n })),
+      privNameState: c.nameOn ? '이름 가림 켜짐' : '이름 가림 꺼짐', privRegState: c.regOn ? '등록번호 가림 켜짐' : '등록번호 가림 꺼짐'
+    };
+  }
+  // 화면에 보여 줄 이름·등록번호 (설정에 따라 가림). 저장·검색·일치 확인에는 원래 값을 그대로 씀
+  pn(v) { const c = this.privacyCfg(); return c.nameOn ? Component.maskByPattern(v, c.namePat) : v; }
+  pc(v) { const c = this.privacyCfg(); return c.regOn && v ? Component.maskByPattern(v, c.regPat) : v; }
+  savePrivacy(patch) {
+    const next = Object.assign({}, this.privacyCfg(), patch);
+    try { localStorage.setItem('smartcare.privacy.v1', JSON.stringify(next)); } catch (e) {}
+    this._privRaw = null;
+    this.setState({ privTick: (this.state.privTick || 0) + 1, ptTick: (this.state.ptTick || 0) + 1 });
+  }
+
   // '이 기기에 아이디 저장' (비밀번호는 저장하지 않음 — 비밀번호는 브라우저의 비밀번호 관리자가 안전하게 보관)
   static loginHintState() {
     try {
@@ -3770,6 +3847,51 @@ class Component extends DCLogic {
       try { await this.staffFn(j); }
       catch (e) { this.flash('서버 계정 반영 실패' + (name ? ' (' + name + ')' : '') + ' — ' + e.message); }
     }
+  }
+  // ───── 알림 발송 서버 계정 (Gmail 일정 알림용 · 읽기 전용) ─────
+  static botPassword() {
+    const A = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', buf = new Uint32Array(14);
+    try { crypto.getRandomValues(buf); } catch (e) { for (let i = 0; i < buf.length; i++) buf[i] = Math.floor(Math.random() * 4294967296); }
+    return Array.from(buf, n => A[n % A.length]).join('');
+  }
+  botRow() { const org = this.state.orgId || 'ORG1'; return (this.state.roster || []).find(m => m.type === '시스템(알림)' && m.org === org) || null; }
+  async botCreate() {
+    const s = this.state, org = s.orgId || 'ORG1';
+    if (this.botRow() || s.botBusy) return;
+    if (!Component.isStaffMode()) { this.flash('직원별 계정 방식에서만 쓸 수 있습니다'); return; }
+    let emp = 'NOTI01', n = 1;
+    while ((s.roster || []).some(m => m.org === org && m.empNo === emp)) { n++; emp = 'NOTI' + String(n).padStart(2, '0'); }
+    const id = Math.max.apply(null, s.roster.map(m => m.id)) + 1;
+    const perms = { pt: { v: false, u: false }, lg: { v: false, u: false }, st: { v: false, u: false } };
+    const row = { id: id, name: '알림 발송 서버', type: '시스템(알림)', dept: '시스템', org: org, empNo: emp, email: '', notify: false, perms: perms, roles: ['조회'], role: '조회', status: '활성', revokedAt: '', assignable: false };
+    const pw = Component.botPassword();
+    this.setState({ botBusy: true });
+    try {
+      await this.staffFn({ action: 'sync', create: true, staff: Component.staffFields(row), password: pw, must_change: false });
+    } catch (e) { this.setState({ botBusy: false }); this.flash('알림 발송 계정을 만들지 못했습니다 — ' + e.message); return; }
+    if (this._staffSnap) this._staffSnap[row.id] = JSON.stringify(Component.staffFields(row));
+    const list = [row].concat(this.state.roster);
+    this.setState({ roster: list, botBusy: false, botPw: pw });
+    this.saveRoster(list);
+    this.flash('알림 발송 서버 계정을 만들었습니다 — 비밀번호는 이 화면에서 한 번만 보입니다');
+  }
+  async botReset() {
+    const m = this.botRow(); if (!m || this.state.botBusy) return;
+    const pw = Component.botPassword();
+    this.setState({ botBusy: true });
+    try { await this.staffFn({ action: 'sync', staff: Component.staffFields(m), password: pw, must_change: false }); }
+    catch (e) { this.setState({ botBusy: false }); this.flash('비밀번호를 다시 만들지 못했습니다 — ' + e.message); return; }
+    this.setState({ botBusy: false, botPw: pw });
+    this.flash('비밀번호를 다시 만들었습니다 — Apps Script 의 SB_PASSWORD 도 바꿔 주세요');
+  }
+  botDelete() {
+    const m = this.botRow(); if (!m) return;
+    this.setState({ dialog: {
+      title: '알림 발송 서버 계정을 삭제할까요?',
+      body: '사번 ' + (m.empNo || '') + ' 계정이 삭제되어 Gmail 일정 알림이 멈춥니다. 다시 만들면 새 비밀번호를 Apps Script 에 넣어야 합니다.',
+      cta: '삭제',
+      confirm: () => { const list = this.state.roster.filter(x => x.id !== m.id); this.setState({ roster: list, dialog: null, botPw: '' }); this.saveRoster(list); this.flash('알림 발송 서버 계정을 삭제했습니다'); }
+    } });
   }
   // 새 직원 서버 계정 만들기 (임시 비밀번호 · 첫 로그인 때 변경)
   async staffCreate(row) {
@@ -6859,7 +6981,8 @@ class Component extends DCLogic {
     const DEPTS = ['사회사업실', '원무과', '간호부', '임상병리실', '감염관리실', '재활치료실', '영양팀', '행정팀', '본사'];
     const q = (s.acctQ || '').trim().toLowerCase();
     const orgNm = (id) => (s.orgs.find(o => o.id === id) || {}).name || '';
-    const acctPool = s.roster.filter(m => m.org !== '*' && (acctOrg === 'ALL' || m.org === acctOrg));
+    // 알림 발송용 서버 계정(직책 '시스템(알림)')은 계정 목록에 두지 않고 설정 › 일정 알림 에서 관리
+    const acctPool = s.roster.filter(m => m.org !== '*' && m.type !== '시스템(알림)' && (acctOrg === 'ALL' || m.org === acctOrg));
     const acctList = acctPool.filter(m => !q || [m.empNo, m.name, m.dept, m.type, m.email, orgNm(m.org)].some(v => (v || '').toLowerCase().indexOf(q) >= 0));
     const accounts = acctList.map(m => {
       const p = permsOf(m);
@@ -7565,6 +7688,7 @@ class Component extends DCLogic {
           },
           sbResizeReset: () => { this.setState({ sbW: 248 }); try { localStorage.removeItem('smartcare.sbW.v1'); } catch (e) {} },
           sbJustify: mini ? 'center' : 'flex-start',
+          sbIcoG: mini ? '23px' : '17px', sbIcoGBox: mini ? '36px' : '28px', sbIcoI: mini ? '22px' : '16px', sbItemH: mini ? '44px' : '38px',
           sbItemPad: mini ? 'var(--space-3)' : 'var(--space-3)',
           sbSubIndent: mini ? '0' : '17px',
           sbSubPad: mini ? '0' : '10px',
@@ -7815,8 +7939,8 @@ class Component extends DCLogic {
       retry: () => { this.setState({ fetch: 'loading' }); clearTimeout(this._a); this._a = setTimeout(() => this.setState({ fetch: 'ready' }), 1200); },
 
       pagePatients: pageItems.map(p => ({
-        name: p.name, sexAge: p.sex + ' · 만 ' + p.age + '세',
-        meta: p.room + ' · ' + (p.chartNo ? '등록번호 ' + p.chartNo : '등록번호 없음') + (p.admitDate ? ' · 입원 ' + p.admitDate : '') + ' · ' + p.last,
+        name: this.pn(p.name), sexAge: p.sex + ' · 만 ' + p.age + '세',
+        meta: p.room + ' · ' + (p.chartNo ? '등록번호 ' + this.pc(p.chartNo) : '등록번호 없음') + (p.admitDate ? ' · 입원 ' + p.admitDate : '') + ' · ' + p.last,
         consentOk: p.consent === '동의', consentNo: p.consent !== '동의',
         consentLabel: '동의 ' + p.consent,
         stay: p.stay || '재원',
@@ -7826,10 +7950,10 @@ class Component extends DCLogic {
         stayDot: (p.stay || '재원') === '재원' ? 'var(--color-accent)' : ((p.stay === '임종') ? 'var(--color-neutral-300)' : 'var(--color-neutral-600)'),
         needsGuardian: !!p.guardian, noPhoto: !p.photo,
         photoUrl: s.photoUrls[p.id] || '',
-        thumb: this.img(s.photoUrls[p.id], p.name + ' 증명사진'),
+        thumb: this.img(s.photoUrls[p.id], this.pn(p.name) + ' 증명사진'),
         hasPhoto: !!s.photoUrls[p.id], blankPhoto: !s.photoUrls[p.id],
         selected: p.id === s.sel, unselected: p.id !== s.sel,
-        room: p.room, pid: p.chartNo || '—', sexAgeShort: p.sex + ' ' + p.age, consentShort: p.consent,
+        room: p.room, pid: this.pc(p.chartNo) || '—', sexAgeShort: p.sex + ' ' + p.age, consentShort: p.consent,
         cells: this.ptColOrder(s).map(k => {
           const st = p.stay || '재원';
           const days = (() => { if (!p.admitDate || st !== '재원') return ''; const d = Math.floor((new Date(this.todayIso() + 'T00:00:00') - new Date(p.admitDate + 'T00:00:00')) / 86400000); return d >= 0 ? ' · ' + (d + 1) + '일째' : ''; })();
@@ -7837,8 +7961,8 @@ class Component extends DCLogic {
           if (k === 'stay') return { isText: false, isStay: true, isConsentOk: false, isConsentNo: false, txt: st, color: 'var(--color-text)', dot: st === '재원' ? 'var(--color-accent)' : st === '임종' ? 'var(--color-neutral-300)' : 'var(--color-neutral-600)', sub: '' };
           if (k === 'consent') { const ok = p.consent === '동의'; return { isText: false, isStay: false, isConsentOk: ok, isConsentNo: !ok, txt: p.consent || '확인전', color: 'var(--color-text)', sub: '' }; }
           if (k === 'room') return T(p.room);
-          if (k === 'id') return T(p.chartNo || '—', 'var(--color-neutral-400)');
-          if (k === 'name') return T(p.name);
+          if (k === 'id') return T(this.pc(p.chartNo) || '—', 'var(--color-neutral-400)');
+          if (k === 'name') return T(this.pn(p.name));
           if (k === 'age') return T(p.sex + ' ' + p.age, 'var(--color-neutral-400)');
           if (k === 'admit') return T(p.admitDate || '—', 'var(--color-neutral-300)', p.dischargeDate && st !== '재원' ? ' → 퇴원 ' + p.dischargeDate : days);
           if (k === 'recent') return T(String(p.last || '').replace('최근 참여 ', ''), 'var(--color-neutral-400)');
@@ -7944,7 +8068,7 @@ class Component extends DCLogic {
       nextPage: () => this.setState({ page: Math.min(pageCount - 1, page + 1) }),
 
       sel: {
-        id: sel.id, regNo: sel.chartNo ? '등록번호 ' + sel.chartNo : '등록번호 없음', chartNo: sel.chartNo || '—', name: sel.name, room: sel.room, sexAge: sel.sex + ' · 만 ' + sel.age + '세',
+        id: sel.id, regNo: sel.chartNo ? '등록번호 ' + this.pc(sel.chartNo) : '등록번호 없음', chartNo: this.pc(sel.chartNo) || '—', name: this.pn(sel.name), room: sel.room, sexAge: sel.sex + ' · 만 ' + sel.age + '세',
         stay: sel.stay || '재원', face: sel.face, faceId: sel.faceId,
         consentOk: sel.consent === '동의', consentNo: sel.consent !== '동의',
         consentLabel: '동의 ' + sel.consent,
@@ -8129,7 +8253,7 @@ class Component extends DCLogic {
           })),
           cpPendEmpty: pendRows.length > 0 && pendShown.length === 0,
           cpPendList: pendShown.map(r => ({
-            name: r.p.name, id: r.p.chartNo || '', room: r.p.room || '—',
+            name: this.pn(r.p.name), id: this.pc(r.p.chartNo) || '', room: r.p.room || '—',
             mobileKind: r.hasMobile ? 'yes' : 'no', paperKind: r.hasPaper ? 'yes' : 'no',
             onStr: picked && r.p.id === s.sel ? '1' : '0',
             mobileTxt: r.hasMobile ? '받음' : '없음', mobileCls: r.hasMobile ? 'tag tag-accent' : 'tag tag-neutral',
@@ -8150,7 +8274,7 @@ class Component extends DCLogic {
           cpOpen: !!s.cpOpen,
           cpEmpty: hit.length === 0,
           cpList: hit.slice(0, 30).map(p => ({
-            name: p.name, id: p.chartNo || '',
+            name: this.pn(p.name), id: this.pc(p.chartNo) || '',
             meta: [p.room, (p.sex || '') + ' ' + (p.age != null ? p.age + '세' : ''), p.stay || '재원'].filter(x => x && x.trim()).join(' · '),
             consent: '초상권 ' + (p.consent || '확인전') + ' · 안면 ' + (p.face || '확인전'),
             tagCls: p.consent === '동의' && p.face === '동의' ? 'tag tag-accent' : 'tag tag-neutral',
@@ -9011,7 +9135,7 @@ class Component extends DCLogic {
         };
       })(),
       pickCandidates: (this._pickHit || PATIENTS).map(p => ({
-        name: p.name, room: p.room, sexAge: p.sex + ' ' + p.age,
+        name: this.pn(p.name), room: p.room, sexAge: p.sex + ' ' + p.age,
         done: p.consent === '동의', pending: p.consent !== '동의',
         pick: () => {
           const saved = this.loadSigns(p.id);
@@ -9384,7 +9508,7 @@ class Component extends DCLogic {
           open: open, toggleLabel: open ? '접기' : '명단 보기', chevron: open ? 'ph ph-caret-up' : 'ph ph-caret-down',
           toggle: () => { const m = Object.assign({}, this.state.attWardOpen || {}); m[g.ward] = !open; this.setState({ attWardOpen: m }); },
           rows: people.map(p => ({
-            name: p.name, room: p.room, count: p.rows.length,
+            name: this.pn(p.name), room: p.room, count: p.rows.length,
             programs: progCount(p.rows).map(x => x.name + ' ' + x.count).join(' · '),
             last: p.rows.map(r => fullDate(r.date)).sort().slice(-1)[0],
             open: () => this.setState({ attPatient: p.name })
@@ -9704,7 +9828,7 @@ class Component extends DCLogic {
       reloadNow: () => { try { location.reload(); } catch (e) {} },
       addCandidates: (this._addHit || []).slice(0, 200).map((p, i) => ({
         pid: p.id, first: i === 0 ? '1' : undefined,
-        name: p.name, room: p.room, sexAge: p.sex + ' ' + p.age + (p.chartNo ? ' · ' + p.chartNo : ''),
+        name: this.pn(p.name), room: p.room, sexAge: p.sex + ' ' + p.age + (p.chartNo ? ' · ' + this.pc(p.chartNo) : ''),
         add: () => {
           const key = this.state.assignKey;
           if (key) {
@@ -9981,7 +10105,7 @@ class Component extends DCLogic {
         { key: 'program', label: '프로그램 관리' },
         { key: 'ward', label: '병동 · 호실' },
         { key: 'staff', label: '담당자 명단 및 권한' }
-      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
+      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'privacy', label: '개인정보 표시' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
         label: t.label, active: s.setTab === t.key, inactive: s.setTab !== t.key,
         go: () => { if (t.key === s.setTab) return; guardLeave(() => this.setState({ setTab: t.key })); }
       })),
@@ -10035,6 +10159,8 @@ class Component extends DCLogic {
         };
       })(),
       setNotifyTab: (isSys || hasRole('관리자')) && s.setTab === 'notify',
+      setPrivacyTab: (isSys || hasRole('관리자')) && s.setTab === 'privacy',
+      ...this.privacyVals(),
       setApprovalTab: (isSys || hasRole('관리자')) && s.setTab === 'approval',
       ...(() => {
         const line = this.approvalLine();
@@ -10178,6 +10304,11 @@ class Component extends DCLogic {
           ntCodeOpen: !!s.ntCodeOpen,
           ntCodeLabel: s.ntCodeOpen ? '스크립트 닫기' : '스크립트 보기',
           toggleNtCode: () => this.setState({ ntCodeOpen: !s.ntCodeOpen }),
+          botExists: !!this.botRow(), botNone: !this.botRow(),
+          botEmp: (this.botRow() || {}).empNo || '', botLast: (this.botRow() || {}).lastLogin || '기록 없음',
+          botPw: s.botPw || '', botHasPw: !!s.botPw, botBusy: !!s.botBusy, botCreateLabel: s.botBusy ? '만드는 중…' : '알림 발송 계정 만들기',
+          botCreate: () => this.botCreate(), botReset: () => this.botReset(), botDelete: () => this.botDelete(),
+          botCopy: async () => { try { await navigator.clipboard.writeText(this.state.botPw || ''); this.flash('비밀번호를 복사했습니다'); } catch (e) { this.flash('자동 복사가 막혀 있습니다 — 직접 선택해 복사하세요'); } },
           ntCopy: async () => {
             if (!cfg) this.flash('주의: 데이터 서버가 연결되지 않아 스크립트가 일정을 읽을 수 없습니다');
             try { await navigator.clipboard.writeText(code); this.flash('스크립트를 복사했습니다 — Apps Script 편집기에 붙여넣으세요'); }
