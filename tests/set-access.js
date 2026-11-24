@@ -25,13 +25,13 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     else await p.waitForSelector(wait || 'text=가상환자1', { timeout: 20000 });
     return p;
   };
-  const tabs = (p) => p.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent && /^(AI 판독 파라미터|동의서식 관리|프로그램 관리|병동 · 호실|담당자 명단 및 권한|일정 알림|개인정보 표시|결재라인|기관 관리|데이터 서버)$/.test(b.innerText.trim())).map(b => b.innerText.trim()));
+  const tabs = (p) => p.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent && /^(AI 판독 파라미터|동의서식 관리|프로그램 관리|병동 · 호실|담당자 명단 및 권한|일정 알림|개인정보 표시|결재라인 · 문서 서식|기관 관리|데이터 서버)$/.test(b.innerText.trim())).map(b => b.innerText.trim()));
   try {
     // 기관 관리자 (김체험)
     const a = await login('100101', '1234');
     await a.locator('text=계정 · 권한 >> visible=true').first().click(); await a.waitForTimeout(1200);
     const at = await tabs(a);
-    check('기관 관리자: 기관 관리·데이터 서버 제외 전부 보임', at.includes('일정 알림') && at.includes('개인정보 표시') && at.includes('결재라인') && !at.includes('기관 관리') && !at.includes('데이터 서버'), at.join(','));
+    check('기관 관리자: 기관 관리·데이터 서버 제외 전부 보임', at.includes('일정 알림') && at.includes('개인정보 표시') && at.includes('결재라인 · 문서 서식') && !at.includes('기관 관리') && !at.includes('데이터 서버'), at.join(','));
     for (const b of await a.locator('button[aria-label="상세 열기·닫기"]:visible').all()) await b.click();
     await a.waitForTimeout(500);
     check('계정 상세에 "설정 메뉴 접근" 구역이 있음', (await a.locator('text=설정 메뉴 접근').count()) >= 2);
@@ -40,7 +40,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     const c = await login('admin', 'demo1234', 'text=계정 · 권한');
     await c.locator('text=계정 · 권한 >> visible=true').first().click(); await c.waitForTimeout(1200);
     const ct = await tabs(c);
-    check('시스템 관리자: 기관 관리·데이터 서버 포함 전체', ct.includes('기관 관리') && ct.includes('데이터 서버') && ct.includes('AI 판독 파라미터') && ct.includes('결재라인'), ct.join(','));
+    check('시스템 관리자: 기관 관리·데이터 서버 포함 전체', ct.includes('기관 관리') && ct.includes('데이터 서버') && ct.includes('AI 판독 파라미터') && ct.includes('결재라인 · 문서 서식'), ct.join(','));
     for (const x of await c.locator('button[aria-label="상세 열기·닫기"]:visible').all()) await x.click();
     await c.waitForTimeout(500);
     const pick = (label) => c.locator('button[aria-pressed]:visible', { hasText: label });
@@ -54,7 +54,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     const d = await login('100101', '1234');
     await d.locator('text=계정 · 권한 >> visible=true').first().click(); await d.waitForTimeout(1200);
     const dt = await tabs(d);
-    check('김체험: 일정 알림 숨김 · 나머지는 유지', !dt.includes('일정 알림') && dt.includes('개인정보 표시') && dt.includes('결재라인'), dt.join(','));
+    check('김체험: 일정 알림 숨김 · 나머지는 유지', !dt.includes('일정 알림') && dt.includes('개인정보 표시') && dt.includes('결재라인 · 문서 서식'), dt.join(','));
   } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
   console.log('스마트케어 설정 메뉴 접근 권한 시험\n' + results.join('\n'));
   await browser.close(); srv.kill(); process.exit(failed ? 1 : 0);

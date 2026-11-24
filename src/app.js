@@ -3371,7 +3371,7 @@ class Component extends DCLogic {
   static SET_TABS = [
     { k: 'ai', n: 'AI 판독 파라미터' }, { k: 'consent', n: '동의서식 관리' }, { k: 'program', n: '프로그램 관리' },
     { k: 'ward', n: '병동 · 호실' }, { k: 'staff', n: '담당자 명단 및 권한' }, { k: 'notify', n: '일정 알림' },
-    { k: 'privacy', n: '개인정보 표시' }, { k: 'approval', n: '결재라인' }, { k: 'journal', n: '운영일지 서식' },
+    { k: 'privacy', n: '개인정보 표시' }, { k: 'approval', n: '결재라인 · 문서 서식' },
     { k: 'org', n: '기관 관리', sys: true }, { k: 'cloud', n: '데이터 서버', sys: true }, { k: 'reset', n: '운영 데이터 초기화', sys: true, only: true }, { k: 'migrate', n: '데이터 이전', sys: true, hidden: true }
   ];
   static setRolesOf(m) { return Array.isArray(m && m.roles) ? m.roles : [m && m.role]; }
@@ -8100,7 +8100,9 @@ class Component extends DCLogic {
       appMargin: s.phoneOnly ? '0' : 'var(--space-6) auto calc(var(--space-8) * 2)',
       appShadow: s.phoneOnly ? 'none' : 'var(--shadow-md)',
       appMaxWidth: s.phoneOnly ? 'none' : (s.device === 'tablet' ? '980px' : '372px'),
-      appHeight: s.phoneOnly ? '100dvh' : (s.device === 'tablet' ? '780px' : '760px'),
+      pcUrl: 'smartcare.hospital.kr/' + s.pcView,
+      appFix: s.phoneOnly ? 'position: fixed; inset: 0; max-width: none;' : '',
+      appHeight: s.phoneOnly ? '100%' : (s.device === 'tablet' ? '780px' : '760px'),
       appBezel: s.phoneOnly ? '0' : (s.device === 'tablet' ? '14px' : '11px'),
       appOuterRadius: s.phoneOnly ? '0' : (s.device === 'tablet' ? '28px' : '38px'),
       appInnerRadius: s.phoneOnly ? '0' : (s.device === 'tablet' ? '20px' : '29px'),
@@ -8200,7 +8202,6 @@ class Component extends DCLogic {
       logout: () => { if (Component.isStaffMode()) { this.authSignOut(); return; } try { localStorage.removeItem(Component.VIEW_KEY); sessionStorage.removeItem(Component.VIEW_KEY); } catch (e) {} this.setState({ logged: false, device: Component.detectDevice() }); },
 
       role: myRoles.join(' · '), userName: userName, userInitial: userName.slice(0, 1),
-      pcUrl: 'smartcare.hospital.kr/' + s.pcView,
       pcNav: navItems.filter(n => pcAllowedViews.indexOf(n.key) >= 0).map(n => ({
         label: n.label, icon: n.icon,
         active: n.views.indexOf(s.pcView) >= 0, inactive: n.views.indexOf(s.pcView) < 0,
@@ -10855,7 +10856,7 @@ class Component extends DCLogic {
       })(),
       setNotifyTab: allowSet('notify') && stEff === 'notify',
       setPrivacyTab: allowSet('privacy') && stEff === 'privacy',
-      setJournalTab: allowSet('journal') && stEff === 'journal',
+      setJournalTab: allowSet('approval') && stEff === 'approval',
       ...(() => {
         const roles = this.sigRoles();
         const upd = (i, patch) => { const l = roles.map(r => Object.assign({}, r)); l[i] = Object.assign({}, l[i], patch); this.saveSigRoles(l); };
