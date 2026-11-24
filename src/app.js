@@ -2885,7 +2885,7 @@ class Component extends DCLogic {
     const r = Component.setRolesOf(m);
     if (r.indexOf('시스템관리자') >= 0) return true;
     const t = Component.SET_TABS.find(x => x.k === key);
-    if (!t || t.sys) return false;
+    if (!t || t.hidden) return false; // 데이터 이전은 시스템 관리자 전용
     const list = Array.isArray(m && m.setAccess) ? m.setAccess : Component.setDefaults(m);
     return list.indexOf(key) >= 0;
   }
@@ -6019,6 +6019,35 @@ class Component extends DCLogic {
       calTitle: Y + '년 ' + M + '월',
       calPrev: () => shift(-1), calNext: () => shift(1),
       calToday: () => this.setState({ calMonth: today.slice(0, 7), planDay: today }),
+      // 캘린더 아래 '이번 달 운영 요약'
+      ...(() => {
+        const mp = (s.plans || []).filter(p => (p.date || '').slice(0, 7) === ym && p.status !== '취소');
+        const bs = mp.map(p => ({ p, b: this.planBadges(p, s) }));
+        const done = bs.filter(x => x.b.progLabel === '완료').length;
+        const wait = bs.filter(x => x.b.progLabel === '예정').length;
+        const miss = bs.filter(x => x.b.showLog && x.b.logShort === '미작성').length;
+        const cancelled = (s.plans || []).filter(p => (p.date || '').slice(0, 7) === ym && p.status === '취소').length;
+        const byProg = {}; mp.forEach(p => { byProg[p.program] = (byProg[p.program] || 0) + 1; });
+        const top = Object.keys(byProg).map(k => ({ k, n: byProg[k] })).sort((x, y) => y.n - x.n).slice(0, 5);
+        const mx = Math.max(1, ...top.map(x => x.n));
+        const BC = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.13 285)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 200)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.13 150)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 30)'];
+        const nxt = (s.plans || []).filter(p => p.status !== '취소' && (p.date + ' ' + (p.start || '')) >= (today + ' ' + new Date().toTimeString().slice(0, 5))).sort((x, y) => (x.date + (x.start || '')).localeCompare(y.date + (y.start || '')))[0];
+        return {
+          csTitle: M + '월 운영 요약',
+          csTiles: [
+            { icon: 'ph ph-calendar-check', label: '전체 일정', n: String(mp.length), hue: 255 },
+            { icon: 'ph ph-check-circle', label: '완료', n: String(done), hue: 150 },
+            { icon: 'ph ph-clock', label: '예정', n: String(wait), hue: 230 },
+            { icon: 'ph ph-note-pencil', label: '일지 미작성', n: String(miss), hue: 25 }
+          ].map(t => ({ icon: t.icon, label: t.label, n: t.n, fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.13 ' + t.hue + ')', bg: 'color-mix(in oklch, oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 ' + t.hue + ') 13%, transparent)', bd: 'color-mix(in oklch, oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 ' + t.hue + ') 38%, transparent)' })),
+          csBars: top.map((x, i) => ({ label: x.k, n: x.n + '회', w: Math.max(6, Math.round(x.n / mx * 100)) + '%', c: BC[i % BC.length] })),
+          csHasBars: top.length > 0, csNoBars: top.length === 0,
+          csCancelled: cancelled ? '취소 ' + cancelled + '건' : '',
+          csNextHas: !!nxt, csNextNo: !nxt,
+          csNext: nxt ? { title: nxt.program, when: (nxt.date === today ? '오늘' : nxt.date.slice(5).replace('-', '/')) + ' ' + (nxt.start || '') + (nxt.end ? '~' + nxt.end : ''), where: [nxt.place, (nxt.staff || []).join(', ')].filter(Boolean).join(' · ') } : { title: '', when: '', where: '' },
+          csGoNext: () => { if (nxt) this.setState({ calMonth: nxt.date.slice(0, 7), planDay: nxt.date }); }
+        };
+      })(),
       calCells: calCells,
       calBgBase: CB, calBgHi: CBhi,
       calFrame: CAL.frame, calFrameShadow: CAL.frameSh, calText: CAL.text, calLine: CAL.line,
@@ -7128,11 +7157,11 @@ class Component extends DCLogic {
         setAccSys: rolesOf(m).indexOf('시스템관리자') >= 0,
         setAcc: Component.SET_TABS.filter(t => !t.hidden).map(t => {
           const on = Component.setAllowed(m, t.k);
-          const off = !!t.sys;
+          const off = !!t.sys && !isSys; // 기관 관리·데이터 서버는 시스템 관리자만 다른 계정에 부여 가능
           return {
-            label: t.n, sysOnly: off, on: on, cls: on ? 'sel-chip' : '', locked: locked || off, mark: on ? 'ph-fill ph-check-square' : 'ph ph-square',
+            label: t.n + (t.sys ? ' ★' : ''), sysOnly: off, on: on, cls: on ? 'sel-chip' : '', locked: locked || off, mark: on ? 'ph-fill ph-check-square' : 'ph ph-square',
             Bd: on ? 'var(--color-accent)' : 'var(--color-neutral-700)', Bg: on ? 'var(--color-accent-900)' : 'var(--color-neutral-900)', Fg: on ? 'var(--color-accent-100)' : 'var(--color-neutral-500)',
-            tip: off ? '시스템 관리자 전용' : (on ? '사용 중 · 누르면 끔' : '꺼짐 · 누르면 켬'),
+            tip: off ? '시스템 관리자만 부여할 수 있습니다' : (on ? '사용 중 · 누르면 끔' : '꺼짐 · 누르면 켬'),
             toggle: () => {
               const cur = Array.isArray(m.setAccess) ? m.setAccess.slice() : Component.setDefaults(m);
               const next = on ? cur.filter(k => k !== t.k) : cur.concat([t.k]);
@@ -7657,9 +7686,13 @@ class Component extends DCLogic {
           const isOverG = dr && dr.t === 'g' && ov === 'g:' + g.k && !isDragG;
           const open = mini || editing || !col[g.k];
           const gOn = g.items.some(i => i.on);
-          const TONES = { patients: 0.74 + ' 0.12 230', logs: '0.74 0.13 300', stats: '0.76 0.13 150', settings: '0.80 0.12 70' };
-          const tp = (TONES[g.k] || '0.74 0.12 260').split(' ');
-          const tone = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * ' + (tp.length === 3 ? tp[0] : '0.74') + ') ' + (tp.length === 3 ? tp[1] + ' ' + tp[2] : '0.12 230') + ')';
+          // 묶음마다 기본 색이 있고, 사용자가 메뉴 편집(↕)에서 원하는 색으로 바꿀 수 있음 (계정별 저장)
+          const PAL = { '파랑': '0.74 0.12 230', '보라': '0.74 0.13 300', '초록': '0.76 0.13 150', '주황': '0.80 0.12 70', '분홍': '0.76 0.14 355', '청록': '0.76 0.11 195', '빨강': '0.72 0.15 25', '회색': '0.74 0.02 260' };
+          const DEFC = { patient: '파랑', program: '보라', stats: '초록', settings: '주황' };
+          const pick = ((ord.colors || {})[g.k]);
+          const colName = PAL[pick] ? pick : (DEFC[g.k] || '파랑');
+          const toneOf = (nm) => { const t = PAL[nm].split(' '); return 'oklch(calc(var(--lf1,0) + var(--lf2,1) * ' + t[0] + ') ' + t[1] + ' ' + t[2] + ')'; };
+          const tone = toneOf(colName);
           const gCount = g.items.reduce((n, i) => n + (parseInt(i.badge, 10) || 0), 0);
           return {
             label: g.label, icon: g.icon, open: open, openStr: open ? '1' : '0', key: g.k,
@@ -7670,6 +7703,10 @@ class Component extends DCLogic {
             iconFg: tone,
             // 메뉴 묶음마다 고유한 색 (하위 메뉴 영역의 세로선·바탕에도 같은 색을 써서 어느 묶음의 메뉴인지 한눈에 보이게)
             subTone: tone,
+            colors: Object.keys(PAL).map(nm => ({
+              name: nm, bg: toneOf(nm), on: nm === colName, ring: nm === colName ? '0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text)' : 'inset 0 0 0 1px rgba(0,0,0,0.25)',
+              go: (e) => { if (e && e.stopPropagation) e.stopPropagation(); saveOrder(Object.assign({}, ord, { colors: Object.assign({}, ord.colors || {}, { [g.k]: nm }) })); this.flash(g.label + ' 메뉴 색: ' + nm); }
+            })),
             subBg: 'linear-gradient(90deg, color-mix(in oklch, ' + tone + ' 10%, transparent), color-mix(in oklch, ' + tone + ' 3%, transparent) 70%, transparent)',
             subLine: mini ? 'none' : '2px solid color-mix(in oklch, ' + tone + ' 70%, transparent)',
             hasCount: !open && gCount > 0, count: String(gCount),
@@ -10332,6 +10369,12 @@ class Component extends DCLogic {
           ntGoCloud: () => this.setState({ setTab: 'cloud' }),
           ntTodayLabel: dayTxt + ' · ' + plansToday.length + '건',
           ntHasPlans: plansToday.length > 0, ntNoPlans: plansToday.length === 0,
+          ntRecips: s.roster.filter(m => m.org !== '*' && m.type !== '시스템(알림)' && (isSys ? (m.org === orgIdCur) : (m.org === me.org))).map(m => {
+            const mail = (m.email || '').trim();
+            const st = !mail ? 'Gmail 없음' : (m.notify ? '수신' : '수신 꺼짐');
+            return { name: m.name || '(이름 없음)', mail: mail || '—', st: st, ok: st === '수신', stFg: st === '수신' ? 'var(--color-accent-100)' : 'var(--color-neutral-500)', stBg: st === '수신' ? 'var(--color-accent-900)' : 'var(--color-neutral-900)', stBd: st === '수신' ? 'var(--color-accent)' : 'var(--color-neutral-700)' };
+          }),
+          ntRecipCount: s.roster.filter(m => m.org !== '*' && m.type !== '시스템(알림)' && (isSys ? (m.org === orgIdCur) : (m.org === me.org)) && (m.email || '').trim() && m.notify).length,
           ntRows: plansToday.map(p => {
             const ok = (p.staff || []).filter(n => reach(n));
             const miss = (p.staff || []).filter(n => !reach(n));
@@ -10614,7 +10657,7 @@ class Component extends DCLogic {
       posOpts: ['실장', '팀장', '병동장', '수간호사', '주임간호사', '간호사', '사회복지사', '물리치료사', '임상병리사', '행정', '자원봉사자', '실습생', '본사', '시스템(알림)', '기타'],
       acctOrgChips: (isSys ? [{ id: 'ALL', name: '전체' }].concat(s.orgs) : s.orgs.filter(o => o.id === me.org)).map(o => ({
         name: o.name,
-        count: s.roster.filter(m => m.org !== '*' && (o.id === 'ALL' || m.org === o.id)).length,
+        count: s.roster.filter(m => m.org !== '*' && m.type !== '시스템(알림)' && (o.id === 'ALL' || m.org === o.id)).length,
         on: acctOrg === o.id, off: acctOrg !== o.id,
         go: () => { if (isSys) this.setState({ acctOrg: o.id }); }
       })),

@@ -237,12 +237,12 @@
               <button sc-camel-on-click="{{ sbToggleEdit }}" class="btn btn-primary" style="min-height: 32px; padding: 0 10px; font-size: 12.5px;"><i class="ph ph-check"></i> 완료</button>
             </sc-if>
             <sc-if value="{{ sbNotEditing }}" hint-placeholder-val="{{ true }}">
-              <button sc-camel-on-click="{{ sbToggleEdit }}" class="btn btn-ghost" title="메뉴 순서 편집" aria-label="메뉴 순서 편집" style="min-height: 32px; width: 32px; padding: 0; justify-content: center; color: var(--color-neutral-500);"><i class="ph ph-arrows-down-up" style="font-size: 16px;"></i></button>
+              <button sc-camel-on-click="{{ sbToggleEdit }}" class="btn btn-ghost" title="메뉴 순서·색상 편집" aria-label="메뉴 순서 편집" style="min-height: 32px; width: 32px; padding: 0; justify-content: center; color: var(--color-neutral-500);"><i class="ph ph-arrows-down-up" style="font-size: 16px;"></i></button>
             </sc-if>
           </sc-if>
         </div>
         <sc-if value="{{ sbEditing }}" hint-placeholder-val="{{ false }}">
-          <div style="margin: 0 var(--space-1) var(--space-2); padding: 8px 10px; border-radius: 6px; box-shadow: 0 0 0 1px var(--color-accent-800); font-size: 12.5px; line-height: 1.6; color: var(--color-accent-300);">메뉴 묶음과 항목을 끌어서 순서를 바꾸세요. 자동 저장됩니다.</div>
+          <div style="margin: 0 var(--space-1) var(--space-2); padding: 8px 10px; border-radius: 6px; box-shadow: 0 0 0 1px var(--color-accent-800); font-size: 12.5px; line-height: 1.6; color: var(--color-accent-300);">메뉴 묶음과 항목을 끌어서 순서를 바꾸고, 묶음 아래 색 점으로 원하는 색을 고르세요. 자동 저장됩니다.</div>
         </sc-if>
         <nav style="display: flex; flex-direction: column; gap: var(--space-4);">
           <sc-for list="{{ sbGroups }}" as="g" hint-placeholder-count="4">
@@ -256,6 +256,11 @@
                   <i class="{{ g.caret }}" style="font-size: 14px; color: var(--color-neutral-500);"></i>
                 </sc-if>
               </button>
+              <sc-if value="{{ sbEditing }}" hint-placeholder-val="{{ false }}">
+                <div role="group" aria-label="{{ g.label }} 메뉴 색상" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px 4px;"><i class="ph ph-palette" style="font-size: 15px; color: var(--color-neutral-500);"></i>
+                  <sc-for list="{{ g.colors }}" as="cl" hint-placeholder-count="8"><button type="button" sc-camel-on-click="{{ cl.go }}" data-keep="1" title="{{ cl.name }}" aria-label="{{ cl.name }}" aria-pressed="{{ cl.on }}" style="width: 20px; height: 20px; flex: none; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: {{ cl.bg }}; box-shadow: {{ cl.ring }};"></button></sc-for>
+                </div>
+              </sc-if>
               <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
                 <div data-sb-sub="1" style="display: flex; flex-direction: column; gap: 2px; margin: 6px 0 4px {{ sbSubIndent }}; padding: 6px 6px 6px {{ sbSubPad }}; border-left: {{ g.subLine }}; border-radius: 0 12px 12px 0; background: {{ g.subBg }};">
                 <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
@@ -1436,7 +1441,7 @@
 
               <!-- 캘린더 -->
               <div style="min-width: 0; display: {{ calDisplay }}; flex-direction: column; padding: 2px; border-radius: 16px; background: {{ calFrame }}; box-shadow: {{ calFrameShadow }};">
-               <div style="display: flex; flex-direction: column; gap: var(--space-4); border-radius: 14px; overflow: visible; background: {{ calBgBase }}; color: {{ calText }}; transition: background 200ms ease;">
+               <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--space-4); border-radius: 14px; overflow: visible; background: {{ calBgBase }}; color: {{ calText }}; transition: background 200ms ease;">
                 <div style="position: relative; display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-4) var(--space-6); border-radius: 14px 14px 0 0; background: transparent; border-bottom: 1px solid {{ calLine }};">
                   <span style="width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex: none; background: linear-gradient(180deg, var(--color-accent-700), var(--color-accent-900)); box-shadow: inset 0 1px 0 rgba(233,233,237,0.18), 0 3px 8px rgba(0,0,0,0.4);"><i class="ph ph-calendar-blank" style="font-size: 20px; color: var(--color-accent-100);"></i></span>
                   <button sc-camel-on-click="{{ calPrev }}" class="btn btn-secondary" style="min-height: 36px; width: 36px; padding: 0; justify-content: center;" aria-label="이전 달"><i class="ph ph-caret-left"></i></button>
@@ -1485,6 +1490,33 @@
                   <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--color-neutral-600);"></span>취소</span>
                   <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.10 * var(--lc,1)) 25); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.06 25);">미작성</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.38) calc(0.08 * var(--lc,1)) 80); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.07 85);">검수</span><span style="font-size: 11px; padding: 0 6px; border-radius: 999px; background: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.07 * var(--lc,1)) 150); color: oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.07 150);">확정</span>일지 상태</span>
                   <span style="margin-left: auto;">날짜 클릭 → 그날 일정 · 더블클릭 → 바로 등록</span>
+                </div>
+                <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--space-4); margin: 0 var(--space-4) var(--space-4); padding: var(--space-5, 18px) var(--space-5, 18px); border-radius: 16px; background: linear-gradient(160deg, color-mix(in oklch, var(--color-accent) 9%, transparent), transparent 60%); box-shadow: inset 0 0 0 1px {{ calLine }};">
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"><i class="ph-fill ph-sparkle" style="font-size: 16px; color: var(--color-accent-300);"></i><span style="font-size: 15px; font-weight: 600;">{{ csTitle }}</span><span style="font-size: 12.5px; opacity: 0.7;">{{ csCancelled }}</span></div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px;">
+                    <sc-for list="{{ csTiles }}" as="t" hint-placeholder-count="4">
+                      <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: {{ t.bg }}; box-shadow: inset 0 0 0 1px {{ t.bd }};">
+                        <span style="width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; background: {{ t.bd }};"><i class="{{ t.icon }}" style="font-size: 19px; color: {{ t.fg }};"></i></span>
+                        <span style="display: flex; flex-direction: column; line-height: 1.15;"><span style="font-size: 12.5px; opacity: 0.75; white-space: nowrap;">{{ t.label }}</span><span style="font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums;">{{ t.n }}</span></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: stretch;">
+                    <div style="display: flex; flex-direction: column; gap: 9px; min-width: 0;">
+                      <span style="font-size: 12.5px; opacity: 0.75;">프로그램별 진행 횟수</span>
+                      <sc-for list="{{ csBars }}" as="b" hint-placeholder-count="3">
+                        <div style="display: grid; grid-template-columns: minmax(70px, 110px) 1fr 38px; align-items: center; gap: 10px; font-size: 13.5px;"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ b.label }}</span><span style="height: 9px; border-radius: 999px; background: color-mix(in oklch, currentColor 10%, transparent); overflow: hidden;"><span style="display: block; height: 100%; width: {{ b.w }}; border-radius: 999px; background: linear-gradient(90deg, {{ b.c }}, color-mix(in oklch, {{ b.c }} 70%, white));"></span></span><span style="text-align: right; font-variant-numeric: tabular-nums; opacity: 0.8;">{{ b.n }}</span></div>
+                      </sc-for>
+                      <sc-if value="{{ csNoBars }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13.5px; opacity: 0.65;">이 달에는 등록된 일정이 없습니다. 날짜를 두 번 누르면 바로 등록할 수 있어요.</span></sc-if>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 14px; background: linear-gradient(145deg, color-mix(in oklch, var(--color-accent) 16%, transparent), color-mix(in oklch, var(--color-accent) 5%, transparent)); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-accent) 35%, transparent); min-width: 0;">
+                      <span style="font-size: 12.5px; opacity: 0.75; display: flex; align-items: center; gap: 6px;"><i class="ph ph-arrow-circle-right" style="font-size: 16px;"></i>다음 일정</span>
+                      <sc-if value="{{ csNextHas }}" hint-placeholder-val="{{ false }}">
+                        <button type="button" sc-camel-on-click="{{ csGoNext }}" data-keep="1" style="all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 3px;"><span style="font-size: 17px; font-weight: 600;">{{ csNext.title }}</span><span style="font-size: 13.5px; font-variant-numeric: tabular-nums;">{{ csNext.when }}</span><span style="font-size: 12.5px; opacity: 0.75; line-height: 1.5;">{{ csNext.where }}</span></button>
+                      </sc-if>
+                      <sc-if value="{{ csNextNo }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13.5px; opacity: 0.65;">예정된 일정이 없습니다</span></sc-if>
+                    </div>
+                  </div>
                 </div>
                </div>
               </div>
@@ -3228,6 +3260,19 @@
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+                  <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;"><span style="font-size: 16px;">메일 알림 수신 명단</span><span class="tag tag-outline" style="font-size: 12px;">받는 사람 {{ ntRecipCount }}명</span></div>
+                  <div style="font-size: 13px; color: var(--color-neutral-500); line-height: 1.6;">이 기관 계정 중 Gmail이 입력되고 수신이 켜진 사람에게 발송됩니다. 바꾸려면 설정 › 계정 · 권한에서 해당 계정의 Gmail·수신을 수정하세요.</div>
+                  <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                    <sc-for list="{{ ntRecips }}" as="r" hint-placeholder-count="3">
+                      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); font-size: 14px;">
+                        <span style="min-width: 90px;">{{ r.name }}</span><span style="flex: 1; min-width: 160px; color: var(--color-neutral-400); word-break: break-all;">{{ r.mail }}</span>
+                        <span style="padding: 2px 10px; border-radius: 999px; border: 1px solid {{ r.stBd }}; background: {{ r.stBg }}; color: {{ r.stFg }}; font-size: 12.5px; white-space: nowrap;">{{ r.st }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
                   <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
                     <span style="font-size: 16px;">오늘 알림 미리보기</span>
                     <span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ ntTodayLabel }}</span>
@@ -3557,7 +3602,7 @@
                               <button type="button" class="{{ sa.cls }}" sc-camel-on-click="{{ sa.toggle }}" disabled="{{ sa.locked }}" aria-pressed="{{ sa.on }}" title="{{ sa.tip }}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid {{ sa.Bd }}; background: {{ sa.Bg }}; color: {{ sa.Fg }}; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap;"><i class="{{ sa.mark }}" style="font-size: 15px;"></i>{{ sa.label }}</button>
                             </sc-for>
                           </div>
-                          <div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.6;">켠 항목만 이 사용자의 설정 화면에 나타납니다. 기관 관리 · 데이터 서버는 시스템 관리자만 쓸 수 있습니다.</div>
+                          <div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.6;">켠 항목만 이 사용자의 설정 화면에 나타납니다. ★ 표시(기관 관리 · 데이터 서버)는 시스템 관리자만 다른 계정에 부여할 수 있습니다.</div>
                           </div>
                           </sc-if>
                           <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-neutral-900); min-width: 0;">

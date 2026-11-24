@@ -35,6 +35,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     for (const b of await a.locator('button[aria-label="상세 열기·닫기"]:visible').all()) await b.click();
     await a.waitForTimeout(500);
     check('계정 상세에 "설정 메뉴 접근" 구역이 있음', (await a.locator('text=설정 메뉴 접근').count()) >= 2);
+    check('기관 관리자에게는 기관 관리 칸이 잠김', await a.locator('button:disabled', { hasText: '기관 관리' }).count() >= 1);
     // 시스템 관리자가 김체험(첫 계정)의 일정 알림을 끄고, 김체험으로 로그인하면 숨겨져야 함
     const c = await login('admin', 'demo1234', 'text=계정 · 권한');
     await c.locator('text=계정 · 권한 >> visible=true').first().click(); await c.waitForTimeout(1200);
@@ -47,7 +48,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     check('관리자 기본값: 일정 알림 켜짐 · 선택 칸이 강조(sel-chip)', (await first.getAttribute('aria-pressed')) === 'true' && /sel-chip/.test(await first.getAttribute('class')));
     await first.click(); await c.waitForTimeout(1800);
     check('끄면 즉시 반영', (await pick('일정 알림').first().getAttribute('aria-pressed')) === 'false');
-    check('기관 관리 · 데이터 서버 칸은 일반 계정에서 잠김', await c.locator('button:disabled', { hasText: '기관 관리' }).count() >= 1);
+    check('시스템 관리자는 기관 관리 칸도 켤 수 있음(잠기지 않음)', await c.locator('button:not([disabled])', { hasText: '기관 관리' }).count() >= 1);
     check('화면 오류 없음(시스템 관리자)', c.errs.length === 0, c.errs.slice(0, 2).join('|'));
     await c.waitForTimeout(1500);
     const d = await login('100101', '1234');

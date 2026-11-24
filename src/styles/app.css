@@ -195,16 +195,13 @@
   /* 펼친 그룹: 머리 아래 가는 구분선 */
   html[data-theme="light"] [data-sb-group][data-open="1"] [data-sb-head] { border-radius: 10px 10px 0 0 !important; box-shadow: 0 1px 0 #eceff4 !important; margin-bottom: 4px; }
   /* 그룹 아이콘: 그룹별 색 칸 */
-  html[data-theme="light"] [data-sb-icon] { border-radius: 8px !important; width: 26px !important; height: 26px !important; background: #e6ebf7 !important; color: #1e3a8a !important; }
-  html[data-theme="light"] [data-sb-icon="patients"], html[data-theme="light"] [data-sb-icon="patient"] { background: #e6f4ea !important; color: #1b6b2c !important; }
-  html[data-theme="light"] [data-sb-icon="stats"] { background: #fff1db !important; color: #8a5a00 !important; }
-  html[data-theme="light"] [data-sb-icon="settings"] { background: #eef0f3 !important; color: #3a4252 !important; }
+  html[data-theme="light"] [data-sb-icon] { border-radius: 8px !important; width: 26px !important; height: 26px !important; }
   /* 하위 메뉴: 안내선 없이 카드 안에 */
-  html[data-theme="light"] [data-sb-sub] { margin: 0 !important; padding-left: 0 !important; border-left: 0 !important; }
+  html[data-theme="light"] [data-sb-sub] { margin-top: 2px !important; margin-bottom: 2px !important; }
   html[data-theme="light"] [data-sb-sub] button { border: 0 !important; box-shadow: none !important; min-height: 38px !important; border-radius: 10px !important; font-size: 14.5px !important; color: #26303d !important; background: transparent !important; }
   html[data-theme="light"] [data-sb-sub] button:hover { background: #f1f4f8 !important; }
-  html[data-theme="light"] [data-sb-sub] button[aria-current="page"] { background: #1e3a8a !important; color: #ffffff !important; font-weight: 600 !important; box-shadow: 0 4px 10px rgba(30, 58, 138, 0.25) !important; }
-  html[data-theme="light"] [data-sb-sub] button[aria-current="page"] i { color: #ffffff !important; }
+  html[data-theme="light"] [data-sb-sub] button[aria-current="page"] { background: rgba(30, 58, 138, 0.10) !important; color: #14286b !important; font-weight: 700 !important; border: 1.5px solid #1e3a8a !important; box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.12) !important; }
+  html[data-theme="light"] [data-sb-sub] button[aria-current="page"] i { color: #1e3a8a !important; }
   /* 버튼: 주요 = 남색 + 큰 그림자, 보조 = 흰 바탕 + 그림자 (테두리 없음) · 모서리 12px */
   html[data-theme="light"] .btn-primary { box-shadow: 0 5px 12px rgba(30, 58, 138, 0.28) !important; }
   html[data-theme="light"] .btn-secondary { background: #ffffff !important; border: 0 !important; box-shadow: 0 3px 10px rgba(20, 30, 50, 0.10) !important; }
@@ -255,7 +252,7 @@
     .sc-login-form { padding: 14px 22px 30px !important; justify-content: flex-start !important; }
   }
   /* 라이트 모드: 선택된 메뉴(진한 파란 바탕) 안의 숫자 배지는 어두운 바탕 + 흰 글씨로 */
-  html[data-theme="light"] [data-sb-sub] button[aria-current="page"] span[style*="999px"] { background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; }
+  html[data-theme="light"] [data-sb-sub] button[aria-current="page"] span[style*="999px"] { background: #1e3a8a !important; color: #ffffff !important; }
 /* AI 비서 버튼: 은은하게 숨 쉬는 빛 (움직임 줄이기 설정이면 멈춤) */
 .sc-ai-fab { position: fixed; }
 .sc-ai-fab-ring { position: absolute; inset: -5px; border-radius: 50%; pointer-events: none; border: 2px solid rgba(120, 110, 255, 0.55); animation: scAiPulse 2.8s ease-out infinite; }
@@ -273,3 +270,8 @@ html[data-theme="light"] .sel-chip { background: #1e3a8a !important; border-colo
 html[data-theme="light"] .sel-chip, html[data-theme="light"] .sel-chip *,
 html[data-theme="light"] button[aria-pressed="true"]:not(.btn-ghost):not([data-keep]), html[data-theme="light"] button[aria-pressed="true"]:not(.btn-ghost):not([data-keep]) * { color: #ffffff !important; }
 html[data-theme="light"] button[aria-pressed="true"]:not(.btn-ghost):not([data-keep]) { background: #1e3a8a !important; border-color: #1e3a8a !important; font-weight: 600 !important; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.20) !important; }
+
+html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] span:not([style*="999px"]) { color: #14286b !important; }
+html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] i { color: #1e3a8a !important; }
+html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] { background: rgba(30, 58, 138, 0.10) !important; color: #14286b !important; font-weight: 700 !important; border: 1.5px solid #1e3a8a !important; box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.12) !important; }
+html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] span[style*="999px"] { background: #1e3a8a !important; color: #ffffff !important; }
