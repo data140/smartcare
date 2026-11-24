@@ -6792,7 +6792,7 @@ class Component extends DCLogic {
           name: g.label, color: col, icon: byWard ? 'ph ph-buildings' : (ICON[g.label] || 'ph ph-squares-four'),
           tint: 'color-mix(in oklch, ' + col + ' 24%, transparent)',
           meta: '구성 비중 ' + (totP ? Math.round(g.people / totP * 100) : 0) + '% · ' + rankOf[i] + '위',
-          kpis: [{ label: '참여 건수', v: g.count, u: '건' }, { label: '실인원', v: g.people, u: '명' }, { label: '1인당', v: g.people ? (g.count / g.people).toFixed(1) : '0', u: '회' }],
+          kpis: [{ label: '연인원', v: g.count, u: '건' }, { label: '실인원', v: g.people, u: '명' }, { label: '1인당', v: g.people ? (g.count / g.people).toFixed(1) : '0', u: '회' }],
           rateLabel: byWard ? '재원 환자 대비 참여율' : '정원 대비 참여율',
           fillTxt: rate == null ? (byWard ? '—' : '정원 미입력') : rate + '%', fillW: (rate || 0) + '%', capTxt: denTxt
         };
@@ -9394,7 +9394,14 @@ class Component extends DCLogic {
       }),
       accentHex: s.accent || '#9184d9',
       customRing: ['#9184d9', '#4f8fe0', '#2fa59a', '#5aa55a', '#e08a3c', '#d9668f'].indexOf((s.accent || '#9184d9').toLowerCase()) < 0 ? '0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent)' : 'none',
-      onAccentPick: (e) => { const v = e.target.value; this.setState({ accent: v }); this.applyTheme(this.state.theme || 'dark', v); },
+      onAccentPick: (e) => {
+        const v = e.target.value;
+        // 색상 판을 끄는 동안 화면 전체를 다시 그리면 끊기므로, 색만 바로 바꾸고 저장은 잠시 멈춘 뒤 한 번만
+        if (this._accRaf) cancelAnimationFrame(this._accRaf);
+        this._accRaf = requestAnimationFrame(() => { this._accRaf = 0; this.applyTheme(this.state.theme || 'dark', v); });
+        clearTimeout(this._accT);
+        this._accT = setTimeout(() => this.setState({ accent: v }), 350);
+      },
       planSplitRef: this._planSplit,
       // 캘린더를 넓혀 오른쪽 목록 폭이 380px보다 좁아지면 목록을 캘린더 아래로 자동 이동
       ...(() => {
@@ -9538,7 +9545,7 @@ class Component extends DCLogic {
         return {
           ws06Cards: this.buildKpiCards([
             { key: 'w6p', label: '실인원', icon: 'ph ph-users-three', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', val: String(pp), unit: '명', sub: inWard ? '재원 ' + inWard + '명 중 ' + Math.round(pp / inWard * 100) + '% · 중복 제외' : '중복 제외 환자 수', pct: inWard ? pp / inWard * 100 : 0, arr: wk.map(w => w.pp), dUnit: '명' },
-            { key: 'w6n', label: '참여 건수', icon: 'ph ph-list-checks', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', val: String(n), unit: '건', sub: '연인원 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.n))) + '%', pct: peakPct(wk.map(w => w.n)), arr: wk.map(w => w.n), dUnit: '건' },
+            { key: 'w6n', label: '연인원', icon: 'ph ph-list-checks', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', val: String(n), unit: '건', sub: '연인원 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.n))) + '%', pct: peakPct(wk.map(w => w.n)), arr: wk.map(w => w.n), dUnit: '건' },
             { key: 'w6a', label: '1인당 평균', icon: 'ph ph-user-circle-plus', color: 'var(--color-accent)', val: pp ? (n / pp).toFixed(1) : '0', unit: '회', sub: '참여 건수 ÷ 실인원 · 기준 4회', pct: pp ? Math.min(100, n / pp / 4 * 100) : 0, target: null, arr: wk.map(w => w.avg), dUnit: '회', dDig: 1 },
             { key: 'w6s', label: '진행 회차', icon: 'ph ph-calendar-check', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', val: String(ss), unit: '회', sub: '일자 × 프로그램 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.ss))) + '%', pct: peakPct(wk.map(w => w.ss)), arr: wk.map(w => w.ss), dUnit: '회' }
           ]),
@@ -9959,8 +9966,8 @@ class Component extends DCLogic {
         cats: groups.map(g => g.label), catSubs: groups.map(g => g.sub),
         catColors: groups.map((g, i) => wsWard === '전체' ? ST06_PAL[i % ST06_PAL.length] : progColor(g.label)),
         series: [
-          { name: '실인원', unit: '명', values: groups.map(g => g.people), noSum: wsWard !== '전체' },
-          { name: '참여 건수', unit: '건', values: groups.map(g => g.count) }
+          { name: '실인원 (명)', unit: '명', values: groups.map(g => g.people), noSum: wsWard !== '전체' },
+          { name: '연인원 (건)', unit: '건', values: groups.map(g => g.count) }
         ],
         footFor: [wsPeople + '명', null],
         extraCols: [{ name: '1인당', values: groups.map(g => g.people ? (g.count / g.people).toFixed(1) + '회' : '—'), foot: wsPeople ? (wsScope.length / wsPeople).toFixed(1) + '회' : '—' }],
@@ -10106,8 +10113,8 @@ class Component extends DCLogic {
             ...statList,
             cats: pStats.map(x => x.p), catColors: pStats.map(x => progColor(x.p)),
             series: [
-              { name: '참여 건수', unit: '건', values: pStats.map(x => x.n) },
-              { name: '실인원', unit: '명', values: pStats.map(x => x.people), noSum: true }
+              { name: '연인원 (건)', unit: '건', values: pStats.map(x => x.n) },
+              { name: '실인원 (명)', unit: '명', values: pStats.map(x => x.people), noSum: true }
             ],
             footFor: [null, uniq(scope.map(r => r.name)).length + '명'],
             donutCaption: '전체 참여 건수', catHead: '프로그램', height: 260, note: periodTxt,
@@ -10128,7 +10135,7 @@ class Component extends DCLogic {
                 name: x.p, color: col, icon: ICON[x.p] || 'ph ph-squares-four',
                 tint: 'color-mix(in oklch, ' + col + ' 24%, transparent)',
                 meta: '구성 비중 ' + (tot ? Math.round(x.n / tot * 100) : 0) + '% · ' + (i + 1) + '위',
-                kpis: [{ label: '참여 건수', v: x.n, u: '건' }, { label: '실인원', v: x.people, u: '명' }, { label: '1인당', v: x.people ? (x.n / x.people).toFixed(1) : '0', u: '회' }],
+                kpis: [{ label: '연인원', v: x.n, u: '건' }, { label: '실인원', v: x.people, u: '명' }, { label: '1인당', v: x.people ? (x.n / x.people).toFixed(1) : '0', u: '회' }],
                 fillTxt: fill == null ? '정원 미입력' : fill + '%', fillW: (fill || 0) + '%',
                 capTxt: cap ? '일정 ' + pl.length + '회 · 정원 합계 ' + cap + '명' : '일정에 정원을 입력하면 표시됩니다'
               };
