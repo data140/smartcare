@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+/* 프로그램 운영일지 시험
+ *   python3 tools/build.py local-staff && node tests/journal.js
+ * 일정으로 자동 작성 → 수정 저장 → 미리보기 → Word/한글 파일(사진 포함)이 정상 파일인지, 휴대폰에서는 음성 입력 단추가 보이는지 확인 */
+const { chromium } = require('playwright');
+const { spawn, execFileSync } = require('child_process');
+const path = require('path'), fs = require('fs'), os = require('os');
+const PORT = 8949, BASE = 'http://localhost:' + PORT;
+const results = []; let failed = false;
+const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + name + (extra ? ' — ' + extra : '')); if (!ok) failed = true; };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+(async () => {
+  const srv = spawn('node', [path.join(__dirname, '..', 'tools', 'dev-server.js'), String(PORT), '--staff'], { stdio: ['ignore', 'pipe', 'inherit'] });
+  await new Promise((ok, fail) => { srv.stdout.once('data', ok); srv.once('exit', c => fail(new Error('서버 시작 실패 ' + c))); });
+  const browser = await chromium.launch();
+  const login = async (ctx, wait) => {
+    const p = await ctx.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message));
+    await p.goto(BASE + '/'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await p.locator('input[autocomplete="username"]').first().fill('100101');
+    await p.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await p.locator('button:has-text("로그인")').last().click();
+    await p.waitForSelector(wait || 'text=가상환자1', { timeout: 20000 }); return p;
+  };
+  try {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
+    const p = await login(ctx);
+    const today = await p.evaluate(() => { const d = new Date(), q = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate()); });
+    // 오늘 일정(음악치료)에 사진 1장을 달아 둠 (서버 동기화가 덮어쓰지 않도록 잠시 기다린 뒤 새로고침)
+    await p.evaluate(([k, u]) => localStorage.setItem('smartcare.wsess.' + encodeURIComponent(k), JSON.stringify({ photos: [{ id: 'p1', url: u }], review: [], confirmed: false })), [today + '|음악치료', PNG]);
+    await sleep(2000); await p.reload(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
+    await p.locator('aside button:has-text("운영일지") >> visible=true').first().click(); await sleep(1000);
+    const body = await p.evaluate(() => document.body.innerText);
+    check('프로그램 하위 메뉴에 "운영일지"가 있고 일정 목록이 보임', /자동 초안/.test(body) && /음악치료/.test(body));
+    check('일정으로 자동 작성된 초안(내용·특이사항·차기계획)이 채워짐', await p.evaluate(() => [...document.querySelectorAll('textarea')].filter(t => t.offsetParent).every(t => t.value.length > 10)));
+    await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
+    check('사진이 앨범에서 자동으로 들어감', (await p.locator('img[alt="프로그램 사진"]').count()) >= 1);
+    check('PC에서는 음성 입력 단추가 없음(타이핑)', (await p.locator('button:has-text("음성 입력") >> visible=true').count()) === 0);
+    await p.locator('textarea').first().fill('시험 내용 직접 수정'); await sleep(900);
+    await p.reload(); await p.waitForSelector('aside button:has-text("운영일지")', { timeout: 20000 }); await sleep(800);
+    if (!(await p.locator('button:has-text("음악치료") >> visible=true').count())) await p.locator('aside button:has-text("운영일지") >> visible=true').first().click();
+    await sleep(500);
+    await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
+    check('고친 내용은 새로고침 후에도 유지', (await p.locator('textarea').first().inputValue()) === '시험 내용 직접 수정');
+    await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click(); await sleep(700);
+    const frame = p.frames().find(f => f !== p.mainFrame() && /프로그램 운영일지|프 로 그 램/.test(f.url() + '')) || p.frames()[1];
+    const doc = await p.locator('iframe[title="운영일지 미리보기"]').getAttribute('srcdoc');
+    check('미리보기 문서에 표 항목과 수정 내용·사진이 들어감', /프로그램명/.test(doc) && /진 행 현 황/.test(doc) && /시험 내용 직접 수정/.test(doc) && /<img src="data:image\/png/.test(doc));
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jrn-'));
+    const save = async (label, name) => { const d = p.waitForEvent('download', { timeout: 15000 }); await p.locator('button:has-text("' + label + '") >> visible=true').first().click(); const dl = await d; const f = path.join(tmp, name); await dl.saveAs(f); return f; };
+    const docx = await save('Word', 'a.docx'), hwpx = await save('한글(hwpx)', 'a.hwpx');
+    const py = (code, f) => execFileSync('python3', ['-I', '-c', code, f], { encoding: 'utf8' }).trim();
+    check('Word 파일이 정상 문서이고 사진(그림)이 들어 있음', py("import sys,zipfile\nz=zipfile.ZipFile(sys.argv[1]);assert z.testzip() is None\nprint(any(n.startswith('word/media/') for n in z.namelist()) and b'\\xed\\x94\\x84' in z.read('word/document.xml'))", docx) === 'True');
+    check('한글(.hwpx) 파일이 올바른 구조(mimetype 첫 항목, XML 정상)', py("import sys,zipfile,xml.dom.minidom as m\nz=zipfile.ZipFile(sys.argv[1]);n=z.namelist();assert n[0]=='mimetype' and z.read('mimetype')==b'application/hwp+zip'\n[m.parseString(z.read(x)) for x in n if x.endswith(('.xml','.hpf'))]\nprint('ok')", hwpx) === 'ok');
+    check('화면 오류 없음(PC)', p.errs.length === 0, p.errs.slice(0, 2).join('|'));
+
+    // 휴대폰: 음성 입력 단추
+    const cm = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' });
+    const m = await login(cm, 'button:has-text("운영일지")');
+    await m.locator('button:has-text("운영일지") >> visible=true').first().click(); await sleep(1000);
+    check('휴대폰: 운영일지 탭에서 음성 입력 단추가 보임', (await m.locator('button:has-text("음성 입력") >> visible=true').count()) >= 1);
+    check('화면 오류 없음(휴대폰)', m.errs.length === 0, m.errs.slice(0, 2).join('|'));
+  } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
+  console.log('스마트케어 운영일지 시험\n' + results.join('\n'));
+  await browser.close(); srv.kill(); process.exit(failed ? 1 : 0);
+})();
