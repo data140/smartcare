@@ -108,6 +108,31 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     check('휴대폰에서 로그아웃하면 로그인 화면으로 돌아감', await pm.waitForSelector('input[autocomplete="username"]', { timeout: 15000 }).then(() => true, () => false));
     await ctxm.close();
 
+    // 4-5) 환자 이름·등록번호 가리기 (설정 › 개인정보 표시)
+    const pp = await browser.newPage({ viewport: { width: 1466, height: 1000 } });
+    pp.on('pageerror', e => errors.push(e.message));
+    await pp.goto(BASE + '/'); await pp.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await pp.locator('input[autocomplete="username"]').first().fill('100101'); await pp.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await pp.locator('button:has-text("로그인")').last().click(); await pp.waitForSelector('text=가상환자1', { timeout: 20000 }); await sleep(800);
+    check('가리기 전에는 환자 이름이 그대로 보임', await pp.evaluate(() => document.body.innerText.includes('가상환자1')));
+    await pp.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(600);
+    await pp.locator('button:has-text("개인정보 표시")').first().click(); await sleep(500);
+    check('설정에 "개인정보 표시" 탭이 있고 미리 보기가 보임', await pp.evaluate(() => document.body.innerText.includes('환자 이름') && document.body.innerText.includes('미리 보기')));
+    await pp.locator('button:has-text("김*순 · 가운데만 가림")').first().click(); await sleep(400);
+    check('이름 가림 "#*#" 미리 보기: 김명순A → 김*순A', await pp.evaluate(() => document.body.innerText.includes('김*순A')));
+    await pp.locator('button:has-text("00010*** · 앞 5자리만 보임")').first().click(); await sleep(400);
+    check('등록번호 가림 "#####*" 미리 보기: 00010617 → 00010***', await pp.evaluate(() => document.body.innerText.includes('00010***')));
+    await pp.locator('text=환자 등록 관리 >> visible=true').first().click(); await sleep(1200);
+    const ptxt = await pp.evaluate(() => document.body.innerText);
+    check('환자 목록의 이름이 가려져 보임 (가상환자1 → 가*환자1 형태)', !ptxt.includes('가상환자1') && /가\*환자1/.test(ptxt));
+    // 다른 시험에 영향이 없도록 설정을 원래대로(가리지 않음) 되돌림 — 이 설정은 서버에 저장되어 모든 화면에 적용됨
+    await pp.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(500);
+    await pp.locator('button:has-text("개인정보 표시")').first().click(); await sleep(400);
+    for (const b of await pp.locator('button:has-text("가리지 않음")').all()) await b.click();
+    await sleep(500);
+    check('가리지 않음으로 되돌리면 이름이 다시 그대로 보임', await (async () => { await pp.locator('text=환자 등록 관리 >> visible=true').first().click(); await sleep(900); return pp.evaluate(() => document.body.innerText.includes('가상환자1')); })());
+    await pp.close();
+
     // 5) 아이디 저장 (비밀번호는 저장하지 않음) · Enter 로 로그인
     const p6 = await browser.newPage({ viewport: { width: 1466, height: 900 } });
     p6.on('pageerror', e => errors.push(e.message));
