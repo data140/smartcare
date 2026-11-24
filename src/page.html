@@ -4423,16 +4423,11 @@
 
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--color-divider); padding: 4px 0 calc(8px + env(safe-area-inset-bottom)); flex: none; background: var(--color-bg);">
-          <sc-for list="{{ mobileTabs }}" as="t" hint-placeholder-count="5">
-            <sc-if value="{{ t.active }}" hint-placeholder-val="{{ false }}">
-              <button sc-camel-on-click="{{ t.go }}" style="background: transparent; border: 0; cursor: pointer; font: inherit; font-size: clamp(12.5px, 3.4vw, 15px); font-weight: 700; white-space: nowrap; color: var(--color-accent-300); display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 6px; min-height: clamp(66px, 18vw, 84px);"><i class="{{ t.icon }}" style="font-size: clamp(30px, 8.6vw, 44px);"></i>{{ t.label }}</button>
-            </sc-if>
-            <sc-if value="{{ t.inactive }}" hint-placeholder-val="{{ true }}">
-              <button sc-camel-on-click="{{ t.go }}" style="background: transparent; border: 0; cursor: pointer; font: inherit; font-size: clamp(12.5px, 3.4vw, 15px); font-weight: 500; white-space: nowrap; color: var(--color-neutral-300); display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 6px; min-height: clamp(66px, 18vw, 84px);" style-hover="color: var(--color-text);"><i class="{{ t.icon }}" style="font-size: clamp(30px, 8.6vw, 44px);"></i>{{ t.label }}</button>
-            </sc-if>
+        <nav class="sc-dock" aria-label="하단 메뉴">
+          <sc-for list="{{ mobileTabs }}" as="t" hint-placeholder-count="6">
+            <button type="button" class="sc-tab" aria-current="{{ t.cur }}" sc-camel-on-click="{{ t.go }}" data-keep="1"><span class="sc-tab-ic"><i class="{{ t.icon }}"></i></span><span class="sc-tab-lb">{{ t.label }}</span></button>
           </sc-for>
-        </div>
+        </nav>
       </div>
     </div>
   </sc-if>
