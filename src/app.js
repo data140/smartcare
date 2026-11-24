@@ -194,6 +194,8 @@ class Component extends DCLogic {
     });
     set['--color-accent'] = A; set['--color-accent-2'] = A;
     for (let i = 100; i <= 900; i += 100) { set['--color-accent-' + i] = ramp[i]; set['--color-accent-2-' + i] = ramp[i]; }
+    // 라이트 모드: 코드에 고정된 oklch 색(어두운 바탕용 밝은 글자색·어두운 배지 바탕)의 밝기를 뒤집어 라이트 바탕에서도 또렷하게
+    if (light) { set['--lf1'] = '1.25'; set['--lf2'] = '-1'; set['--lc'] = '0.45'; set['--tile-bg'] = 'rgba(20,30,50,0.05)'; }
     Object.keys(set).forEach(k => el.style.setProperty(k, set[k]));
     el.style.colorScheme = light ? 'light' : 'dark';
     el.setAttribute('data-theme', light ? 'light' : 'dark');
@@ -467,7 +469,7 @@ class Component extends DCLogic {
     const me = this.aiMe();
     const isSys = (Array.isArray(me.roles) ? me.roles : [me.role]).indexOf('시스템관리자') >= 0;
     const narrow = (s.vw || 1600) < 700;
-    const dotC = { red: '#e03131', amber: '#e8890c', green: '#2b8a3e' };
+    const dotC = { red: '#e03131', amber: '#e8890c', green: '#237a38' };
     // 배지 숫자만큼의 새 소식(밀린 일지 · 검수 필요)을 창을 열면 바로 보여줌
     const newsFmt = (d) => String(d || '').slice(5).replace('-', '/');
     const news = past.map(p => ({ t: '· ' + newsFmt(p.date) + ' ' + p.program + ' — 일지 미작성', c: 'amber' })).concat(iss.review.map(p => ({ t: '· ' + newsFmt(p.date) + ' ' + p.program + ' — 검수 필요', c: 'red' })));
@@ -1074,7 +1076,7 @@ class Component extends DCLogic {
     const prog = s.alProg || '전체', ward = s.alWard || '전체', st = s.alState || '전체', q = (s.alQ || '').trim();
     const sess = Object.assign({}, s.sessions || {});
     if (s.activeSession) sess[s.activeSession] = Object.assign({}, sess[s.activeSession] || {}, { review: s.review, confirmed: s.confirmed, photos: s.photos });
-    const COLORS = ['oklch(0.72 0.14 285)', 'oklch(0.74 0.11 200)', 'oklch(0.76 0.13 150)', 'oklch(0.80 0.12 85)', 'oklch(0.72 0.14 30)', 'oklch(0.74 0.13 335)'];
+    const COLORS = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 285)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.11 200)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.13 150)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 30)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.13 335)'];
     const progs = (s.programs || []).slice();
     const colorOf = (p) => COLORS[Math.max(0, progs.indexOf(p)) % COLORS.length];
     const wardOfPlan = (d, p) => { const pl = (s.plans || []).find(x => x.date === d && x.program === p); return pl ? (pl.ward || '전체') : ''; };
@@ -4750,7 +4752,7 @@ class Component extends DCLogic {
       const a = arr.filter(v => v != null); if (a.length < 2) return { txt: '주간 비교 데이터 부족', color: 'var(--color-neutral-500)' };
       const r = Math.round((a[a.length - 1] - a[a.length - 2]) * Math.pow(10, digits)) / Math.pow(10, digits);
       if (r === 0) return { txt: '– 변동 없음', color: 'var(--color-neutral-500)' };
-      return { txt: (r > 0 ? '▲ ' : '▼ ') + Math.abs(r) + unit, color: r > 0 ? 'oklch(0.76 0.14 145)' : 'oklch(0.70 0.17 25)' };
+      return { txt: (r > 0 ? '▲ ' : '▼ ') + Math.abs(r) + unit, color: r > 0 ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)' : 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25)' };
     };
     return list.map(c => {
       const p = Math.max(0, Math.min(100, c.pct || 0));
@@ -4772,7 +4774,7 @@ class Component extends DCLogic {
   // ───── 서버에 파일이 없는 현장사진 찾기 (끝없이 '불러오는 중'만 보이지 않게) ─────
   phMissing(url) { return !!(url && url.indexOf('wph:') === 0 && this._wphMissing && this._wphMissing[url.slice(4)]); }
   missingEl() {
-    return React.createElement('span', { style: { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'oklch(0.78 0.11 30)', fontSize: 12.5, textAlign: 'center', padding: 6, background: 'var(--color-neutral-900)' } },
+    return React.createElement('span', { style: { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.11 30)', fontSize: 12.5, textAlign: 'center', padding: 6, background: 'var(--color-neutral-900)' } },
       React.createElement('i', { className: 'ph ph-image-broken', style: { fontSize: 22 } }), '서버에 사진 파일 없음');
   }
   async checkWphMissing() {
@@ -4952,14 +4954,14 @@ class Component extends DCLogic {
     const today = this.todayIso();
     const prog = p.status === '취소' ? '취소' : p.status === '완료' || log === '확정' ? '완료' : '예정';
     const PB = {
-      '예정': { bg: 'oklch(0.36 0.07 240)', fg: 'oklch(0.90 0.05 240)' },
-      '완료': { bg: 'oklch(0.36 0.07 150)', fg: 'oklch(0.90 0.07 150)' },
+      '예정': { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.07 * var(--lc,1)) 240)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.05 240)' },
+      '완료': { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.07 * var(--lc,1)) 150)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.07 150)' },
       '취소': { bg: 'var(--color-neutral-800)', fg: 'var(--color-neutral-400)' }
     };
     const LB = {
-      '미작성': { bg: 'oklch(0.36 0.10 25)', fg: 'oklch(0.90 0.06 25)' },
-      '검수': { bg: 'oklch(0.38 0.08 80)', fg: 'oklch(0.92 0.07 85)' },
-      '확정': { bg: 'oklch(0.36 0.07 150)', fg: 'oklch(0.90 0.07 150)' }
+      '미작성': { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.10 * var(--lc,1)) 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.06 25)' },
+      '검수': { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.38) calc(0.08 * var(--lc,1)) 80)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.07 85)' },
+      '확정': { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.07 * var(--lc,1)) 150)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.07 150)' }
     };
     // 지나지 않은 일정의 미작성은 아직 정상이므로 표시하지 않음
     const showLog = p.status !== '취소' && !(log === '미작성' && p.date > today);
@@ -5009,7 +5011,7 @@ class Component extends DCLogic {
     const confirmed = !!ss.confirmed && rv.length > 0;
     const b = this.planBadges(p, s);
     const today = this.todayIso(), future = p.date > today, cancelled = p.status === '취소';
-    const G = 'oklch(0.80 0.13 150)', Y = 'oklch(0.85 0.13 85)', R = 'oklch(0.80 0.13 25)', N = 'var(--color-neutral-500)';
+    const G = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.13 150)', Y = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.13 85)', R = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.13 25)', N = 'var(--color-neutral-500)';
     const steps = [
       { label: '현장사진 첨부', done: photos > 0, note: photos ? photos + '장' : '없음' },
       { label: 'AI 판독', done: rv.length > 0, note: rv.length ? '완료' : (photos ? '실행 전' : '—') },
@@ -5030,10 +5032,10 @@ class Component extends DCLogic {
     else if (!known.length) { next = '참여자를 지정하세요'; tone = 'y'; }
     else { next = '검수 끝 — 확정하면 출석부에 반영됩니다'; tone = 'y'; }
     const TONE = {
-      g: { bg: 'oklch(0.30 0.06 150)', fg: 'oklch(0.92 0.06 150)', i: 'ph-fill ph-check-circle' },
-      y: { bg: 'oklch(0.32 0.07 85)', fg: 'oklch(0.94 0.06 85)', i: 'ph-fill ph-warning-circle' },
-      r: { bg: 'oklch(0.30 0.08 25)', fg: 'oklch(0.92 0.05 25)', i: 'ph-fill ph-warning-circle' },
-      b: { bg: 'oklch(0.30 0.06 240)', fg: 'oklch(0.92 0.04 240)', i: 'ph ph-calendar-check' },
+      g: { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.06 * var(--lc,1)) 150)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.06 150)', i: 'ph-fill ph-check-circle' },
+      y: { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.07 * var(--lc,1)) 85)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.94) 0.06 85)', i: 'ph-fill ph-warning-circle' },
+      r: { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.08 * var(--lc,1)) 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.05 25)', i: 'ph-fill ph-warning-circle' },
+      b: { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.06 * var(--lc,1)) 240)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.04 240)', i: 'ph ph-calendar-check' },
       n: { bg: 'var(--color-neutral-800)', fg: 'var(--color-neutral-300)', i: 'ph ph-prohibit' }
     }[tone];
     const d = new Date(p.date + 'T00:00:00');
@@ -5043,7 +5045,7 @@ class Component extends DCLogic {
       const url = r.crop || (r.id ? pu[r.id] : '') || '';
       const name = pt ? pt.name : '미확인 인물' + (r.n ? ' ' + r.n : '');
       return { name: name, el: url ? this.img(url, name) : null, hasUrl: !!url, noUrl: !url, initial: pt ? pt.name.slice(0, 1) : '?',
-        ring: r.id ? '0 0 0 2px oklch(0.70 0.12 150)' : 'none', border: r.id ? '0' : '1.5px dashed oklch(0.72 0.14 25)' };
+        ring: r.id ? '0 0 0 2px oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.70) 0.12 150)' : 'none', border: r.id ? '0' : '1.5px dashed oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 25)' };
     });
     return {
       hvOpen: true, hvLeft: h.left + 'px',
@@ -5430,10 +5432,10 @@ class Component extends DCLogic {
     if (!s.emrOpenNow) return { emrIsOpen: false };
     const plan = this.emrPlan(s);
     const K = {
-      new: { t: '신규', bg: 'oklch(0.34 0.07 240)', fg: 'oklch(0.92 0.05 240)' },
-      move: { t: '병실 변경', bg: 'oklch(0.36 0.08 80)', fg: 'oklch(0.93 0.07 85)' },
-      update: { t: '정보 갱신', bg: 'oklch(0.34 0.07 300)', fg: 'oklch(0.92 0.05 300)' },
-      readmit: { t: '재입원', bg: 'oklch(0.34 0.09 25)', fg: 'oklch(0.92 0.06 25)' },
+      new: { t: '신규', bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.34) calc(0.07 * var(--lc,1)) 240)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.05 240)' },
+      move: { t: '병실 변경', bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.08 * var(--lc,1)) 80)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.93) 0.07 85)' },
+      update: { t: '정보 갱신', bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.34) calc(0.07 * var(--lc,1)) 300)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.05 300)' },
+      readmit: { t: '재입원', bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.34) calc(0.09 * var(--lc,1)) 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.06 25)' },
       same: { t: '변경 없음', bg: 'var(--color-neutral-800)', fg: 'var(--color-neutral-400)' }
     };
     const cnt = (k) => plan.items.filter(x => x.kind === k).length;
@@ -5460,8 +5462,8 @@ class Component extends DCLogic {
         { label: '재입원', n: nRe, bg: K.readmit.bg, fg: K.readmit.fg },
         { label: '변경 없음', n: nSame, bg: K.same.bg, fg: K.same.fg },
         { label: '빈 병상 건너뜀', n: plan.vacant, bg: 'var(--color-neutral-900)', fg: 'var(--color-neutral-500)' }
-      ].concat(plan.bad ? [{ label: '읽지 못한 줄', n: plan.bad, bg: 'oklch(0.30 0.08 25)', fg: 'oklch(0.90 0.06 25)' }] : [])
-        .concat([{ label: plan.mode === 'header' ? '붙여넣은 머리글 기준으로 열 인식' : plan.mode === 'user' ? '설정한 열 구성으로 인식' : '내용으로 열 자동 인식 — 머리글 줄을 함께 복사하면 열 순서가 달라도 정확히 읽습니다', n: '', bg: 'var(--color-neutral-900)', fg: plan.mode === 'content' ? 'oklch(0.86 0.12 85)' : 'var(--color-accent-300)' }]),
+      ].concat(plan.bad ? [{ label: '읽지 못한 줄', n: plan.bad, bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.08 * var(--lc,1)) 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.06 25)' }] : [])
+        .concat([{ label: plan.mode === 'header' ? '붙여넣은 머리글 기준으로 열 인식' : plan.mode === 'user' ? '설정한 열 구성으로 인식' : '내용으로 열 자동 인식 — 머리글 줄을 함께 복사하면 열 순서가 달라도 정확히 읽습니다', n: '', bg: 'var(--color-neutral-900)', fg: plan.mode === 'content' ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.12 85)' : 'var(--color-accent-300)' }]),
       ...(() => {
         const cols = this.emrCols(s);
         const sm = plan.sample || [];
@@ -5512,8 +5514,8 @@ class Component extends DCLogic {
           sexAge: (p.sex || '') + (p.age ? ' ' + p.age + '세' : ''), admit: p.admitDate || '—',
           stateLabel: on ? '퇴원' : '제외', rowOp: on ? '1' : '0.55',
           label: p.name + ' · ' + p.room + (p.chartNo ? ' · ' + p.chartNo : ''),
-          bd: on ? 'oklch(0.62 0.12 25)' : 'var(--color-neutral-700)', bg: on ? 'oklch(0.30 0.07 25)' : 'var(--color-neutral-900)',
-          fg: on ? 'oklch(0.92 0.05 25)' : 'var(--color-neutral-500)', icon: on ? 'ph-fill ph-check-square' : 'ph ph-square',
+          bd: on ? 'oklch(0.62 0.12 25)' : 'var(--color-neutral-700)', bg: on ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.30) calc(0.07 * var(--lc,1)) 25)' : 'var(--color-neutral-900)',
+          fg: on ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.05 25)' : 'var(--color-neutral-500)', icon: on ? 'ph-fill ph-check-square' : 'ph ph-square',
           toggle: () => { const k = Object.assign({}, this.state.emrOutSkip || {}); if (k[p.id]) delete k[p.id]; else k[p.id] = true; this.setState({ emrOutSkip: k }); }
         };
       }),
@@ -5524,9 +5526,9 @@ class Component extends DCLogic {
         keepBd: choice[it.p && it.p.id] === 'keep' ? 'var(--color-accent)' : 'var(--color-neutral-700)',
         keepBg: choice[it.p && it.p.id] === 'keep' ? 'var(--color-accent-900)' : 'var(--color-neutral-900)',
         keepFg: choice[it.p && it.p.id] === 'keep' ? 'var(--color-accent-100)' : 'var(--color-neutral-400)',
-        renewBd: choice[it.p && it.p.id] === 'renew' ? 'oklch(0.70 0.14 25)' : 'var(--color-neutral-700)',
-        renewBg: choice[it.p && it.p.id] === 'renew' ? 'oklch(0.32 0.09 25)' : 'var(--color-neutral-900)',
-        renewFg: choice[it.p && it.p.id] === 'renew' ? 'oklch(0.92 0.06 25)' : 'var(--color-neutral-400)',
+        renewBd: choice[it.p && it.p.id] === 'renew' ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.70) 0.14 25)' : 'var(--color-neutral-700)',
+        renewBg: choice[it.p && it.p.id] === 'renew' ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.09 * var(--lc,1)) 25)' : 'var(--color-neutral-900)',
+        renewFg: choice[it.p && it.p.id] === 'renew' ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.06 25)' : 'var(--color-neutral-400)',
         reKeep: () => { const c = Object.assign({}, this.state.emrReadmit || {}); c[it.p.id] = 'keep'; this.setState({ emrReadmit: c }); },
         reRenew: () => { const c = Object.assign({}, this.state.emrReadmit || {}); c[it.p.id] = 'renew'; this.setState({ emrReadmit: c }); },
         room: it.roomFull,
@@ -5536,7 +5538,7 @@ class Component extends DCLogic {
       })),
       emrHasReadmit: nRe > 0,
       emrReadmitNote: undecided ? '재입원 ' + nRe + '명 중 ' + undecided + '명의 동의서 처리를 선택하세요' : '재입원 ' + nRe + '명 동의서 처리 선택 완료',
-      emrReadmitColor: undecided ? 'oklch(0.86 0.12 25)' : 'oklch(0.85 0.12 150)',
+      emrReadmitColor: undecided ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.12 25)' : 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.85) 0.12 150)',
       emrReKeepAll: () => setAll('keep'),
       emrReRenewAll: () => setAll('renew'),
       emrCantApply: applyN === 0 || undecided > 0,
@@ -6112,7 +6114,7 @@ class Component extends DCLogic {
           canDone: p.status === '예정',
           ...(() => { const li = this.planLogInfo(p, s); return { logActShow: p.status !== '취소', logActLabel: li.label, logActIcon: li.icon, logActCls: li.cls, logAct: li.go }; })(),
           time: p.start, rest: '~' + p.end + ' · ' + (p.place || '장소 미정') + ' · ' + (p.ward === '전체' ? '전 병동' : p.ward) + ' · 정원 ' + p.capacity + '명 · ' + p.staff.join(', '),
-          barColor: (() => { const PH = ['oklch(0.72 0.14 285)', 'oklch(0.74 0.12 175)', 'oklch(0.80 0.13 95)', 'oklch(0.76 0.13 145)', 'oklch(0.74 0.14 35)', 'oklch(0.74 0.13 335)', 'oklch(0.74 0.11 240)']; const i = (s.programs || []).indexOf(p.program); return PH[(i < 0 ? 0 : i) % PH.length]; })(),
+          barColor: (() => { const PH = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 285)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 175)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.13 95)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.13 145)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.14 35)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.13 335)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.11 240)']; const i = (s.programs || []).indexOf(p.program); return PH[(i < 0 ? 0 : i) % PH.length]; })(),
           done: () => { this.savePlans((this.state.plans || []).map(x => x.id === p.id ? Object.assign({}, x, { status: '완료' }) : x)); this.flash(p.program + ' 완료 처리'); },
           edit: () => this.setState({ planOpen: true, planErr: '', planForm: Object.assign({}, p, { staff: p.staff.slice(), repeat: '없음', until: '' }) })
         };
@@ -6712,7 +6714,7 @@ class Component extends DCLogic {
       .sort((a, b) => wsWard === '전체' ? 0 : b.count - a.count);
     const maxP = Math.max(1, ...groups.map(g => g.people)), maxC = Math.max(1, ...groups.map(g => g.count));
     const wsPeople = uniq(wsScope.map(r => r.name)).length;
-    const ST06_PAL = ['oklch(0.76 0.14 145)', 'oklch(0.74 0.12 230)', 'oklch(0.80 0.13 85)', 'oklch(0.72 0.14 30)', 'oklch(0.72 0.13 300)', 'oklch(0.76 0.11 190)'];
+    const ST06_PAL = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.13 85)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 30)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.13 300)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.11 190)'];
     // ST-06 오른쪽 카드: 병동(또는 프로그램)별 건수 · 실인원 · 1인당 · 참여율 (progColor 정의 뒤에 계산)
     const st06CardsOf = (progColor) => (() => {
       const byWard = wsWard === '전체';
@@ -6756,7 +6758,7 @@ class Component extends DCLogic {
     const fmtK = (d) => { const p = d.split('-'); return p[0] + '.' + p[1] + '.' + p[2]; };
 
     // ST-05 월별 · 병동별 실인원
-    const CHART_PAL = ['oklch(0.72 0.14 285)', 'oklch(0.74 0.11 200)', 'oklch(0.76 0.13 150)', 'oklch(0.80 0.12 85)', 'oklch(0.72 0.14 30)', 'oklch(0.74 0.13 335)', 'oklch(0.72 0.10 245)'];
+    const CHART_PAL = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 285)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.11 200)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.13 150)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 30)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.13 335)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.10 245)'];
     const WARD_COLORS = CHART_PAL;
     const barMonths = [4, 5, 6, 7, 8, 9];
     const monthData = barMonths.map(m => {
@@ -6877,10 +6879,16 @@ class Component extends DCLogic {
         // 상태 배지: tone = warn(조치 필요) / ok(완료) / info(참고)
         badges: (() => {
           const B = [];
+          // 은은한 색 바탕 + 작은 원형 아이콘. 조치 필요=호박색, 완료=초록, 참고=회색 (라이트·다크 모두 읽히도록 밝기 자동 보정)
+          const mk = (c, fg) => ({
+            fg: fg, bd: 'color-mix(in oklch, ' + c + ' 32%, transparent)',
+            bg: 'linear-gradient(180deg, color-mix(in oklch, ' + c + ' 16%, transparent), color-mix(in oklch, ' + c + ' 8%, transparent))',
+            dot: 'color-mix(in oklch, ' + c + ' 26%, transparent)'
+          });
           const T = {
-            warn: { bd: 'var(--cal-red)', fg: 'var(--cal-red)', bg: 'var(--cal-red-bg)' },
-            ok: { bd: 'var(--color-accent-600)', fg: 'var(--color-accent-200)', bg: 'var(--color-accent-900)' },
-            info: { bd: 'var(--color-neutral-700)', fg: 'var(--color-neutral-300)', bg: 'var(--color-neutral-900)' }
+            warn: mk('oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.14 55)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.10 60)'),
+            ok: mk('oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.14 150)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.10 150)'),
+            info: mk('var(--color-neutral-400)', 'var(--color-neutral-300)')
           };
           const add = (tone, icon, label) => B.push(Object.assign({ icon: 'ph ' + icon, label: label }, T[tone]));
           if (!l.photoN) add('warn', 'ph-image-broken', '사진 없음');
@@ -7607,14 +7615,21 @@ class Component extends DCLogic {
           const isOverG = dr && dr.t === 'g' && ov === 'g:' + g.k && !isDragG;
           const open = mini || editing || !col[g.k];
           const gOn = g.items.some(i => i.on);
+          const TONES = { patients: 0.74 + ' 0.12 230', logs: '0.74 0.13 300', stats: '0.76 0.13 150', settings: '0.80 0.12 70' };
+          const tp = (TONES[g.k] || '0.74 0.12 260').split(' ');
+          const tone = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * ' + (tp.length === 3 ? tp[0] : '0.74') + ') ' + (tp.length === 3 ? tp[1] + ' ' + tp[2] : '0.12 230') + ')';
           const gCount = g.items.reduce((n, i) => n + (parseInt(i.badge, 10) || 0), 0);
           return {
             label: g.label, icon: g.icon, open: open, openStr: open ? '1' : '0', key: g.k,
             headBg: gOn ? 'linear-gradient(180deg, var(--color-neutral-800), var(--color-neutral-900))' : 'linear-gradient(180deg, var(--color-neutral-800), var(--color-surface))',
             headBd: gOn ? 'var(--color-accent-700)' : 'var(--color-neutral-700)',
             headFg: gOn ? 'var(--color-text)' : 'var(--color-neutral-200)',
-            iconBg: gOn ? 'var(--color-accent-800)' : 'var(--color-neutral-900)',
-            iconFg: gOn ? 'var(--color-accent-100)' : 'var(--color-accent-400)',
+            iconBg: gOn ? 'color-mix(in oklch, ' + tone + ' 30%, transparent)' : 'color-mix(in oklch, ' + tone + ' 14%, transparent)',
+            iconFg: tone,
+            // 메뉴 묶음마다 고유한 색 (하위 메뉴 영역의 세로선·바탕에도 같은 색을 써서 어느 묶음의 메뉴인지 한눈에 보이게)
+            subTone: tone,
+            subBg: 'linear-gradient(90deg, color-mix(in oklch, ' + tone + ' 10%, transparent), color-mix(in oklch, ' + tone + ' 3%, transparent) 70%, transparent)',
+            subLine: mini ? 'none' : '2px solid color-mix(in oklch, ' + tone + ' 70%, transparent)',
             hasCount: !open && gCount > 0, count: String(gCount),
             caret: col[g.k] ? 'ph ph-caret-right' : 'ph ph-caret-down',
             cursor: 'pointer',
@@ -7825,8 +7840,8 @@ class Component extends DCLogic {
         const waiting = keys.filter(k => !all[k].confirmed).length, confN = keys.filter(k => all[k].confirmed).length;
         const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
         const C = 276.46;
-        const G = 'oklch(0.76 0.14 145)', B = 'oklch(0.74 0.12 230)', Y = 'oklch(0.82 0.13 85)', R = 'oklch(0.70 0.17 25)', N = 'var(--color-neutral-600)';
-        const st = (p) => p >= 90 ? { t: '양호', bg: 'oklch(0.32 0.06 150)', fg: 'oklch(0.90 0.07 150)' } : p >= 50 ? { t: '진행 중', bg: 'oklch(0.33 0.07 85)', fg: 'oklch(0.93 0.07 85)' } : { t: '확인 필요', bg: 'oklch(0.32 0.08 25)', fg: 'oklch(0.92 0.05 25)' };
+        const G = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', B = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', Y = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.13 85)', R = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25)', N = 'var(--color-neutral-600)';
+        const st = (p) => p >= 90 ? { t: '양호', bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.06 * var(--lc,1)) 150)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.07 150)' } : p >= 50 ? { t: '진행 중', bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.33) calc(0.07 * var(--lc,1)) 85)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.93) 0.07 85)' } : { t: '확인 필요', bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.32) calc(0.08 * var(--lc,1)) 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.92) 0.05 25)' };
         const go = {
           photo: () => this.setState({ pcView: 'patients', noPhotoOnly: true, stayFilter: '재원', page: 0 }),
           face: () => this.setState({ pcView: 'consent' }),
@@ -7850,7 +7865,7 @@ class Component extends DCLogic {
             main: c.mainOverride || c.a, of: c.ofOverride || ('/ ' + c.b + c.unit),
             pctLabel: c.b ? p + '%' : '—', dash: (C * p / 100).toFixed(1) + ' ' + C, barW: p + '%',
             glow: 'drop-shadow(0 0 6px color-mix(in oklch, ' + c.color + ' 50%, transparent))',
-            sub: c.sub, subColor: p >= 90 || !c.b ? 'var(--color-neutral-400)' : 'oklch(0.86 0.10 60)',
+            sub: c.sub, subColor: p >= 90 || !c.b ? 'var(--color-neutral-400)' : 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.10 60)',
             state: c.b ? sv.t : '해당 없음', stateBg: c.b ? sv.bg : 'var(--color-neutral-800)', stateFg: c.b ? sv.fg : 'var(--color-neutral-400)',
             segs: c.segs.map(g => ({ label: g.label, n: g.n, c: g.c, w: (g.n / tot * 100) + '%', tip: g.label + ' ' + g.n })),
             go: go[c.k]
@@ -8258,8 +8273,8 @@ class Component extends DCLogic {
             onStr: picked && r.p.id === s.sel ? '1' : '0',
             mobileTxt: r.hasMobile ? '받음' : '없음', mobileCls: r.hasMobile ? 'tag tag-accent' : 'tag tag-neutral',
             paperTxt: r.hasPaper ? (s.consentFiles[r.p.id] || []).length + '개' : '없음', paperCls: r.hasPaper ? 'tag tag-accent' : 'tag tag-neutral',
-            mobileRed: r.hasMobile ? 'inherit' : 'oklch(0.70 0.17 25)',
-            paperRed: r.hasPaper ? 'inherit' : 'oklch(0.70 0.17 25)',
+            mobileRed: r.hasMobile ? 'inherit' : 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25)',
+            paperRed: r.hasPaper ? 'inherit' : 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25)',
             statusTxt: '초상권 ' + (r.p.consent || '확인전') + ' · 안면 ' + (r.p.face || '확인전'),
             sel: s.sel === r.p.id && picked,
             rowBg: s.sel === r.p.id && picked ? 'var(--color-accent-900)' : 'transparent',
@@ -8315,7 +8330,7 @@ class Component extends DCLogic {
       // 1a 상태판: 비어 있거나 미완료면 빨간 표시
       selTiles: (() => {
         const bad = (v) => !v || v === '—' || /미작성|미취득|없음|미동의|확인전/.test(String(v));
-        const W = { line: 'oklch(0.70 0.15 25)', fg: 'oklch(0.86 0.08 25)' }, OK = { line: 'oklch(0.76 0.14 145)', fg: 'var(--color-text)' }, NA = { line: 'var(--color-neutral-700)', fg: 'var(--color-text)' };
+        const W = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.70) 0.15 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.08 25)' }, OK = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', fg: 'var(--color-text)' }, NA = { line: 'var(--color-neutral-700)', fg: 'var(--color-text)' };
         // 템플릿용 sel 객체와 같은 계산 (날 데이터에는 이 두 값이 없음)
         const doc = sel.consent === '동의' ? 'PDF 보관됨' : '미작성';
         const via = s.consentVia[sel.id] || (sel.consent === '동의' ? '모바일 전자서명' : '미취득');
@@ -8362,7 +8377,7 @@ class Component extends DCLogic {
         return {
           idFaceText: n < 0 ? '얼굴 확인 중…' : n === 0 ? '얼굴이 검출되지 않았습니다 — 정면 사진을 권장합니다' : n === 1 ? '얼굴 1개 검출 · 품질 양호' : '얼굴 ' + n + '개 검출 — 다른 사람이 함께 있습니다',
           idFaceIcon: n === 1 ? 'ph ph-check-circle' : n < 0 ? 'ph ph-circle-notch' : 'ph-fill ph-warning-circle',
-          idFaceColor: n === 1 ? 'var(--color-accent-300)' : n < 0 ? 'var(--color-neutral-400)' : 'oklch(0.82 0.12 60)',
+          idFaceColor: n === 1 ? 'var(--color-accent-300)' : n < 0 ? 'var(--color-neutral-400)' : 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.12 60)',
           idFaceMulti: n > 1,
           editIdPhoto: () => this.openIdEdit(false),
           editIdPhotoMain: () => this.openIdEdit(true)
@@ -9246,7 +9261,7 @@ class Component extends DCLogic {
           plSummary: st === 'loading' ? '서버의 사진과 일지를 대조하는 중…'
             : st === 'done' ? (bad ? '연결 끊긴 사진 ' + orph.length + '장 · 중복 연결 ' + dups.length + '장 발견 (' + s.plAt + ' 점검)' : '모든 사진이 정상적으로 연결되어 있습니다 (' + s.plAt + ' 점검)')
             : st === 'error' ? '점검 실패 — 다시 눌러 주세요' : '사진이 다른 일지에 들어갔거나 빠진 것이 없는지 확인합니다',
-          plSumColor: st === 'done' && bad ? 'oklch(0.80 0.12 40)' : 'var(--color-neutral-500)',
+          plSumColor: st === 'done' && bad ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 40)' : 'var(--color-neutral-500)',
           plShadow: st === 'done' && bad ? '0 0 0 1px oklch(0.50 0.12 40)' : 'var(--shadow-sm)',
           plHasOrphans: orph.length > 0, plHasDups: dups.length > 0,
           // 문제가 있을 때만 넓은 상자로, 평소에는 한 줄 작은 띠로
@@ -9263,7 +9278,7 @@ class Component extends DCLogic {
           plHelpOpen: !!s.plHelpOpen,
           plHelpToggle: () => this.setState({ plHelpOpen: !this.state.plHelpOpen }),
           plChipText: st === 'loading' ? '점검 중…' : st === 'done' ? (bad ? '문제 ' + (orph.length + dups.length) + '건' : '정상 · ' + s.plAt) : st === 'error' ? '점검 실패' : '점검 전',
-          plChipColor: st === 'done' && !bad ? 'oklch(0.76 0.14 150)' : st === 'error' || (st === 'done' && bad) ? 'oklch(0.80 0.12 40)' : 'var(--color-neutral-500)',
+          plChipColor: st === 'done' && !bad ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 150)' : st === 'error' || (st === 'done' && bad) ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 40)' : 'var(--color-neutral-500)',
           plDelAll: () => this.deleteAllOrphans(), plOrphanN: orph.length,
           plLogOpts: keys.map(k => ({ v: k, label: lab(k) + ' · 사진 ' + this.sessPhotos(k).length + '장' })),
           plOrphanRows: orph.map(o => ({
@@ -9443,10 +9458,10 @@ class Component extends DCLogic {
         const kv = s.kpiView || 'ring';
         return {
           ws06Cards: this.buildKpiCards([
-            { key: 'w6p', label: '실인원', icon: 'ph ph-users-three', color: 'oklch(0.74 0.12 230)', val: String(pp), unit: '명', sub: inWard ? '재원 ' + inWard + '명 중 ' + Math.round(pp / inWard * 100) + '% · 중복 제외' : '중복 제외 환자 수', pct: inWard ? pp / inWard * 100 : 0, arr: wk.map(w => w.pp), dUnit: '명' },
-            { key: 'w6n', label: '참여 건수', icon: 'ph ph-list-checks', color: 'oklch(0.76 0.14 145)', val: String(n), unit: '건', sub: '연인원 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.n))) + '%', pct: peakPct(wk.map(w => w.n)), arr: wk.map(w => w.n), dUnit: '건' },
+            { key: 'w6p', label: '실인원', icon: 'ph ph-users-three', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', val: String(pp), unit: '명', sub: inWard ? '재원 ' + inWard + '명 중 ' + Math.round(pp / inWard * 100) + '% · 중복 제외' : '중복 제외 환자 수', pct: inWard ? pp / inWard * 100 : 0, arr: wk.map(w => w.pp), dUnit: '명' },
+            { key: 'w6n', label: '참여 건수', icon: 'ph ph-list-checks', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', val: String(n), unit: '건', sub: '연인원 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.n))) + '%', pct: peakPct(wk.map(w => w.n)), arr: wk.map(w => w.n), dUnit: '건' },
             { key: 'w6a', label: '1인당 평균', icon: 'ph ph-user-circle-plus', color: 'var(--color-accent)', val: pp ? (n / pp).toFixed(1) : '0', unit: '회', sub: '참여 건수 ÷ 실인원 · 기준 4회', pct: pp ? Math.min(100, n / pp / 4 * 100) : 0, target: null, arr: wk.map(w => w.avg), dUnit: '회', dDig: 1 },
-            { key: 'w6s', label: '진행 회차', icon: 'ph ph-calendar-check', color: 'oklch(0.80 0.12 85)', val: String(ss), unit: '회', sub: '일자 × 프로그램 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.ss))) + '%', pct: peakPct(wk.map(w => w.ss)), arr: wk.map(w => w.ss), dUnit: '회' }
+            { key: 'w6s', label: '진행 회차', icon: 'ph ph-calendar-check', color: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', val: String(ss), unit: '회', sub: '일자 × 프로그램 · 최근 주 / 최고 주 ' + Math.round(peakPct(wk.map(w => w.ss))) + '%', pct: peakPct(wk.map(w => w.ss)), arr: wk.map(w => w.ss), dUnit: '회' }
           ]),
           ws06Ring: kv === 'ring' ? 'grid' : 'none',
           ws06Trend: kv === 'trend' ? 'grid' : 'none',
@@ -9925,7 +9940,7 @@ class Component extends DCLogic {
               const d = a[a.length - 1] - a[a.length - 2];
               const r = Math.round(d * Math.pow(10, digits)) / Math.pow(10, digits);
               if (r === 0) return { txt: '– 변동 없음', color: 'var(--color-neutral-500)' };
-              return { txt: (r > 0 ? '▲ ' : '▼ ') + Math.abs(r) + unit, color: r > 0 ? 'oklch(0.76 0.14 145)' : 'oklch(0.70 0.17 25)' };
+              return { txt: (r > 0 ? '▲ ' : '▼ ') + Math.abs(r) + unit, color: r > 0 ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)' : 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.15 25)' };
             };
             const C = 276.46;
             const mk = (key, label, icon, color, val, unit, sub, pct, target, arr, dUnit, dDig) => {
@@ -9944,14 +9959,14 @@ class Component extends DCLogic {
               };
             };
             const kpiCards = [
-              mk('people', '실인원', 'ph ph-users-three', 'oklch(0.74 0.12 230)', String(pp), '명', pts.length ? '재원 ' + pts.length + '명 중 ' + Math.round(pp / pts.length * 100) + '% 참여' : '참여 ' + scope.length + '건', pts.length ? pp / pts.length * 100 : 0, null, weeks.map(w => w.people), '명', 0),
-              mk('consent', '동의율', 'ph ph-signature', 'oklch(0.76 0.14 145)', pts.length ? String(Math.round(consentPct)) : '—', pts.length ? '%' : '', pts.length ? '목표 90% · 미완료 ' + (pts.length - ok) + '명' : '해당 병동 재원 환자 없음', consentPct, 90, weeks.map(() => consentPct), '%p', 0),
+              mk('people', '실인원', 'ph ph-users-three', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', String(pp), '명', pts.length ? '재원 ' + pts.length + '명 중 ' + Math.round(pp / pts.length * 100) + '% 참여' : '참여 ' + scope.length + '건', pts.length ? pp / pts.length * 100 : 0, null, weeks.map(w => w.people), '명', 0),
+              mk('consent', '동의율', 'ph ph-signature', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', pts.length ? String(Math.round(consentPct)) : '—', pts.length ? '%' : '', pts.length ? '목표 90% · 미완료 ' + (pts.length - ok) + '명' : '해당 병동 재원 환자 없음', consentPct, 90, weeks.map(() => consentPct), '%p', 0),
               mk('ai', 'AI 자동 인식률', 'ph ph-scan-smiley', 'var(--color-accent)', scope.length ? String(Math.round(ai / scope.length * 100)) : '—', scope.length ? '%' : '', scope.length ? '수기 추가·보정 ' + manual + '건' : '기간 내 기록 없음', scope.length ? ai / scope.length * 100 : 0, null, weeks.map(w => w.ai), '%p', 0),
-              mk('time', '행정 시간 절감', 'ph ph-clock-countdown', 'oklch(0.80 0.12 85)', String(Math.round(hrs * 10) / 10), 'h', '목표 ' + timeGoal + 'h · 진행 ' + sess + '회 × 약 20분', hrs / timeGoal * 100, null, weeks.map(w => w.hrs), 'h', 1)
+              mk('time', '행정 시간 절감', 'ph ph-clock-countdown', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', String(Math.round(hrs * 10) / 10), 'h', '목표 ' + timeGoal + 'h · 진행 ' + sess + '회 × 약 20분', hrs / timeGoal * 100, null, weeks.map(w => w.hrs), 'h', 1)
             ];
             // 지표별 인포그래픽 (링 게이지 아래)
             {
-              const G = 'oklch(0.76 0.14 145)', R = 'oklch(0.70 0.15 25)', Y = 'oklch(0.80 0.12 85)', N = 'var(--color-neutral-700)';
+              const G = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', R = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.70) 0.15 25)', Y = 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', N = 'var(--color-neutral-700)';
               const seg = (label, n, tot, color) => ({ label: label, n: n, w: tot ? (n / tot * 100) + '%' : '0%', color: color, show: n > 0 ? 'block' : 'none' });
               const cnt3 = (key) => {
                 const a = pts.filter(p => p[key] === '동의').length, b = pts.filter(p => p[key] === '미동의').length;
@@ -9962,13 +9977,13 @@ class Component extends DCLogic {
               const wkH = weeks.slice(-8).map(w => w.hrs || 0), mxH = Math.max(0.01, ...wkH);
               const info = {
                 people: {
-                  hasPict: true, pict: Array.from({ length: 10 }, (_, i) => ({ color: i < filled ? 'oklch(0.74 0.12 230)' : 'var(--color-neutral-700)', icon: i < filled ? 'ph-fill ph-user' : 'ph ph-user' })),
+                  hasPict: true, pict: Array.from({ length: 10 }, (_, i) => ({ color: i < filled ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)' : 'var(--color-neutral-700)', icon: i < filled ? 'ph-fill ph-user' : 'ph ph-user' })),
                   pictNote: '1칸 = 재원 환자 10% · 참여 ' + pp + '명 / 미참여 ' + Math.max(0, pts.length - pp) + '명',
                   rows: [{ label: '참여 구성', segs: [seg('AI 인식', ai, scope.length, 'var(--color-accent)'), seg('수기', manual, scope.length, Y)], tot: scope.length + '건' }]
                 },
                 consent: { rows: [{ label: '초상권', segs: cnt3('consent'), tot: pts.length + '명' }, { label: '안면인식', segs: cnt3('face'), tot: pts.length + '명' }] },
                 ai: { rows: [{ label: '식별 방식', segs: [seg('AI 자동', ai, scope.length, 'var(--color-accent)'), seg('수기 추가·보정', manual, scope.length, Y)], tot: scope.length + '건' }] },
-                time: { hasCols: true, cols: wkH.map((v, i, a) => ({ h: Math.max(4, Math.round(v / mxH * 100)) + '%', v: (Math.round(v * 10) / 10) + 'h', color: i === a.length - 1 ? 'oklch(0.80 0.12 85)' : 'var(--color-neutral-700)' })), colNote: '최근 8주 주별 절감 시간 · 진행 1회 ≈ 20분' }
+                time: { hasCols: true, cols: wkH.map((v, i, a) => ({ h: Math.max(4, Math.round(v / mxH * 100)) + '%', v: (Math.round(v * 10) / 10) + 'h', color: i === a.length - 1 ? 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)' : 'var(--color-neutral-700)' })), colNote: '최근 8주 주별 절감 시간 · 진행 1회 ≈ 20분' }
               };
               kpiCards.forEach(k => {
                 const x = info[k.key] || {};
@@ -10050,7 +10065,7 @@ class Component extends DCLogic {
             const tot = { 완료: cnt(null, '완료'), 예정: cnt(null, '예정'), 취소: cnt(null, '취소') };
             const all = pl.length;
             const pctOf = (n) => all ? Math.round(n / all * 100) + '%' : '—';
-            const C = { 완료: 'oklch(0.76 0.14 145)', 예정: 'oklch(0.74 0.12 230)', 취소: 'var(--color-neutral-600)' };
+            const C = { 완료: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', 예정: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', 취소: 'var(--color-neutral-600)' };
             return {
               chart04s: {
                 id: 'st04s', types: ['stack', 'hbar', 'table'], defaultType: 'stack',
@@ -10651,11 +10666,11 @@ class Component extends DCLogic {
         const where = p.start + (p.end ? '~' + p.end : '') + ' · ' + p.place + (p.ward && p.ward !== '전체' ? ' · ' + p.ward : '');
         const smeta = where + ' · ' + (p.staff || []).join(', ');
         // 프로그램별 고유 색 (통계 차트와 같은 순서·색)
-        const PAL = ['oklch(0.76 0.13 150)', 'oklch(0.80 0.12 85)', 'oklch(0.72 0.14 30)', 'oklch(0.74 0.13 335)', 'oklch(0.72 0.10 245)', 'oklch(0.72 0.14 285)', 'oklch(0.74 0.11 200)'];
+        const PAL = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.13 150)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 30)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.13 335)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.10 245)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 285)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.11 200)'];
         const ICONS = { '미술치료': 'ph ph-paint-brush', '음악치료': 'ph ph-music-notes', '컬러링북': 'ph ph-palette', '원예치료': 'ph ph-plant', '웃음치료': 'ph ph-smiley', '체조': 'ph ph-person-simple-tai-chi', '레크리에이션': 'ph ph-puzzle-piece' };
         const progs = (s.programs || []).concat([p.program]);
         // 프로그램 성격에 맞춘 고정 색: 미술=따뜻한 코랄, 컬러링=라벤더, 음악=하늘, 원예=초록
-        const FIXED = { '미술치료': 'oklch(0.74 0.15 40)', '컬러링북': 'oklch(0.72 0.14 300)', '음악치료': 'oklch(0.74 0.12 230)', '원예치료': 'oklch(0.76 0.14 145)', '웃음치료': 'oklch(0.82 0.13 90)', '체조': 'oklch(0.74 0.12 195)' };
+        const FIXED = { '미술치료': 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.15 40)', '컬러링북': 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 300)', '음악치료': 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 230)', '원예치료': 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', '웃음치료': 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.82) 0.13 90)', '체조': 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 195)' };
         const pc = FIXED[p.program] || PAL[Math.max(0, progs.indexOf(p.program)) % PAL.length];
         return {
           color: pc,
@@ -10708,7 +10723,7 @@ class Component extends DCLogic {
       mAddClose: () => this.setState({ mAddOpen: false }),
       mAddNoProg: !(s.programs || []).length,
       mAddProgs: (s.programs || []).map((name, i, arr, mDayShortTxt = (mDay === this.todayIso() ? '오늘' : mDay.slice(5).replace('-', '/'))) => {
-        const COLORS = ['oklch(0.72 0.14 285)', 'oklch(0.74 0.11 200)', 'oklch(0.76 0.13 150)', 'oklch(0.80 0.12 85)', 'oklch(0.72 0.14 30)', 'oklch(0.74 0.13 335)'];
+        const COLORS = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 285)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.11 200)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.13 150)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 30)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.13 335)'];
         const existing = (s.plans || []).find(p => p.date === mDay && p.program === name && p.status !== '취소');
         return {
           name: name, color: COLORS[i % COLORS.length], has: !!existing,
