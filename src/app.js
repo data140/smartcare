@@ -103,7 +103,7 @@ class Component extends DCLogic {
     staff: [],
     calMonth: null, planDay: null, planStatus: '전체', planOpen: false, planForm: null, planErr: '',
     // 예시 일정 없음 — 서버에 저장된 실제 일정만 사용
-    plans: [],
+    plans: [], journals: {}, jrnSel: null, jrnPrev: false, jrnMic: null,
     consent: { portrait: false, face: false },
     paperSign: {},
     signed: { '동의인': false, '보호자': false, '촬영자': false },
@@ -830,6 +830,7 @@ class Component extends DCLogic {
       const pl = JSON.parse(localStorage.getItem('smartcare.plans.v1') || 'null');
       if (Array.isArray(pl)) this.setState({ plans: pl });
     } catch (e) {}
+    try { const jv = JSON.parse(localStorage.getItem('smartcare.journals.v1') || 'null'); if (jv && typeof jv === 'object') this.setState({ journals: jv }); } catch (e) {}
     try {
       let list = JSON.parse(localStorage.getItem('smartcare.patients.v1') || 'null');
       // 가상 환자 1회 정리: 저장된 명부에서 데모 환자(PT-0001~0008) 제거
@@ -902,6 +903,8 @@ class Component extends DCLogic {
           this.setState({ wards: JSON.parse(JSON.stringify(v)), wardsSaved: v });
         } else if (e.key === 'smartcare.plans.v1' && Array.isArray(v)) {
           this.setState({ plans: v });
+        } else if (e.key === 'smartcare.journals.v1' && v && typeof v === 'object') {
+          this.setState({ journals: v });
         } else if (e.key === 'smartcare.signs.v1') {
           this.setState({ signImgsFor: null, mcTick: (this.state.mcTick || 0) + 1 });
         } else if (e.key === 'smartcare.menu.v1') {
@@ -2160,6 +2163,219 @@ class Component extends DCLogic {
       if (restore) restore();
       this.setState({ exportBusy: false });
     }
+  }
+
+  // ───── 프로그램 운영일지 (일정·사진으로 자동 작성 → 직접 수정 → 인쇄/PDF/Word/한글) ─────
+  static JRN_FIELDS = [
+    { k: 'prep', label: '준비물', multi: false }, { k: 'topic', label: '주제', multi: false }, { k: 'place', label: '진행장소', multi: false },
+    { k: 'staffTxt', label: '진행자', multi: false }, { k: 'content', label: '내 용', multi: true, rows: 5 },
+    { k: 'note', label: '특이사항 / 평가', multi: true, rows: 8 }, { k: 'next', label: '차기계획', multi: true, rows: 3 }
+  ];
+  jrnKeyOf(p) { return p.date + '|' + p.program; }
+  jrnDateTxt(d) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? m[1] + '년 ' + (+m[2]) + '월 ' + (+m[3]) + '일' : (d || ''); }
+  jrnDraft(p, s) {
+    const key = this.jrnKeyOf(p);
+    const sess = (s.activeSession === key) ? { review: s.review, photos: s.photos } : ((s.sessions || {})[key] || {});
+    const ids = []; (sess.review || []).forEach(r => { if (r && r.id && ids.indexOf(r.id) < 0) ids.push(r.id); });
+    const n = ids.length;
+    const roster = s.roster || [];
+    const staffTxt = (p.staff || []).map(nm => { const m = roster.find(x => x.name === nm); const t = m && m.type && m.type !== '기타' && m.type !== '본사' ? m.type + ' ' : ''; return t + nm; }).join(', ');
+    const place = p.place || '';
+    const M = +(p.date || '').slice(5, 7) || '';
+    const content = '1. ' + p.program + ' 프로그램을 ' + (place ? place + '에서 ' : '') + '진행한다.\n2. ' + (n ? '참여 환우 ' + n + '명이 함께 참여한다.' : '참여 환우의 입장과 이동을 돕는다.') + '\n3. 프로그램을 마친 후 소감을 나눈다.';
+    const note = (M ? M + '월 ' : '') + p.program + ' 프로그램에서는 ' + (n ? n + '명의 환우가 ' : '환우분들이 ') + '참여하였다. 환우분들은 프로그램이 끝나는 시간까지 집중하여 참여하였으며, 즐겁게 참여하는 모습을 보여주었다. 많은 환우분들이 한자리에 모이는 만큼 안전에도 각별히 신경을 썼다. 프로그램실 이동 시에는 병동별로 순차적으로 이동하도록 하였으며, 특히 엘리베이터 이용 시 혼잡하지 않도록 안전을 세심하게 살피며 진행하였다. 앞으로도 환우분들의 의견과 욕구를 반영하여 즐겁고 편안하게 참여하실 수 있는 프로그램을 이어갈 계획이다.';
+    return { prep: p.memo ? '준비물 : ' + p.memo : '준비물 : ', topic: '', place: place, staffTxt: staffTxt, content: content, note: note, next: '어르신의 정서적 요구를 충족시키고 어르신들의 공감대를 형성할 수 있는 프로그램을 운영하여 행복감을 증진시키고자 함.' };
+  }
+  jrnGet(key, s) {
+    const p = (s.plans || []).find(x => this.jrnKeyOf(x) === key);
+    if (!p) return null;
+    const saved = (s.journals || {})[key];
+    const d = this.jrnDraft(p, s);
+    const f = Object.assign({}, d, saved && saved.f ? saved.f : {});
+    return { key: key, p: p, f: f, saved: !!saved, dateTxt: this.jrnDateTxt(p.date), timeTxt: (p.start || '') + (p.end ? '~' + p.end : ''), photos: this.jrnPhotos(key, s) };
+  }
+  jrnPhotos(key, s) {
+    const sess = (s.activeSession === key) ? { photos: s.photos } : ((s.sessions || {})[key] || {});
+    return (sess.photos || []).map(x => x && x.url).filter(u => typeof u === 'string' && /^data:image\//.test(u)).slice(0, 4);
+  }
+  jrnSetField(key, name, val, s) {
+    const j = this.jrnGet(key, s); if (!j) return;
+    const cur = (s.journals || {})[key] || { f: {} };
+    const all = Object.assign({}, s.journals || {}, { [key]: { f: Object.assign({}, j.f, { [name]: val }), at: Date.now(), by: this._userName || '' } });
+    this.setState({ journals: all });
+    clearTimeout(this._jrnT);
+    this._jrnT = setTimeout(() => this.jrnFlush(), 600);
+  }
+  jrnFlush() { try { localStorage.setItem('smartcare.journals.v1', JSON.stringify(this.state.journals || {})); } catch (e) {} }
+  jrnMic(name, key) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { this.flash('이 브라우저는 음성 입력을 지원하지 않습니다 — 키보드의 마이크 버튼을 써 주세요'); return; }
+    if (this._jrnRec) { try { this._jrnRec.stop(); } catch (e) {} this._jrnRec = null; this.setState({ jrnMic: null }); if (this.state.jrnMic === name) return; }
+    const rec = new SR(); rec.lang = 'ko-KR'; rec.continuous = true; rec.interimResults = false;
+    rec.onresult = (ev) => {
+      let t = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) if (ev.results[i].isFinal) t += ev.results[i][0].transcript;
+      t = t.trim(); if (!t) return;
+      const j = this.jrnGet(key, this.state); if (!j) return;
+      const cur = j.f[name] || '';
+      this.jrnSetField(key, name, cur + (cur && !/\s$/.test(cur) ? ' ' : '') + t, this.state);
+    };
+    rec.onend = () => { if (this._jrnRec === rec) { this._jrnRec = null; this.setState({ jrnMic: null }); } };
+    rec.onerror = (e) => { this.flash('음성 입력 오류 — ' + (e && e.error === 'not-allowed' ? '마이크 사용을 허용해 주세요' : (e && e.error) || '다시 시도')); };
+    this._jrnRec = rec; this.setState({ jrnMic: name });
+    try { rec.start(); } catch (e) { this._jrnRec = null; this.setState({ jrnMic: null }); }
+  }
+  static xmlEsc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+  jrnHtml(j, org, logo) {
+    const e = Component.xmlEsc, br = (t) => e(t).replace(/\n/g, '<br>');
+    const ph = j.photos.length ? '<div class="ph">' + j.photos.map(u => '<img src="' + u + '">').join('') + '</div>' : '<div class="none">등록된 사진이 없습니다</div>';
+    return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>프로그램운영일지_' + e(j.p.date) + '</title><style>'
+      + '@page{size:A4;margin:14mm 16mm}*{box-sizing:border-box}html,body{margin:0;background:#fff;color:#111;font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      + 'h1{text-align:center;font-size:25pt;letter-spacing:.35em;margin:6mm 0 9mm;font-weight:700}table{width:100%;border-collapse:collapse;font-size:11.5pt;margin-bottom:9mm}'
+      + 'td,th{border:1px solid #222;padding:2.2mm 3mm;vertical-align:middle;line-height:1.6}th{background:#e8e8e8;width:27mm;font-weight:700;letter-spacing:.2em}.c{text-align:center}'
+      + '.ph{display:flex;gap:1.5mm}.ph img{flex:1 1 0;min-width:0;max-height:62mm;object-fit:cover;display:block}.none{color:#888;text-align:center;padding:9mm 0}'
+      + '.sec{background:#e8e8e8;font-weight:700;padding:2mm 3mm}.big{min-height:25mm}.big.n{min-height:62mm}.ft{display:flex;justify-content:flex-end;align-items:center;gap:3mm;margin-top:8mm;font-size:15pt;font-weight:700;color:#333}.ft img{max-height:13mm}'
+      + '</style></head><body><h1>프 로 그 램 운 영 일 지</h1><table>'
+      + '<tr><th>프로그램명</th><td colspan="2">' + e(j.p.program) + '</td></tr>'
+      + '<tr><th>진행일시</th><td colspan="2">' + e(j.dateTxt) + (j.timeTxt ? ' ' + e(j.timeTxt) : '') + '</td></tr>'
+      + '<tr><th>진행장소</th><td colspan="2">' + e(j.f.place) + '</td></tr>'
+      + '<tr><th>주 제</th><td colspan="2">' + e(j.f.topic) + '</td></tr>'
+      + '<tr><th>진 행 자</th><td colspan="2">' + e(j.f.staffTxt) + '</td></tr>'
+      + '<tr><th rowspan="2">프로그램 사진</th><td>' + e(j.f.prep) + '</td></tr><tr><td style="padding:1.5mm">' + ph + '</td></tr></table>'
+      + '<table><tr><td class="c" style="font-weight:700;letter-spacing:.6em;padding:3mm">진 행 현 황</td></tr>'
+      + '<tr><td class="sec">■ 내 용</td></tr><tr><td class="big">' + br(j.f.content) + '</td></tr>'
+      + '<tr><td class="sec">■ 특이사항 / 평가</td></tr><tr><td class="big n">' + br(j.f.note) + '</td></tr>'
+      + '<tr><td class="sec">■ 차기계획</td></tr><tr><td class="big">' + br(j.f.next) + '</td></tr></table>'
+      + '<div class="ft">' + (logo ? '<img src="' + logo + '">' : '') + '<span>' + e(org) + '</span></div></body></html>';
+  }
+  async jrnPrint(j, org, logo) {
+    const html = this.jrnHtml(j, org, logo);
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+    document.body.appendChild(fr);
+    const doc = fr.contentWindow.document; doc.open(); doc.write(html); doc.close();
+    await Promise.all([...doc.images].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+    setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { this.flash('인쇄 창을 열 수 없습니다'); } setTimeout(() => fr.remove(), 60000); }, 150);
+    this.flash('인쇄 창에서 [PDF로 저장]을 고르면 PDF 파일이 됩니다');
+  }
+  static crc32(u8) {
+    if (!Component._crcT) { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } Component._crcT = t; }
+    let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = Component._crcT[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  static zipStore(files) {
+    const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+    const w16 = (v) => [v & 255, (v >>> 8) & 255], w32 = (v) => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+    files.forEach(f => {
+      const nm = enc.encode(f.name), d = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = Component.crc32(d);
+      const lh = new Uint8Array([0x50, 0x4b, 3, 4, 20, 0, 0, 8, 0, 0, 0, 0, 0x21, 0, ...w32(crc), ...w32(d.length), ...w32(d.length), ...w16(nm.length), 0, 0]);
+      parts.push(lh, nm, d);
+      cen.push(new Uint8Array([0x50, 0x4b, 1, 2, 20, 0, 20, 0, 0, 8, 0, 0, 0, 0, 0x21, 0, ...w32(crc), ...w32(d.length), ...w32(d.length), ...w16(nm.length), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...w32(off)]), nm);
+      off += lh.length + nm.length + d.length;
+    });
+    const cl = cen.reduce((n, a) => n + a.length, 0);
+    const end = new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0, ...w16(files.length), ...w16(files.length), ...w32(cl), ...w32(off), 0, 0]);
+    return new Blob(parts.concat(cen, [end]), { type: 'application/zip' });
+  }
+  static dataUrlBytes(u) { const m = /^data:([^;,]+)(;base64)?,(.*)$/.exec(u || ''); if (!m) return null; const bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return { type: m[1], bytes: a }; }
+  static imgSize(u) { return new Promise(r => { const im = new Image(); im.onload = () => r({ w: im.naturalWidth || 4, h: im.naturalHeight || 3 }); im.onerror = () => r({ w: 4, h: 3 }); im.src = u; }); }
+  static saveBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); }
+  async jrnDocx(j, org, logo) {
+    const e = Component.xmlEsc, imgs = []; const media = [];
+    const addImg = async (u, maxW, maxH) => { const d = Component.dataUrlBytes(u); if (!d) return ''; const sz = await Component.imgSize(u); const id = media.length + 1; const ext = /png/.test(d.type) ? 'png' : 'jpeg'; media.push({ id, ext, bytes: d.bytes });
+      let w = maxW, h = Math.round(w * sz.h / sz.w); if (h > maxH) { h = maxH; w = Math.round(h * sz.w / sz.h); } const cx = w * 9525, cy = h * 9525;
+      return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/><wp:docPr id="' + id + '" name="img' + id + '"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="' + id + '" name="img' + id + '"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId' + (100 + id) + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>'; };
+    const run = (t, o) => { o = o || {}; return '<w:r><w:rPr><w:rFonts w:ascii="맑은 고딕" w:eastAsia="맑은 고딕" w:hAnsi="맑은 고딕"/>' + (o.b ? '<w:b/>' : '') + '<w:sz w:val="' + (o.sz || 22) + '"/></w:rPr><w:t xml:space="preserve">' + e(t) + '</w:t></w:r>'; };
+    const para = (inner, jc) => '<w:p><w:pPr><w:spacing w:before="40" w:after="40"/>' + (jc ? '<w:jc w:val="' + jc + '"/>' : '') + '</w:pPr>' + inner + '</w:p>';
+    const lines = (t, o) => String(t || '').split('\n').map(l => para(run(l, o))).join('') || para('');
+    const bd = '<w:tcBorders><w:top w:val="single" w:sz="6"/><w:left w:val="single" w:sz="6"/><w:bottom w:val="single" w:sz="6"/><w:right w:val="single" w:sz="6"/></w:tcBorders>';
+    const tc = (w, inner, o) => { o = o || {}; return '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (o.span ? '<w:gridSpan w:val="' + o.span + '"/>' : '') + (o.vm ? '<w:vMerge' + (o.vm === 'start' ? ' w:val="restart"' : '') + '/>' : '') + bd + (o.fill ? '<w:shd w:val="clear" w:color="auto" w:fill="E8E8E8"/>' : '') + '<w:vAlign w:val="center"/></w:tcPr>' + inner + '</w:tc>'; };
+    const L = 1900, R = 7700, row = (cells) => '<w:tr>' + cells + '</w:tr>';
+    const lab = (t) => tc(L, para(run(t, { b: 1 }), 'center'), { fill: 1 });
+    let photoRuns = ''; for (const u of j.photos.slice(0, 2)) photoRuns += await addImg(u, 360, 250) + '<w:r><w:t xml:space="preserve"> </w:t></w:r>';
+    const t1 = '<w:tbl><w:tblPr><w:tblW w:w="9600" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="' + L + '"/><w:gridCol w:w="' + R + '"/></w:tblGrid>'
+      + row(lab('프로그램명') + tc(R, lines(j.p.program))) + row(lab('진행일시') + tc(R, lines(j.dateTxt + (j.timeTxt ? ' ' + j.timeTxt : '')))) + row(lab('진행장소') + tc(R, lines(j.f.place)))
+      + row(lab('주  제') + tc(R, lines(j.f.topic))) + row(lab('진 행 자') + tc(R, lines(j.f.staffTxt)))
+      + row(tc(L, para(run('프로그램 사진', { b: 1 }), 'center'), { fill: 1, vm: 'start' }) + tc(R, lines(j.f.prep)))
+      + row(tc(L, para(''), { vm: 'cont' }) + tc(R, para(photoRuns || run('등록된 사진이 없습니다'), 'center'))) + '</w:tbl>';
+    const full = (t, o) => row(tc(9600, t, o));
+    const t2 = '<w:tbl><w:tblPr><w:tblW w:w="9600" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="9600"/></w:tblGrid>'
+      + full(para(run('진  행  현  황', { b: 1, sz: 24 }), 'center')) + full(para(run('■ 내 용', { b: 1 })), { fill: 1 }) + full(lines(j.f.content))
+      + full(para(run('■ 특이사항 / 평가', { b: 1 })), { fill: 1 }) + full(lines(j.f.note)) + full(para(run('■ 차기계획', { b: 1 })), { fill: 1 }) + full(lines(j.f.next)) + '</w:tbl>';
+    const logoRun = logo ? await addImg(logo, 150, 50) : '';
+    const body = para(run('프 로 그 램 운 영 일 지', { b: 1, sz: 48 }), 'center') + t1 + para('') + t2 + para(logoRun + run(' ' + org, { b: 1, sz: 30 }), 'right');
+    const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>' + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>';
+    const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + media.map(m => '<Relationship Id="rId' + (100 + m.id) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img' + m.id + '.' + (m.ext === 'png' ? 'png' : 'jpg') + '"/>').join('') + '</Relationships>';
+    const files = [
+      { name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>' },
+      { name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>' },
+      { name: 'word/document.xml', data: doc }, { name: 'word/_rels/document.xml.rels', data: rels }
+    ].concat(media.map(m => ({ name: 'word/media/img' + m.id + '.' + (m.ext === 'png' ? 'png' : 'jpg'), data: m.bytes })));
+    Component.saveBlob(Component.zipStore(files), '프로그램운영일지_' + j.p.date + '.docx');
+    this.flash('Word 파일을 내려받았습니다 (한글에서도 열립니다)');
+  }
+  jrnHwpx(j, org) {
+    const e = Component.xmlEsc; const NS = 'xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head" xmlns:hc="http://www.hancom.co.kr/hwpml/2011/core" xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph" xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" xmlns:opf="http://www.idpf.org/2007/opf/"';
+    const lines = []; const add = (t, st) => String(t == null ? '' : t).split('\n').forEach(l => lines.push({ t: l, st: st || 0 }));
+    add('프 로 그 램 운 영 일 지', 1); add('');
+    add('프로그램명 : ' + j.p.program); add('진행일시 : ' + j.dateTxt + (j.timeTxt ? ' ' + j.timeTxt : '')); add('진행장소 : ' + j.f.place); add('주  제 : ' + j.f.topic); add('진 행 자 : ' + j.f.staffTxt); add(j.f.prep);
+    add('프로그램 사진 : ' + (j.photos.length ? '(사진 ' + j.photos.length + '장은 Word 파일에 포함되어 있습니다)' : '없음')); add('');
+    add('진 행 현 황', 1); add('■ 내 용', 2); add(j.f.content); add('■ 특이사항 / 평가', 2); add(j.f.note); add('■ 차기계획', 2); add(j.f.next); add(''); add(org, 3);
+    const paras = lines.map((l, i) => '<hp:p id="' + (1000 + i) + '" paraPrIDRef="' + l.st + '" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">' + (i === 0 ? '<hp:run charPrIDRef="0"><hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0"><hp:pagePr landscape="WIDELY" width="59528" height="84188" gutterType="LEFT_ONLY"><hp:margin header="4252" footer="4252" gutter="0" left="8504" right="8504" top="5668" bottom="4252"/></hp:pagePr></hp:secPr></hp:run>' : '') + '<hp:run charPrIDRef="' + (l.st === 1 ? 1 : l.st === 2 ? 2 : 0) + '"><hp:t>' + e(l.t) + '</hp:t></hp:run></hp:p>').join('');
+    const section = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><hs:sec ' + NS + '>' + paras + '</hs:sec>';
+    const cp = (id, h, b) => '<hh:charPr id="' + id + '" height="' + h + '" textColor="#000000" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1"><hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/><hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/><hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/><hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/><hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>' + (b ? '<hh:bold/>' : '') + '</hh:charPr>';
+    const pp = (id, al) => '<hh:paraPr id="' + id + '" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="1" suppressLineNumbers="0" checked="0"><hh:align horizontal="' + al + '" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/><hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/><hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="0" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="400" unit="HWPUNIT"/></hh:margin><hh:lineSpacing type="PERCENT" value="160" unit="HWPUNIT"/></hh:paraPr>';
+    const bf = '<hh:borderFill id="1" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0"><hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/><hh:leftBorder type="NONE" width="0.1 mm" color="#000000"/><hh:rightBorder type="NONE" width="0.1 mm" color="#000000"/><hh:topBorder type="NONE" width="0.1 mm" color="#000000"/><hh:bottomBorder type="NONE" width="0.1 mm" color="#000000"/><hh:diagonal type="SOLID" width="0.1 mm" color="#000000"/></hh:borderFill>';
+    const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><hh:head ' + NS + ' version="1.4" secCnt="1"><hh:beginNum page="1" footnote="1" endnote="1" pic="1" tbl="1" equation="1"/><hh:refList>'
+      + '<hh:fontfaces itemCnt="1"><hh:fontface lang="HANGUL" fontCnt="1"><hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/></hh:fontface></hh:fontfaces>'
+      + '<hh:borderFills itemCnt="1">' + bf + '</hh:borderFills><hh:charProperties itemCnt="3">' + cp(0, 1100, 0) + cp(1, 2400, 1) + cp(2, 1200, 1) + '</hh:charProperties>'
+      + '<hh:tabProperties itemCnt="1"><hh:tabPr id="0" autoTabLeft="0" autoTabRight="0"/></hh:tabProperties>'
+      + '<hh:paraProperties itemCnt="4">' + pp(0, 'LEFT') + pp(1, 'CENTER') + pp(2, 'LEFT') + pp(3, 'RIGHT') + '</hh:paraProperties>'
+      + '<hh:styles itemCnt="1"><hh:style id="0" type="PARA" name="바탕글" engName="Normal" paraPrIDRef="0" charPrIDRef="0" nextStyleIDRef="0" langID="1042" lockForm="0"/></hh:styles></hh:refList></hh:head>';
+    const files = [
+      { name: 'mimetype', data: 'application/hwp+zip' },
+      { name: 'version.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><hv:HCFVersion xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" tagetApplication="WORDPROCESSOR" major="5" minor="0" micro="5" buildNumber="0" os="1" xmlVersion="1.4" application="smartcare" appVersion="1"/>' },
+      { name: 'META-INF/container.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><ocf:container xmlns:ocf="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf"><ocf:rootfiles><ocf:rootfile full-path="Contents/content.hpf" media-type="application/hwpml-package+xml"/></ocf:rootfiles></ocf:container>' },
+      { name: 'Contents/content.hpf', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><opf:package ' + NS + ' version="" unique-identifier="" id=""><opf:metadata><opf:title>프로그램운영일지</opf:title><opf:language>ko</opf:language></opf:metadata><opf:manifest><opf:item id="header" href="Contents/header.xml" media-type="application/xml"/><opf:item id="section0" href="Contents/section0.xml" media-type="application/xml"/></opf:manifest><opf:spine><opf:itemref idref="header" linear="yes"/><opf:itemref idref="section0" linear="yes"/></opf:spine></opf:package>' },
+      { name: 'Contents/header.xml', data: header }, { name: 'Contents/section0.xml', data: section }
+    ];
+    Component.saveBlob(Component.zipStore(files), '프로그램운영일지_' + j.p.date + '.hwpx');
+    this.flash('한글(.hwpx) 파일을 내려받았습니다 — 사진은 포함되지 않습니다 (Word 파일 이용)');
+  }
+
+  journalVals(s, ctx) {
+    const today = this.todayIso();
+    const rows = (s.plans || []).filter(p => p.status !== '취소' && p.date <= this.planIso(new Date(Date.parse(today) + 7 * 864e5)) && p.date >= this.planIso(new Date(Date.parse(today) - 120 * 864e5)))
+      .sort((a, b) => (b.date + (b.start || '')).localeCompare(a.date + (a.start || '')));
+    let selKey = s.jrnSel && rows.some(p => this.jrnKeyOf(p) === s.jrnSel) ? s.jrnSel : (rows.length ? this.jrnKeyOf(rows.find(p => p.date <= today) || rows[0]) : null);
+    const j = selKey ? this.jrnGet(selKey, s) : null;
+    const logo = (() => { try { return localStorage.getItem('smartcare.journalLogo.v1') || ''; } catch (e) { return ''; } })();
+    const phone = s.device === 'mobile' || s.device === 'tablet';
+    const hasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    const org = ctx.orgName || '';
+    return {
+      jrnPlans: rows.map(p => { const k = this.jrnKeyOf(p); const sv = !!(s.journals || {})[k]; const on = k === selKey;
+        return { title: p.program, date: p.date.slice(5).replace('-', '/') + (p.start ? ' ' + p.start : ''), st: sv ? '수정함' : '자동 초안', stFg: sv ? '#ffffff' : 'var(--color-neutral-400)', stBg: sv ? 'var(--color-accent-800)' : 'var(--color-neutral-800)', on: on, off: !on, cls: on ? 'sel-chip' : '', go: () => { this.setState({ jrnSel: k }); } }; }),
+      jrnNone: rows.length === 0, jrnHas: !!j,
+      jrnTitle: j ? j.p.program : '', jrnWhen: j ? j.dateTxt + (j.timeTxt ? ' ' + j.timeTxt : '') : '',
+      jrnPhotos: j ? j.photos.map(u => ({ u })) : [], jrnHasPhotos: !!(j && j.photos.length), jrnNoPhotos: !!(j && !j.photos.length),
+      jrnSaved: !!(j && j.saved), jrnAutoNote: j && j.saved ? '직접 수정한 내용이 저장되어 있습니다' : '일정·사진·참여 기록으로 자동 작성된 초안입니다. 고쳐 쓰면 바로 저장됩니다',
+      jrnFields: j ? Component.JRN_FIELDS.map(f => ({ k: f.k, label: f.label, multi: f.multi, single: !f.multi, rows: f.rows || 3, val: j.f[f.k] || '',
+        on: (e) => this.jrnSetField(selKey, f.k, e.target.value, this.state),
+        blur: () => this.jrnFlush(),
+        hasMic: phone && f.multi, micOn: s.jrnMic === f.k, micCls: s.jrnMic === f.k ? 'sel-chip' : '', micLabel: s.jrnMic === f.k ? '듣는 중… (누르면 멈춤)' : '음성 입력',
+        mic: () => this.jrnMic(f.k, selKey) })) : [],
+      jrnPhone: phone,
+      jrnRedo: () => { if (!selKey) return; const all = Object.assign({}, this.state.journals || {}); delete all[selKey]; this.setState({ journals: all }); this.jrnFlush(); this.flash('자동 초안으로 다시 작성했습니다'); },
+      jrnPreview: () => this.setState({ jrnPrev: true }),
+      jrnPrevOpen: !!s.jrnPrev && !!j, jrnPrevClose: () => this.setState({ jrnPrev: false }),
+      jrnDoc: j && s.jrnPrev ? this.jrnHtml(j, org, logo) : '',
+      jrnPrintGo: () => { if (j) this.jrnPrint(j, org, logo); },
+      jrnDocxGo: () => { if (j) this.jrnDocx(j, org, logo).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); },
+      jrnHwpxGo: () => { if (j) { try { this.jrnHwpx(j, org); } catch (e) { this.flash('한글 파일 저장 실패 — ' + (e && e.message)); } } },
+      jrnLogoPick: (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 420 / im.width, 140 / im.height); const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); try { localStorage.setItem('smartcare.journalLogo.v1', c.toDataURL('image/png')); } catch (x) {} this.setState({ jrnLogoTick: (this.state.jrnLogoTick || 0) + 1 }); this.flash('병원 로고를 저장했습니다'); }; im.src = rd.result; }; rd.readAsDataURL(f); },
+      jrnLogo: logo, jrnHasLogo: !!logo,
+      jrnLogoClear: () => { try { localStorage.removeItem('smartcare.journalLogo.v1'); } catch (e) {} this.setState({ jrnLogoTick: (this.state.jrnLogoTick || 0) + 1 }); },
+      jrnOrg: org
+    };
   }
 
   printCanvas(canvas, name) {
@@ -4962,7 +5178,7 @@ class Component extends DCLogic {
     KEYS.forEach(k => { snap[k] = s[k]; });
     this._orgStore[cur] = snap;
     const nx = this._orgStore[next] || {
-      patients: [], wards: [], wardsSaved: [], programs: (s.programs || []).slice(), plans: [], sessions: {}, review: [], confirmed: false,
+      patients: [], wards: [], wardsSaved: [], programs: (s.programs || []).slice(), plans: [], journals: {}, sessions: {}, review: [], confirmed: false,
       photos: [], activeSession: null, sessionMeta: {}, photoUrls: {}, sel: null, ward: '전체'
     };
     PATIENTS.length = 0; nx.patients.forEach(p => PATIENTS.push(p));
@@ -7648,7 +7864,8 @@ class Component extends DCLogic {
             { k: 'calendar', label: '캘린더', icon: 'ph ph-calendar-blank', show: can('logs'), on: v === 'logs' && lt === 'calendar', go: goView('logs', { logTab: 'calendar' }) },
             { k: 'logList', label: '일지 목록 · 검수', icon: 'ph ph-notebook', show: can('logs'), on: (v === 'logs' && lt === 'list') || v === 'review', go: goView('logs', { logTab: 'list' }), badge: pend ? String(pend) : '' },
             { k: 'attendance', label: '출석부', icon: 'ph ph-user-list', show: can('logs'), on: v === 'logs' && lt === 'attendance', go: goView('logs', { logTab: 'attendance' }) },
-            { k: 'album', label: '앨범', icon: 'ph ph-images', show: can('logs'), on: v === 'logs' && lt === 'album', go: goView('logs', { logTab: 'album' }) }
+            { k: 'album', label: '앨범', icon: 'ph ph-images', show: can('logs'), on: v === 'logs' && lt === 'album', go: goView('logs', { logTab: 'album' }) },
+            { k: 'journal', label: '운영일지', icon: 'ph ph-file-text', show: can('logs'), on: v === 'logs' && lt === 'journal', go: goView('logs', { logTab: 'journal' }) }
           ] },
           { k: 'stats', label: '통계', icon: 'ph ph-chart-bar', items: [
             { k: 'st-all', label: '전체 보기', icon: 'ph ph-squares-four', sec: 'all' },
@@ -9288,14 +9505,15 @@ class Component extends DCLogic {
         { key: 'calendar', label: '캘린더', icon: 'ph ph-calendar-blank' },
         { key: 'list', label: '일지 목록', icon: 'ph ph-notebook', badge: logPendingN ? '검수 ' + logPendingN : '' },
         { key: 'attendance', label: '출석부', icon: 'ph ph-user-list' },
-        { key: 'album', label: '앨범', icon: 'ph ph-images' }
+        { key: 'album', label: '앨범', icon: 'ph ph-images' },
+        { key: 'journal', label: '운영일지', icon: 'ph ph-file-text' }
       ].map(t => ({
         label: t.label, icon: t.icon, active: s.logTab === t.key, inactive: s.logTab !== t.key,
         hasBadge: !!t.badge, badge: t.badge || '',
         go: () => this.setState({ logTab: t.key })
       })),
       logTabList: s.logTab === 'list', logTabAttendance: s.logTab === 'attendance',
-      logTabAlbum: s.logTab === 'album',
+      logTabAlbum: s.logTab === 'album', logTabJournal: s.logTab === 'journal',
       // 데이터 서버가 응답하지 않아 사진을 못 받는 경우 안내 (끝없이 '불러오는 중'만 보이지 않게)
       // 오류일 때만 안내 띠 표시 (정상적으로 받는 중일 때는 띠 없이 사진 칸에 '불러오는 중'만)
       alSrvSlow: s.logTab === 'album' && !!this.cloudCfg() && s.cloudStatus === 'error',
@@ -9653,6 +9871,7 @@ class Component extends DCLogic {
       statsPrint: () => { this._userName = userName; this.runStatsReport('print'); },
       statsPdf: () => { this._userName = userName; this.runStatsReport('pdf'); },
       statsJpg: () => { this._userName = userName; this.runStatsReport('jpg'); },
+      ...this.journalVals(s, { orgName: orgName, userName: userName }),
       expPrevOpen: !!s.expPrev, expPrevKind: s.expPrev ? s.expPrev.kind : '', expPrevFile: s.expPrev ? s.expPrev.file : '', expPrevImgs: s.expPrev ? s.expPrev.imgs : [],
       expPrevClose: () => { this._expRun = null; this.setState({ expPrev: null }); },
       expPrevGo: async () => { const r = this._expRun; this._expRun = null; this.setState({ expPrev: null, exportBusy: true }); try { if (r) await r(); } catch (e) { this.flash('내보내기 실패 — ' + (e && e.message ? e.message : '')); } finally { this.setState({ exportBusy: false }); } },
@@ -10740,13 +10959,13 @@ class Component extends DCLogic {
       // 모바일
       mToday: s.mobileView === 'today', mNewLog: s.mobileView === 'newLog',
       mReview: s.mobileView === 'review', mLogs: s.mobileView === 'logs',
-      mConsent: s.mobileView === 'consent', mMe: s.mobileView === 'me',
+      mConsent: s.mobileView === 'consent', mMe: s.mobileView === 'me', mJournal: s.mobileView === 'journal',
       reviewMeta: this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', '),
       reviewHead: this.curKey(s).split('|')[0] + ' · ' + (this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', ')),
       mobileBack: s.mobileView !== 'today',
       mobileTitle: s.mobileView === 'newLog' ? '일지 작성'
         : (s.mobileView === 'review' ? '판독 결과 · ' + this.curKey(s).split('|')[1] + ' ' + this.curKey(s).split('|')[0].slice(5).replace('-', '/')
-        : (s.mobileView === 'consent' ? '동의서 작성' : (s.mobileView === 'me' ? '내 설정' : '프로그램 일지'))),
+        : (s.mobileView === 'consent' ? '동의서 작성' : (s.mobileView === 'me' ? '내 설정' : (s.mobileView === 'journal' ? '프로그램 운영일지' : '프로그램 일지')))),
       goConsentMobile: () => this.setState({ mobileView: 'consent' }),
       // 휴대폰·태블릿: 바로 전 단계로 (기록이 없으면 오늘 화면)
       mobileGoBack: () => { if (!this.navGoBack()) this.setState({ mobileView: 'today' }); },
@@ -10899,6 +11118,7 @@ class Component extends DCLogic {
         { key: 'today', label: '오늘', icon: 'ph ph-house' },
         { key: 'logs', label: '일지', icon: 'ph ph-note-pencil' },
         { key: 'review', label: '검수', icon: 'ph ph-scan-smiley' },
+        { key: 'journal', label: '운영일지', icon: 'ph ph-file-text' },
         { key: 'consent', label: '동의서', icon: 'ph ph-signature' },
         { key: 'me', label: '내 설정', icon: 'ph ph-user-circle' }
       ].map(t => ({
