@@ -103,7 +103,7 @@
 
   <!-- ══════════ 로그인 ══════════ -->
   <sc-if value="{{ showLogin }}" hint-placeholder-val="{{ true }}">
-    <div style="width: 100%; max-width: 1440px; margin: 0 auto; min-height: calc(100vh - 64px); border-radius: 0; box-shadow: 0 0 0 1px var(--color-divider); background: var(--color-bg); overflow: hidden;">
+    <div style="width: 100%; max-width: 1440px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; border-radius: 0; background: var(--color-bg); overflow: hidden;">
       <sc-if value="{{ showDevBar }}" hint-placeholder-val="{{ false }}">
       <div style="display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-6); background: var(--color-surface); border-bottom: 1px solid var(--color-divider);">
         <span style="display: flex; gap: 6px;">
@@ -114,8 +114,8 @@
         <span style="font-size: 13px; color: var(--color-neutral-600); font-family: ui-monospace, monospace;">smartcare.hospital.kr/login</span>
       </div>
       </sc-if>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); min-height: 620px;">
-        <div style="padding: calc(var(--space-8) * 2) calc(var(--space-8) * 1.5); display: flex; flex-direction: column; justify-content: center; gap: var(--space-8); border-right: 1px solid var(--color-divider);">
+      <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); min-height: 620px;">
+        <div class="sc-login-intro" style="padding: calc(var(--space-8) * 2) calc(var(--space-8) * 1.5); display: flex; flex-direction: column; justify-content: center; gap: var(--space-8); border-right: 1px solid var(--color-divider);">
           <div>
             <div style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-400);">다기관 통합 · 사회사업실</div>
             <h1 style="margin: var(--space-3) 0 0; font-size: 40px; line-height: 1.15;">스마트 케어<br>프로세스</h1>
@@ -126,7 +126,7 @@
             <span style="display: flex; gap: var(--space-3); align-items: center;"><i class="ph ph-clock-counter-clockwise" style="font-size: 17px; color: var(--color-accent-400);"></i> 조회·수정·내보내기 이력 자동 기록</span>
           </div>
         </div>
-        <div style="padding: calc(var(--space-8) * 2) calc(var(--space-8) * 1.5); display: flex; flex-direction: column; justify-content: center; gap: var(--space-6);">
+        <div class="sc-login-form" style="padding: calc(var(--space-8) * 2) calc(var(--space-8) * 1.5); display: flex; flex-direction: column; justify-content: center; gap: var(--space-6);">
           <div>
             <div style="font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 23px;">로그인</div>
             <div style="font-size: 14px; color: var(--color-neutral-500); margin-top: var(--space-2);">소속기관을 선택하고 사번 또는 Gmail로 로그인하십시오.</div>

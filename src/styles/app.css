@@ -246,10 +246,16 @@
   .has-tip:hover::after, .has-tip:focus-visible::after { opacity: 1; transform: translateY(0); }
   .has-tip:hover::before, .has-tip:focus-visible::before { opacity: 1; }
 
-<<<<<<< HEAD
+
+  /* 좁은 화면(휴대폰): 로그인 입력이 첫 화면에 들어오도록 소개 영역을 줄임 */
+  @media (max-width: 700px) {
+    .sc-login-intro { padding: 28px 22px 6px !important; gap: 10px !important; border-right: 0 !important; }
+    .sc-login-intro h1, .sc-login-intro [style*="font-size: 4"], .sc-login-intro [style*="font-size: 5"] { font-size: 30px !important; line-height: 1.2 !important; }
+    .sc-login-intro ul, .sc-login-intro [style*="flex-direction: column; gap: var(--space-3)"] { display: none !important; }
+    .sc-login-form { padding: 14px 22px 30px !important; justify-content: flex-start !important; }
+  }
   /* 라이트 모드: 선택된 메뉴(진한 파란 바탕) 안의 숫자 배지는 어두운 바탕 + 흰 글씨로 */
   html[data-theme="light"] [data-sb-sub] button[aria-current="page"] span[style*="999px"] { background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; }
-=======
 /* AI 비서 버튼: 은은하게 숨 쉬는 빛 (움직임 줄이기 설정이면 멈춤) */
 .sc-ai-fab { position: fixed; }
 .sc-ai-fab-ring { position: absolute; inset: -5px; border-radius: 50%; pointer-events: none; border: 2px solid rgba(120, 110, 255, 0.55); animation: scAiPulse 2.8s ease-out infinite; }
@@ -258,7 +264,6 @@
 
 /* 접힌 메뉴 아이콘 설명: 아이콘 오른쪽에 떠서 커서와 겹치지 않음 */
 #sc-mini-tip { position: fixed; z-index: 400; display: none; transform: translateY(-50%); padding: 7px 12px; border-radius: 8px; font-size: 13.5px; line-height: 1.3; white-space: nowrap; pointer-events: none; background: #1f2433; color: #f4f5fa; box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
->>>>>>> origin/main
 
 /* 선택된 항목(칩·토글)을 확실히 눈에 띄게 */
 .sel-chip { background: var(--color-accent-800) !important; color: #ffffff !important; border-color: var(--color-accent) !important; font-weight: 600 !important; box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-accent) 38%, transparent) !important; }
