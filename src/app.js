@@ -2885,7 +2885,7 @@ class Component extends DCLogic {
     const r = Component.setRolesOf(m);
     if (r.indexOf('시스템관리자') >= 0) return true;
     const t = Component.SET_TABS.find(x => x.k === key);
-    if (!t || t.sys) return false;
+    if (!t || t.hidden) return false; // 데이터 이전은 시스템 관리자 전용
     const list = Array.isArray(m && m.setAccess) ? m.setAccess : Component.setDefaults(m);
     return list.indexOf(key) >= 0;
   }
@@ -6019,6 +6019,35 @@ class Component extends DCLogic {
       calTitle: Y + '년 ' + M + '월',
       calPrev: () => shift(-1), calNext: () => shift(1),
       calToday: () => this.setState({ calMonth: today.slice(0, 7), planDay: today }),
+      // 캘린더 아래 '이번 달 운영 요약'
+      ...(() => {
+        const mp = (s.plans || []).filter(p => (p.date || '').slice(0, 7) === ym && p.status !== '취소');
+        const bs = mp.map(p => ({ p, b: this.planBadges(p, s) }));
+        const done = bs.filter(x => x.b.progLabel === '완료').length;
+        const wait = bs.filter(x => x.b.progLabel === '예정').length;
+        const miss = bs.filter(x => x.b.showLog && x.b.logShort === '미작성').length;
+        const cancelled = (s.plans || []).filter(p => (p.date || '').slice(0, 7) === ym && p.status === '취소').length;
+        const byProg = {}; mp.forEach(p => { byProg[p.program] = (byProg[p.program] || 0) + 1; });
+        const top = Object.keys(byProg).map(k => ({ k, n: byProg[k] })).sort((x, y) => y.n - x.n).slice(0, 5);
+        const mx = Math.max(1, ...top.map(x => x.n));
+        const BC = ['oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.13 285)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 200)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.13 150)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.80) 0.12 85)', 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.72) 0.14 30)'];
+        const nxt = (s.plans || []).filter(p => p.status !== '취소' && (p.date + ' ' + (p.start || '')) >= (today + ' ' + new Date().toTimeString().slice(0, 5))).sort((x, y) => (x.date + (x.start || '')).localeCompare(y.date + (y.start || '')))[0];
+        return {
+          csTitle: M + '월 운영 요약',
+          csTiles: [
+            { icon: 'ph ph-calendar-check', label: '전체 일정', n: String(mp.length), hue: 255 },
+            { icon: 'ph ph-check-circle', label: '완료', n: String(done), hue: 150 },
+            { icon: 'ph ph-clock', label: '예정', n: String(wait), hue: 230 },
+            { icon: 'ph ph-note-pencil', label: '일지 미작성', n: String(miss), hue: 25 }
+          ].map(t => ({ icon: t.icon, label: t.label, n: t.n, fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.78) 0.13 ' + t.hue + ')', bg: 'color-mix(in oklch, oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 ' + t.hue + ') 13%, transparent)', bd: 'color-mix(in oklch, oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.74) 0.12 ' + t.hue + ') 38%, transparent)' })),
+          csBars: top.map((x, i) => ({ label: x.k, n: x.n + '회', w: Math.max(6, Math.round(x.n / mx * 100)) + '%', c: BC[i % BC.length] })),
+          csHasBars: top.length > 0, csNoBars: top.length === 0,
+          csCancelled: cancelled ? '취소 ' + cancelled + '건' : '',
+          csNextHas: !!nxt, csNextNo: !nxt,
+          csNext: nxt ? { title: nxt.program, when: (nxt.date === today ? '오늘' : nxt.date.slice(5).replace('-', '/')) + ' ' + (nxt.start || '') + (nxt.end ? '~' + nxt.end : ''), where: [nxt.place, (nxt.staff || []).join(', ')].filter(Boolean).join(' · ') } : { title: '', when: '', where: '' },
+          csGoNext: () => { if (nxt) this.setState({ calMonth: nxt.date.slice(0, 7), planDay: nxt.date }); }
+        };
+      })(),
       calCells: calCells,
       calBgBase: CB, calBgHi: CBhi,
       calFrame: CAL.frame, calFrameShadow: CAL.frameSh, calText: CAL.text, calLine: CAL.line,
@@ -7128,11 +7157,11 @@ class Component extends DCLogic {
         setAccSys: rolesOf(m).indexOf('시스템관리자') >= 0,
         setAcc: Component.SET_TABS.filter(t => !t.hidden).map(t => {
           const on = Component.setAllowed(m, t.k);
-          const off = !!t.sys;
+          const off = !!t.sys && !isSys; // 기관 관리·데이터 서버는 시스템 관리자만 다른 계정에 부여 가능
           return {
-            label: t.n, sysOnly: off, on: on, cls: on ? 'sel-chip' : '', locked: locked || off, mark: on ? 'ph-fill ph-check-square' : 'ph ph-square',
+            label: t.n + (t.sys ? ' ★' : ''), sysOnly: off, on: on, cls: on ? 'sel-chip' : '', locked: locked || off, mark: on ? 'ph-fill ph-check-square' : 'ph ph-square',
             Bd: on ? 'var(--color-accent)' : 'var(--color-neutral-700)', Bg: on ? 'var(--color-accent-900)' : 'var(--color-neutral-900)', Fg: on ? 'var(--color-accent-100)' : 'var(--color-neutral-500)',
-            tip: off ? '시스템 관리자 전용' : (on ? '사용 중 · 누르면 끔' : '꺼짐 · 누르면 켬'),
+            tip: off ? '시스템 관리자만 부여할 수 있습니다' : (on ? '사용 중 · 누르면 끔' : '꺼짐 · 누르면 켬'),
             toggle: () => {
               const cur = Array.isArray(m.setAccess) ? m.setAccess.slice() : Component.setDefaults(m);
               const next = on ? cur.filter(k => k !== t.k) : cur.concat([t.k]);
