@@ -32,7 +32,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await sleep(2000); await p.reload(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
     await p.locator('aside button:has-text("운영일지") >> visible=true').first().click(); await sleep(1000);
     const body = await p.evaluate(() => document.body.innerText);
-    check('프로그램 하위 메뉴에 "운영일지"가 있고 일정 목록이 보임', /자동 초안/.test(body) && /음악치료/.test(body));
+    check('프로그램 하위 메뉴에 "운영일지"가 있고 일정 목록이 보임', /작성 전/.test(body) && /음악치료/.test(body));
     check('일정으로 자동 작성된 초안(내용·특이사항·차기계획)이 채워짐', await p.evaluate(() => [...document.querySelectorAll('textarea')].filter(t => t.offsetParent).every(t => t.value.length > 10)));
     await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
     check('사진이 앨범에서 자동으로 들어감', (await p.locator('img[alt="프로그램 사진"]').count()) >= 1);
@@ -43,6 +43,16 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await sleep(500);
     await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
     check('고친 내용은 새로고침 후에도 유지', (await p.locator('textarea').first().inputValue()) === '시험 내용 직접 수정');
+    // 상태 탭(작성 전·중·완료)과 하단 글자·로고 선택
+    check('상태 탭(전체·작성 전·작성 중·완료)이 있음', (await p.locator('[role=tab]:has-text("작성 전") >> visible=true').count()) >= 1 && (await p.locator('[role=tab]:has-text("완료") >> visible=true').count()) >= 1);
+    await p.locator('button:has-text("완료 처리") >> visible=true').first().click(); await sleep(500);
+    const doneN = await p.locator('[role=tab]:has-text("완료") b >> visible=true').first().innerText();
+    check('완료 처리하면 완료 탭 개수가 늘어남', Number(doneN) >= 1, doneN);
+    await p.locator('[role=tab]:has-text("완료") >> visible=true').first().click(); await sleep(400);
+    check('완료 탭에는 완료한 일지만 보임', (await p.locator('button[aria-pressed]:has-text("완료") >> visible=true').count()) >= 1);
+    await p.locator('[role=tab]:has-text("전체") >> visible=true').first().click(); await sleep(300);
+    await p.locator('button:has-text("글자만") >> visible=true').first().click(); await sleep(300);
+    await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().fill('직접 쓴 하단 글자'); await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').first().blur(); await sleep(400);
     // 사진 추가·빼기, 결재라인 위치
     const png = path.join(os.tmpdir(), 'jrn-up.png'); fs.writeFileSync(png, Buffer.from(PNG.split(',')[1], 'base64'));
     const before = await p.locator('img[alt="프로그램 사진"]').count();
@@ -55,6 +65,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click(); await sleep(700);
     const doc2 = await p.locator('iframe[title="운영일지 미리보기"]').getAttribute('srcdoc');
     check('결재라인이 문서 상단에 들어감 (제목 바로 아래, 표보다 앞)', doc2.indexOf('class="ap"') > 0 && doc2.indexOf('class="ap"') < doc2.indexOf('프로그램명'));
+    check('하단에 직접 쓴 글자가 들어가고 로고는 빠짐(글자만)', /직접 쓴 하단 글자/.test(doc2));
     check('사진이 잘리지 않음(object-fit: contain)', /object-fit:contain/.test(doc2) && !/object-fit:cover/.test(doc2));
     await p.locator('button:has-text("닫기") >> visible=true').first().click(); await sleep(300);
     await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click(); await sleep(700);

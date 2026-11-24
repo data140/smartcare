@@ -2208,7 +2208,7 @@ class Component extends DCLogic {
   jrnSetField(key, name, val, s) {
     const j = this.jrnGet(key, s); if (!j) return;
     const cur = (s.journals || {})[key] || { f: {} };
-    const all = Object.assign({}, s.journals || {}, { [key]: { f: Object.assign({}, j.f, { [name]: val }), at: Date.now(), by: this._userName || '' } });
+    const all = Object.assign({}, s.journals || {}, { [key]: { f: Object.assign({}, j.f, { [name]: val }), at: Date.now(), by: this._userName || '', done: !!(cur && cur.done) } });
     this.setState({ journals: all });
     clearTimeout(this._jrnT);
     this._jrnT = setTimeout(() => this.jrnFlush(), 600);
@@ -2250,8 +2250,9 @@ class Component extends DCLogic {
     const e = Component.xmlEsc; if (!titles || !titles.length) return '';
     return '<table class="ap"><tr>' + titles.map(t => '<th>' + e(t) + '</th>').join('') + '</tr><tr>' + titles.map(() => '<td></td>').join('') + '</tr></table>';
   }
-  jrnHtml(j, org, logo, ap) {
+  jrnHtml(j, org, logo, ap, ft) {
     ap = ap || { pos: 'none', titles: [] };
+    ft = ft || { logo: !!logo, text: org };
     const e = Component.xmlEsc, br = (t) => e(t).replace(/\n/g, '<br>');
     const ph = j.photos.length ? '<div class="ph">' + j.photos.map(u => '<img src="' + u + '">').join('') + '</div>' : '<div class="none">등록된 사진이 없습니다</div>';
     return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>프로그램운영일지_' + e(j.p.date) + '</title><style>'
@@ -2274,11 +2275,11 @@ class Component extends DCLogic {
       + '<tr><td class="sec">■ 특이사항 / 평가</td></tr><tr><td class="big n">' + br(j.f.note) + '</td></tr>'
       + '<tr><td class="sec">■ 차기계획</td></tr><tr><td class="big">' + br(j.f.next) + '</td></tr></table>'
       + (ap.pos === 'bottom' ? '<div class="apb">' + this.jrnApBox(ap.titles) + '</div>' : '')
-      + '<div class="ft">' + (logo ? '<img src="' + logo + '">' : '') + '<span>' + e(org) + '</span></div></div></div>'
+      + '<div class="ft">' + (ft.logo && logo ? '<img src="' + logo + '">' : '') + (ft.text ? '<span>' + e(ft.text) + '</span>' : '') + '</div></div></div>'
       + '<script>(function(){function fit(){var b=document.getElementById("pg");b.style.zoom=1;var h=b.scrollHeight,a=1030;if(h>a)b.style.zoom=(a/h).toFixed(3);}window.addEventListener("load",fit);fit();})();<\/script></body></html>';
   }
-  async jrnPrint(j, org, logo, ap) {
-    const html = this.jrnHtml(j, org, logo, ap);
+  async jrnPrint(j, org, logo, ap, ft) {
+    const html = this.jrnHtml(j, org, logo, ap, ft);
     const fr = document.createElement('iframe');
     fr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
     document.body.appendChild(fr);
@@ -2308,8 +2309,8 @@ class Component extends DCLogic {
   static dataUrlBytes(u) { const m = /^data:([^;,]+)(;base64)?,(.*)$/.exec(u || ''); if (!m) return null; const bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return { type: m[1], bytes: a }; }
   static imgSize(u) { return new Promise(r => { const im = new Image(); im.onload = () => r({ w: im.naturalWidth || 4, h: im.naturalHeight || 3 }); im.onerror = () => r({ w: 4, h: 3 }); im.src = u; }); }
   static saveBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); }
-  async jrnDocx(j, org, logo, ap) {
-    ap = ap || { pos: 'none', titles: [] };
+  async jrnDocx(j, org, logo, ap, ft) {
+    ap = ap || { pos: 'none', titles: [] }; ft = ft || { logo: !!logo, text: org };
     const e = Component.xmlEsc, imgs = []; const media = [];
     const addImg = async (u, maxW, maxH) => { const d = Component.dataUrlBytes(u); if (!d) return ''; const sz = await Component.imgSize(u); const id = media.length + 1; const ext = /png/.test(d.type) ? 'png' : 'jpeg'; media.push({ id, ext, bytes: d.bytes });
       let w = maxW, h = Math.round(w * sz.h / sz.w); if (h > maxH) { h = maxH; w = Math.round(h * sz.w / sz.h); } const cx = w * 9525, cy = h * 9525;
@@ -2331,9 +2332,9 @@ class Component extends DCLogic {
     const t2 = '<w:tbl><w:tblPr><w:tblW w:w="9600" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid><w:gridCol w:w="9600"/></w:tblGrid>'
       + full(para(run('진  행  현  황', { b: 1, sz: 24 }), 'center')) + full(para(run('■ 내 용', { b: 1 })), { fill: 1 }) + full(lines(j.f.content))
       + full(para(run('■ 특이사항 / 평가', { b: 1 })), { fill: 1 }) + full(lines(j.f.note)) + full(para(run('■ 차기계획', { b: 1 })), { fill: 1 }) + full(lines(j.f.next)) + '</w:tbl>';
-    const logoRun = logo ? await addImg(logo, 150, 50) : '';
+    const logoRun = ft.logo && logo ? await addImg(logo, 150, 50) : '';
     const apTbl = () => { const n = ap.titles.length; if (!n) return ''; const w = 1300; return '<w:tbl><w:tblPr><w:tblW w:w="' + (w * n) + '" w:type="dxa"/><w:jc w:val="right"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>' + ap.titles.map(() => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid><w:tr>' + ap.titles.map(t => tc(w, para(run(t, { sz: 18 }), 'center'), { fill: 1 })).join('') + '</w:tr><w:tr><w:trPr><w:trHeight w:val="720"/></w:trPr>' + ap.titles.map(() => tc(w, para(''))).join('') + '</w:tr></w:tbl>'; };
-    const body = para(run('프 로 그 램 운 영 일 지', { b: 1, sz: 48 }), 'center') + (ap.pos === 'top' ? apTbl() + para('') : '') + t1 + para('') + t2 + (ap.pos === 'bottom' ? para('') + apTbl() : '') + para(logoRun + run(' ' + org, { b: 1, sz: 30 }), 'right');
+    const body = para(run('프 로 그 램 운 영 일 지', { b: 1, sz: 48 }), 'center') + (ap.pos === 'top' ? apTbl() + para('') : '') + t1 + para('') + t2 + (ap.pos === 'bottom' ? para('') + apTbl() : '') + para(logoRun + (ft.text ? run(' ' + ft.text, { b: 1, sz: 30 }) : ''), 'right');
     const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>' + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="567" w:right="794" w:bottom="567" w:left="794" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>';
     const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + media.map(m => '<Relationship Id="rId' + (100 + m.id) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img' + m.id + '.' + (m.ext === 'png' ? 'png' : 'jpg') + '"/>').join('') + '</Relationships>';
     const files = [
@@ -2344,14 +2345,14 @@ class Component extends DCLogic {
     Component.saveBlob(Component.zipStore(files), '프로그램운영일지_' + j.p.date + '.docx');
     this.flash('Word 파일을 내려받았습니다 (한글에서도 열립니다)');
   }
-  jrnHwpx(j, org, ap) {
-    ap = ap || { pos: 'none', titles: [] };
+  jrnHwpx(j, org, ap, ft) {
+    ap = ap || { pos: 'none', titles: [] }; ft = ft || { text: org };
     const e = Component.xmlEsc; const NS = 'xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head" xmlns:hc="http://www.hancom.co.kr/hwpml/2011/core" xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph" xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" xmlns:opf="http://www.idpf.org/2007/opf/"';
     const lines = []; const add = (t, st) => String(t == null ? '' : t).split('\n').forEach(l => lines.push({ t: l, st: st || 0 }));
     add('프 로 그 램 운 영 일 지', 1); if (ap.pos === 'top' && ap.titles.length) add('결재 : ' + ap.titles.join(' / ') + ' (서명란)', 3); add('');
     add('프로그램명 : ' + j.p.program); add('진행일시 : ' + j.dateTxt + (j.timeTxt ? ' ' + j.timeTxt : '')); add('진행장소 : ' + j.f.place); add('주  제 : ' + j.f.topic); add('진 행 자 : ' + j.f.staffTxt); add(j.f.prep);
     add('프로그램 사진 : ' + (j.photos.length ? '(사진 ' + j.photos.length + '장은 Word 파일에 포함되어 있습니다)' : '없음')); add('');
-    add('진 행 현 황', 1); add('■ 내 용', 2); add(j.f.content); add('■ 특이사항 / 평가', 2); add(j.f.note); add('■ 차기계획', 2); add(j.f.next); add(''); if (ap.pos === 'bottom' && ap.titles.length) add('결재 : ' + ap.titles.join(' / ') + ' (서명란)', 3); add(org, 3);
+    add('진 행 현 황', 1); add('■ 내 용', 2); add(j.f.content); add('■ 특이사항 / 평가', 2); add(j.f.note); add('■ 차기계획', 2); add(j.f.next); add(''); if (ap.pos === 'bottom' && ap.titles.length) add('결재 : ' + ap.titles.join(' / ') + ' (서명란)', 3); if (ft.text) add(ft.text, 3);
     const paras = lines.map((l, i) => '<hp:p id="' + (1000 + i) + '" paraPrIDRef="' + l.st + '" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">' + (i === 0 ? '<hp:run charPrIDRef="0"><hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0"><hp:pagePr landscape="WIDELY" width="59528" height="84188" gutterType="LEFT_ONLY"><hp:margin header="4252" footer="4252" gutter="0" left="8504" right="8504" top="5668" bottom="4252"/></hp:pagePr></hp:secPr></hp:run>' : '') + '<hp:run charPrIDRef="' + (l.st === 1 ? 1 : l.st === 2 ? 2 : 0) + '"><hp:t>' + e(l.t) + '</hp:t></hp:run></hp:p>').join('');
     const section = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><hs:sec ' + NS + '>' + paras + '</hs:sec>';
     const cp = (id, h, b) => '<hh:charPr id="' + id + '" height="' + h + '" textColor="#000000" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1"><hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/><hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/><hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/><hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/><hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>' + (b ? '<hh:bold/>' : '') + '</hh:charPr>';
@@ -2376,9 +2377,13 @@ class Component extends DCLogic {
 
   journalVals(s, ctx) {
     const today = this.todayIso();
-    const rows = (s.plans || []).filter(p => p.status !== '취소' && p.date <= this.planIso(new Date(Date.parse(today) + 7 * 864e5)) && p.date >= this.planIso(new Date(Date.parse(today) - 120 * 864e5)))
+    const rows0 = (s.plans || []).filter(p => p.status !== '취소' && p.date <= this.planIso(new Date(Date.parse(today) + 7 * 864e5)) && p.date >= this.planIso(new Date(Date.parse(today) - 120 * 864e5)))
       .sort((a, b) => (b.date + (b.start || '')).localeCompare(a.date + (a.start || '')));
-    let selKey = s.jrnSel && rows.some(p => this.jrnKeyOf(p) === s.jrnSel) ? s.jrnSel : (rows.length ? this.jrnKeyOf(rows.find(p => p.date <= today) || rows[0]) : null);
+    const stOf = (p) => { const sv = (s.journals || {})[this.jrnKeyOf(p)]; return !sv ? 'before' : (sv.done ? 'done' : 'doing'); };
+    const jt = s.jrnTab || 'all';
+    const cnt = { all: rows0.length, before: 0, doing: 0, done: 0 }; rows0.forEach(p => { cnt[stOf(p)]++; });
+    const rows = jt === 'all' ? rows0 : rows0.filter(p => stOf(p) === jt);
+    let selKey = s.jrnSel && rows0.some(p => this.jrnKeyOf(p) === s.jrnSel) ? s.jrnSel : (rows.length ? this.jrnKeyOf(rows.find(p => p.date <= today) || rows[0]) : null);
     const j = selKey ? this.jrnGet(selKey, s) : null;
     const logo = (() => { try { return localStorage.getItem('smartcare.journalLogo.v1') || ''; } catch (e) { return ''; } })();
     const phone = s.device === 'mobile' || s.device === 'tablet';
@@ -2387,9 +2392,16 @@ class Component extends DCLogic {
     const apPos = (s.jrnOpt && s.jrnOpt.apPos) || 'bottom';
     const apTitles = this.approvalLine();
     const ap = { pos: apPos, titles: apTitles };
+    const fm = (s.jrnOpt && s.jrnOpt.footMode) || (logo ? 'logo' : 'text');
+    const ftText = (s.jrnOpt && typeof s.jrnOpt.footText === 'string') ? s.jrnOpt.footText : org;
+    const ft = { logo: fm === 'logo' || fm === 'both', text: (fm === 'text' || fm === 'both') ? ftText : '' };
+    const optSet = (patch) => { const o = Object.assign({}, this.state.jrnOpt || {}, patch); this.setState({ jrnOpt: o }); try { localStorage.setItem('smartcare.jrnOpt.v1', JSON.stringify(o)); } catch (x) {} };
     return {
-      jrnPlans: rows.map(p => { const k = this.jrnKeyOf(p); const sv = !!(s.journals || {})[k]; const on = k === selKey;
-        return { title: p.program, date: p.date.slice(5).replace('-', '/') + (p.start ? ' ' + p.start : ''), st: sv ? '수정함' : '자동 초안', stFg: sv ? '#ffffff' : 'var(--color-neutral-400)', stBg: sv ? 'var(--color-accent-800)' : 'var(--color-neutral-800)', on: on, off: !on, cls: on ? 'sel-chip' : '', go: () => { this.setState({ jrnSel: k }); } }; }),
+      jrnStTabs: [{ k: 'all', label: '전체' }, { k: 'before', label: '작성 전' }, { k: 'doing', label: '작성 중' }, { k: 'done', label: '완료' }].map(t => ({ label: t.label, n: String(cnt[t.k]), cls: jt === t.k ? 'sel-chip' : '', on: jt === t.k, go: () => this.setState({ jrnTab: t.k }) })),
+      jrnSt: j ? ({ before: '작성 전', doing: '작성 중', done: '완료' })[stOf(j.p)] : '', jrnIsDone: !!(j && stOf(j.p) === 'done'), jrnNotDone: !!(j && stOf(j.p) !== 'done'),
+      jrnDoneGo: () => { if (!j) return; const cur = (this.state.journals || {})[selKey]; const nxt = !(cur && cur.done); const all = Object.assign({}, this.state.journals || {}, { [selKey]: Object.assign({ f: j.f, at: Date.now(), by: this._userName || '' }, cur || {}, { done: nxt }) }); this.setState({ journals: all }); this.jrnFlush(); this.flash(nxt ? '운영일지를 완료로 표시했습니다' : '작성 중으로 되돌렸습니다'); },
+      jrnPlans: rows.map(p => { const k = this.jrnKeyOf(p); const sst = stOf(p); const on = k === selKey;
+        return { title: p.program, date: p.date.slice(5).replace('-', '/') + (p.start ? ' ' + p.start : ''), st: ({ before: '작성 전', doing: '작성 중', done: '완료' })[sst], stFg: sst === 'before' ? 'var(--color-neutral-400)' : '#ffffff', stBg: sst === 'before' ? 'var(--color-neutral-800)' : (sst === 'done' ? 'oklch(0.52 0.12 150)' : 'var(--color-accent-800)'), on: on, off: !on, cls: on ? 'sel-chip' : '', go: () => { this.setState({ jrnSel: k }); } }; }),
       jrnNone: rows.length === 0, jrnHas: !!j,
       jrnTitle: j ? j.p.program : '', jrnWhen: j ? j.dateTxt + (j.timeTxt ? ' ' + j.timeTxt : '') : '',
       jrnPhotos: j ? j.photos.map((u, i) => ({ u, hasL: i > 0, hasR: i < j.photos.length - 1,
@@ -2402,7 +2414,7 @@ class Component extends DCLogic {
       jrnPhReset: () => { if (selKey) { this.jrnPhSave(selKey, null); this.flash('앨범(아카이브) 사진으로 되돌렸습니다'); } },
       jrnApTabs: [{ k: 'top', label: '상단' }, { k: 'bottom', label: '하단' }, { k: 'none', label: '표시 안 함' }].map(t => ({ label: t.label, cls: apPos === t.k ? 'sel-chip' : '', on: apPos === t.k, go: () => { const o = Object.assign({}, this.state.jrnOpt || {}, { apPos: t.k }); this.setState({ jrnOpt: o }); try { localStorage.setItem('smartcare.jrnOpt.v1', JSON.stringify(o)); } catch (x) {} } })),
       jrnApTitles: apTitles.join(' → ') || '(결재 칸 없음)',
-      jrnSaved: !!(j && j.saved), jrnAutoNote: j && j.saved ? '직접 수정한 내용이 저장되어 있습니다' : '일정·사진·참여 기록으로 자동 작성된 초안입니다. 고쳐 쓰면 바로 저장됩니다',
+      jrnSaved: !!(j && j.saved), jrnAutoNote: j && j.saved ? '작성 중인 내용이 저장되어 있습니다. 끝나면 [완료 처리]를 눌러 주세요' : '일정·사진·참여 기록으로 자동 작성된 초안입니다. 고쳐 쓰면 바로 저장됩니다',
       jrnFields: j ? Component.JRN_FIELDS.map(f => ({ k: f.k, label: f.label, multi: f.multi, single: !f.multi, rows: f.rows || 3, val: j.f[f.k] || '',
         on: (e) => this.jrnSetField(selKey, f.k, e.target.value, this.state),
         blur: () => this.jrnFlush(),
@@ -2416,14 +2428,16 @@ class Component extends DCLogic {
       jrnFmtNote: (s.jrnFmt || 'pdf') === 'hwpx' ? '한글(.hwpx) 파일은 글자만 들어가고 사진은 포함되지 않습니다. 사진이 필요하면 Word 파일을 이용하세요.' : ((s.jrnFmt || 'pdf') === 'docx' ? 'Word(.docx) 파일입니다. 한글에서도 열 수 있고, 사진이 포함됩니다.' : '인쇄 창에서 [PDF로 저장]을 고르면 PDF 파일이 됩니다. 한 장(A4)에 맞춰 출력됩니다.'),
       jrnGoLabel: (s.jrnFmt || 'pdf') === 'hwpx' ? '한글 파일 다운로드' : ((s.jrnFmt || 'pdf') === 'docx' ? 'Word 파일 다운로드' : '인쇄 · PDF 저장'),
       jrnGoIcon: (s.jrnFmt || 'pdf') === 'pdf' ? 'ph ph-printer' : 'ph ph-download-simple',
-      jrnGo: () => { if (!j) return; const f = this.state.jrnFmt || 'pdf'; if (f === 'docx') this.jrnDocx(j, org, logo, ap).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); else if (f === 'hwpx') { try { this.jrnHwpx(j, org, ap); } catch (e) { this.flash('한글 파일 저장 실패 — ' + (e && e.message)); } } else this.jrnPrint(j, org, logo, ap); },
-      jrnDoc: j && s.jrnPrev ? this.jrnHtml((s.jrnFmt || 'pdf') === 'hwpx' ? Object.assign({}, j, { photos: [] }) : j, org, logo, ap) : '',
+      jrnGo: () => { if (!j) return; const f = this.state.jrnFmt || 'pdf'; if (f === 'docx') this.jrnDocx(j, org, logo, ap, ft).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); else if (f === 'hwpx') { try { this.jrnHwpx(j, org, ap, ft); } catch (e) { this.flash('한글 파일 저장 실패 — ' + (e && e.message)); } } else this.jrnPrint(j, org, logo, ap, ft); },
+      jrnDoc: j && s.jrnPrev ? this.jrnHtml((s.jrnFmt || 'pdf') === 'hwpx' ? Object.assign({}, j, { photos: [] }) : j, org, logo, ap, ft) : '',
       jrnPrintGo: () => { if (j) this.jrnPrint(j, org, logo); },
       jrnDocxGo: () => { if (j) this.jrnDocx(j, org, logo).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); },
       jrnHwpxGo: () => { if (j) { try { this.jrnHwpx(j, org); } catch (e) { this.flash('한글 파일 저장 실패 — ' + (e && e.message)); } } },
       jrnLogoPick: (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 420 / im.width, 140 / im.height); const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); try { localStorage.setItem('smartcare.journalLogo.v1', c.toDataURL('image/png')); } catch (x) {} this.setState({ jrnLogoTick: (this.state.jrnLogoTick || 0) + 1 }); this.flash('병원 로고를 저장했습니다'); }; im.src = rd.result; }; rd.readAsDataURL(f); },
       jrnLogo: logo, jrnHasLogo: !!logo,
       jrnLogoClear: () => { try { localStorage.removeItem('smartcare.journalLogo.v1'); } catch (e) {} this.setState({ jrnLogoTick: (this.state.jrnLogoTick || 0) + 1 }); },
+      jrnFootTabs: [{ k: 'logo', label: '로고만' }, { k: 'text', label: '글자만' }, { k: 'both', label: '로고 + 글자' }].map(t => ({ label: t.label, cls: fm === t.k ? 'sel-chip' : '', on: fm === t.k, go: () => optSet({ footMode: t.k }) })),
+      jrnFootText: ftText, jrnFootTextOn: (e) => optSet({ footText: e.target.value }),
       jrnOrg: org
     };
   }
