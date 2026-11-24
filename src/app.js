@@ -2867,6 +2867,28 @@ class Component extends DCLogic {
     for (let i = 0; i < v.length; i++) { const sym = pt[Math.min(i, pt.length - 1)]; out += sym === '*' ? '*' : v[i]; }
     return out;
   }
+  // 설정 화면 메뉴별 접근 권한 (계정마다 켜고 끔). sys:true 는 시스템 관리자 전용
+  static SET_TABS = [
+    { k: 'ai', n: 'AI 판독 파라미터' }, { k: 'consent', n: '동의서식 관리' }, { k: 'program', n: '프로그램 관리' },
+    { k: 'ward', n: '병동 · 호실' }, { k: 'staff', n: '담당자 명단 및 권한' }, { k: 'notify', n: '일정 알림' },
+    { k: 'privacy', n: '개인정보 표시' }, { k: 'approval', n: '결재라인' },
+    { k: 'org', n: '기관 관리', sys: true }, { k: 'cloud', n: '데이터 서버', sys: true }, { k: 'migrate', n: '데이터 이전', sys: true, hidden: true }
+  ];
+  static setRolesOf(m) { return Array.isArray(m && m.roles) ? m.roles : [m && m.role]; }
+  static setDefaults(m) {
+    const r = Component.setRolesOf(m);
+    if (r.indexOf('시스템관리자') >= 0) return Component.SET_TABS.map(t => t.k);
+    if (r.indexOf('관리자') >= 0) return Component.SET_TABS.filter(t => !t.sys).map(t => t.k);
+    return ['ai', 'consent', 'program', 'ward', 'staff'];
+  }
+  static setAllowed(m, key) {
+    const r = Component.setRolesOf(m);
+    if (r.indexOf('시스템관리자') >= 0) return true;
+    const t = Component.SET_TABS.find(x => x.k === key);
+    if (!t || t.sys) return false;
+    const list = Array.isArray(m && m.setAccess) ? m.setAccess : Component.setDefaults(m);
+    return list.indexOf(key) >= 0;
+  }
   static PRIV_DEFAULT = { nameOn: false, namePat: '#*#', regOn: false, regPat: '#####*' };
   privacyCfg() {
     let raw = null; try { raw = localStorage.getItem('smartcare.privacy.v1'); } catch (e) {}
@@ -6234,6 +6256,8 @@ class Component extends DCLogic {
     const myRoles = Array.isArray(me.roles) ? me.roles : [me.role];
     const isSys = myRoles.indexOf('시스템관리자') >= 0;
     const hasRole = (r) => myRoles.indexOf(r) >= 0 || (isSys && (r === '관리자' || r === '담당자'));
+    const allowSet = (k) => Component.setAllowed(me, k);
+    const stEff = allowSet(s.setTab) ? s.setTab : ((Component.SET_TABS.find(t => !t.hidden && allowSet(t.k)) || {}).k || s.setTab);
     const orgIdCur = s.orgId || 'ORG1';
     const homeOrg = orgIdCur === 'ORG1';
     const orgName = (s.orgs.find(o => o.id === orgIdCur) || {}).name || '';
@@ -7100,6 +7124,24 @@ class Component extends DCLogic {
           if (!m.notify && !m.email) { this.flash('알림을 받을 Gmail 주소를 먼저 입력하세요'); return; }
           setAcct(m.id, { notify: !m.notify }, m.name + ' 알림 메일 ' + (m.notify ? '수신 해제' : '수신'));
         },
+        showSetAcc: m.org !== '*',
+        setAccSys: rolesOf(m).indexOf('시스템관리자') >= 0,
+        setAcc: Component.SET_TABS.filter(t => !t.hidden).map(t => {
+          const on = Component.setAllowed(m, t.k);
+          const off = !!t.sys;
+          return {
+            label: t.n, sysOnly: off, on: on, cls: on ? 'sel-chip' : '', locked: locked || off, mark: on ? 'ph-fill ph-check-square' : 'ph ph-square',
+            Bd: on ? 'var(--color-accent)' : 'var(--color-neutral-700)', Bg: on ? 'var(--color-accent-900)' : 'var(--color-neutral-900)', Fg: on ? 'var(--color-accent-100)' : 'var(--color-neutral-500)',
+            tip: off ? '시스템 관리자 전용' : (on ? '사용 중 · 누르면 끔' : '꺼짐 · 누르면 켬'),
+            toggle: () => {
+              const cur = Array.isArray(m.setAccess) ? m.setAccess.slice() : Component.setDefaults(m);
+              const next = on ? cur.filter(k => k !== t.k) : cur.concat([t.k]);
+              setAcct(m.id, { setAccess: next }, (m.name || '계정') + ' · 설정 › ' + t.n + (on ? ' 접근 끔' : ' 접근 켬'));
+            }
+          };
+        }),
+        setAccReset: () => setAcct(m.id, { setAccess: null }, (m.name || '계정') + ' · 설정 메뉴 접근을 직책 기본값으로 되돌림'),
+        setAccCustom: Array.isArray(m.setAccess),
         feats: FEATS.map(f => {
           const tv = tg(p[f.k].v), tu = tg(p[f.k].u);
           return {
@@ -7556,7 +7598,7 @@ class Component extends DCLogic {
         const adm = isSys || hasRole('관리자');
         const pend = logData.filter(l => l.status !== '확정').length;
         const consentPend = PATIENTS.filter(p => p.consent !== '동의' || p.face !== '동의').length;
-        const v = s.pcView, lt = s.logTab, st = s.setTab;
+        const v = s.pcView, lt = s.logTab, st = stEff;
         const goView = (view, extra) => () => guardLeave(() => this.setState(Object.assign({ pcView: view, page: 0, pdOpen: false, npOpen: false, nlOpen: false }, extra || {})));
         const DEF = [
           { k: 'patient', label: '환자 관리', icon: 'ph ph-users', items: [
@@ -7579,13 +7621,13 @@ class Component extends DCLogic {
             { k: 'st-07', label: '병동별 건수 · 비율', icon: 'ph ph-table', sec: '07' }
           ].map(x => Object.assign(x, { show: can('stats'), on: v === 'stats' && (s.statSec || 'all') === x.sec, go: goView('stats', { fetch: 'ready', statSec: x.sec }) })) },
           { k: 'settings', label: '설정', icon: 'ph ph-gear', items: [
-            { k: 'set-ai', label: 'AI 판독 파라미터', icon: 'ph ph-scan-smiley', show: can('settings'), on: v === 'settings' && st === 'ai', go: goView('settings', { setTab: 'ai' }) },
-            { k: 'set-consent', label: '동의서식 관리', icon: 'ph ph-article', show: can('settings'), on: v === 'settings' && st === 'consent', go: goView('settings', { setTab: 'consent' }) },
-            { k: 'set-program', label: '프로그램 관리', icon: 'ph ph-squares-four', show: can('settings'), on: v === 'settings' && st === 'program', go: goView('settings', { setTab: 'program' }) },
-            { k: 'set-ward', label: '병동 · 호실', icon: 'ph ph-bed', show: can('settings'), on: v === 'settings' && st === 'ward', go: goView('settings', { setTab: 'ward' }) },
-            { k: 'set-staff', label: '계정 · 권한', icon: 'ph ph-identification-badge', show: can('settings'), on: v === 'settings' && st === 'staff', go: goView('settings', { setTab: 'staff' }) },
-            { k: 'set-org', label: '기관 관리', icon: 'ph ph-buildings', show: can('settings') && isSys, on: v === 'settings' && st === 'org', go: goView('settings', { setTab: 'org' }) },
-            { k: 'set-cloud', label: '데이터 서버', icon: 'ph ph-cloud', show: can('settings') && isSys, on: v === 'settings' && st === 'cloud', go: goView('settings', { setTab: 'cloud' }) },
+            { k: 'set-ai', label: 'AI 판독 파라미터', icon: 'ph ph-scan-smiley', show: can('settings') && allowSet('ai'), on: v === 'settings' && st === 'ai', go: goView('settings', { setTab: 'ai' }) },
+            { k: 'set-consent', label: '동의서식 관리', icon: 'ph ph-article', show: can('settings') && allowSet('consent'), on: v === 'settings' && st === 'consent', go: goView('settings', { setTab: 'consent' }) },
+            { k: 'set-program', label: '프로그램 관리', icon: 'ph ph-squares-four', show: can('settings') && allowSet('program'), on: v === 'settings' && st === 'program', go: goView('settings', { setTab: 'program' }) },
+            { k: 'set-ward', label: '병동 · 호실', icon: 'ph ph-bed', show: can('settings') && allowSet('ward'), on: v === 'settings' && st === 'ward', go: goView('settings', { setTab: 'ward' }) },
+            { k: 'set-staff', label: '계정 · 권한', icon: 'ph ph-identification-badge', show: can('settings') && allowSet('staff'), on: v === 'settings' && st === 'staff', go: goView('settings', { setTab: 'staff' }) },
+            { k: 'set-org', label: '기관 관리', icon: 'ph ph-buildings', show: can('settings') && allowSet('org'), on: v === 'settings' && st === 'org', go: goView('settings', { setTab: 'org' }) },
+            { k: 'set-cloud', label: '데이터 서버', icon: 'ph ph-cloud', show: can('settings') && allowSet('cloud'), on: v === 'settings' && st === 'cloud', go: goView('settings', { setTab: 'cloud' }) },
             { k: 'set-migrate', label: '데이터 이전', icon: 'ph ph-arrow-fat-lines-right', show: can('settings') && isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url, on: v === 'settings' && st === 'migrate', go: goView('settings', { setTab: 'migrate' }) }
           ] }
         ];
@@ -10114,22 +10156,16 @@ class Component extends DCLogic {
       reports: REPORTS,
 
       // 설정
-      setTabs: ([
-        { key: 'ai', label: 'AI 판독 파라미터' },
-        { key: 'consent', label: '동의서식 관리' },
-        { key: 'program', label: '프로그램 관리' },
-        { key: 'ward', label: '병동 · 호실' },
-        { key: 'staff', label: '담당자 명단 및 권한' }
-      ]).concat((isSys || hasRole('관리자')) ? [{ key: 'notify', label: '일정 알림' }, { key: 'privacy', label: '개인정보 표시' }, { key: 'approval', label: '결재라인' }] : []).concat(isSys ? [{ key: 'org', label: '기관 관리' }] : []).concat(isSys ? [{ key: 'cloud', label: '데이터 서버' }] : []).concat(isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url ? [{ key: 'migrate', label: '데이터 이전' }] : []).map(t => ({
-        label: t.label, active: s.setTab === t.key, inactive: s.setTab !== t.key,
-        go: () => { if (t.key === s.setTab) return; guardLeave(() => this.setState({ setTab: t.key })); }
+      setTabs: Component.SET_TABS.filter(t => !t.hidden && allowSet(t.k)).map(t => ({ key: t.k, label: t.n })).map(t => ({
+        label: t.label, active: stEff === t.key, inactive: stEff !== t.key,
+        go: () => { if (t.key === stEff) return; guardLeave(() => this.setState({ setTab: t.key })); }
       })),
-      setAi: s.setTab === 'ai', setConsentTab: s.setTab === 'consent',
-      setProgramTab: s.setTab === 'program', setStaffTab: s.setTab === 'staff',
-      setWardTab: s.setTab === 'ward',
-      setOrgTab: isSys && s.setTab === 'org',
-      setCloudTab: isSys && s.setTab === 'cloud',
-      setMigrateTab: isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url && s.setTab === 'migrate',
+      setAi: stEff === 'ai', setConsentTab: stEff === 'consent',
+      setProgramTab: stEff === 'program', setStaffTab: stEff === 'staff',
+      setWardTab: stEff === 'ward',
+      setOrgTab: allowSet('org') && stEff === 'org',
+      setCloudTab: allowSet('cloud') && stEff === 'cloud',
+      setMigrateTab: isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url && stEff === 'migrate',
       ...(() => {
         const m = s.mig || {}, src = this.migSrc();
         const sm = m.summary;
@@ -10173,10 +10209,10 @@ class Component extends DCLogic {
           migReload: () => window.location.reload()
         };
       })(),
-      setNotifyTab: (isSys || hasRole('관리자')) && s.setTab === 'notify',
-      setPrivacyTab: (isSys || hasRole('관리자')) && s.setTab === 'privacy',
+      setNotifyTab: allowSet('notify') && stEff === 'notify',
+      setPrivacyTab: allowSet('privacy') && stEff === 'privacy',
       ...this.privacyVals(),
-      setApprovalTab: (isSys || hasRole('관리자')) && s.setTab === 'approval',
+      setApprovalTab: allowSet('approval') && stEff === 'approval',
       ...(() => {
         const line = this.approvalLine();
         const set = (l) => this.saveApproval(l);
