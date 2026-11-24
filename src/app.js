@@ -5642,7 +5642,7 @@ class Component extends DCLogic {
     const missRooms = Object.keys(missing).reduce((n, k) => n + Object.keys(missing[k]).length, 0);
     const wardSet = {}; items.forEach(it => { wardSet[it.ward] = true; });
     // 이전 명부에 있던(차트번호가 있는) 재원 환자가 이번 명부에 없으면 퇴원 후보 — 붙여넣은 병동 안에서만
-    const discharge = PATIENTS.filter(p => p.chartNo && (p.stay || '재원') === '재원' && !used[p.id] && Object.keys(wardSet).some(w => (p.room || '').indexOf(w + ' ') === 0));
+    const discharge = PATIENTS.filter(p => p.chartNo && p.source !== '수기' && (p.stay || '재원') === '재원' && !used[p.id] && Object.keys(wardSet).some(w => (p.room || '').indexOf(w + ' ') === 0));
     return { items, vacant: pr.vacant, bad: pr.bad, mode: pr.mode, sample: pr.sample, missing, missRooms, discharge };
   }
 
@@ -5900,7 +5900,7 @@ class Component extends DCLogic {
       emrNewRoomsNote: plan.missRooms ? '(호실 ' + plan.missRooms + '개 추가 예정)' : '(추가할 호실 없음)',
       emrDischarge: outOn,
       toggleEmrDischarge: () => this.setState({ emrDischarge: !outOn }),
-      emrDischargeNote: '(' + plan.discharge.length + '명 해당 · 붙여넣은 병동만)',
+      emrDischargeNote: '(' + plan.discharge.length + '명 해당 · 붙여넣은 병동만 · 수기로 등록한 환자는 제외)',
       emrHasOut: outOn && plan.discharge.length > 0,
       emrOutTitle: '이전 명부에는 있었지만 이번 명부에 없는 재원 환자 ' + plan.discharge.length + '명 → 퇴원 처리 (' + outN + '명 선택)',
       emrOutOpen: !!s.emrOutOpen,
@@ -9062,7 +9062,7 @@ class Component extends DCLogic {
         } else {
           const next = PATIENTS.reduce((m, p) => Math.max(m, parseInt(String(p.id).replace(/\D/g, ''), 10) || 0), 0) + 1;
           id = 'PT-' + String(next).padStart(4, '0');
-          PATIENTS.push(Object.assign({ id: id, faceId: '—', last: '참여 이력 없음', photo: hasPhoto }, fields));
+          PATIENTS.push(Object.assign({ id: id, faceId: '—', last: '참여 이력 없음', photo: hasPhoto, source: '수기' }, fields));
         }
         const map = Object.assign({}, s.photoUrls);
         if (s.idPhoto && s.idPhoto.url) map[id] = s.idPhoto.url;
