@@ -194,11 +194,11 @@
   html[data-theme="light"] [data-sb-head]:hover { background: #f4f6f9 !important; }
   html[data-theme="light"] [data-sb-head]:active { transform: none !important; box-shadow: none !important; }
   /* 펼친 그룹: 머리 아래 가는 구분선 */
-  html[data-theme="light"] [data-sb-group][data-open="1"] [data-sb-head] { border-radius: 10px 10px 0 0 !important; box-shadow: 0 1px 0 #eceff4 !important; margin-bottom: 4px; }
+  html[data-theme="light"] [data-sb-group][data-open="1"] [data-sb-head] { border-radius: 10px 10px 0 0 !important; box-shadow: 0 1px 0 #eceff4 !important; }
   /* 그룹 아이콘: 그룹별 색 칸 */
   html[data-theme="light"] [data-sb-icon] { border-radius: 8px !important; width: 26px !important; height: 26px !important; }
   /* 하위 메뉴: 안내선 없이 카드 안에 */
-  html[data-theme="light"] [data-sb-sub] { margin-top: 2px !important; margin-bottom: 2px !important; }
+  html[data-theme="light"] [data-sb-sub] { margin-top: 0 !important; margin-bottom: 2px !important; }
   html[data-theme="light"] [data-sb-sub] button { border: 0 !important; box-shadow: none !important; min-height: 38px !important; border-radius: 10px !important; font-size: 14.5px !important; color: #26303d !important; background: transparent !important; }
   html[data-theme="light"] [data-sb-sub] button:hover { background: #f1f4f8 !important; }
   html[data-theme="light"] [data-sb-sub] button[aria-current="page"] { background: rgba(30, 58, 138, 0.10) !important; color: #14286b !important; font-weight: 700 !important; border: 1.5px solid #1e3a8a !important; box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.12) !important; }
@@ -297,3 +297,24 @@ html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[
 
 /* 앱으로 설치해 쓸 때(주소창 없음): 화면을 아래로 끌어당겨 새로고침되는 것을 막고, 글자 선택 확대를 줄임 */
 @media (display-mode: standalone) { html, body { overscroll-behavior-y: none; } }
+
+/* 메뉴 묶음(상위)과 하위 메뉴를 이어 주는 연결선: 머리글 바로 아래에서 시작하는 세로선 + 마디 점 + 항목마다 가지 */
+[data-sb-group][data-open="1"] [data-sb-head] { margin-bottom: 0 !important; }
+[data-sb-group] { gap: 0 !important; }
+[data-sb-sub]::before { content: ""; position: absolute; left: -5px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--sbt, var(--color-accent)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--sbt, var(--color-accent)) 28%, transparent); opacity: var(--sbtick, 1); z-index: 2; }
+[data-sb-sub] > div { position: relative; }
+[data-sb-sub] > div::before { content: ""; position: absolute; left: calc(-1 * var(--sb-pad, 10px)); top: 50%; width: calc(var(--sb-pad, 10px) - 2px); height: 2px; border-radius: 2px; background: color-mix(in oklch, var(--sbt, var(--color-accent)) 65%, transparent); opacity: var(--sbtick, 1); pointer-events: none; }
+[data-sb-sub] > div:last-child::after { content: ""; position: absolute; left: calc(-1 * var(--sb-pad, 10px) - 1px); bottom: -8px; width: 8px; height: 8px; border-radius: 0 0 0 6px; border-left: 2px solid var(--sbt, var(--color-accent)); border-bottom: 2px solid var(--sbt, var(--color-accent)); opacity: 0; }
+
+/* 설정 메뉴: 폴더 탭 모양 (한 줄로 옆으로 밀어 넘김, 선택한 탭은 위로 올라와 아래 내용과 이어짐) */
+.sc-ftabs { display: flex; align-items: flex-end; gap: 3px; overflow-x: auto; scrollbar-width: thin; border-bottom: 2px solid var(--color-neutral-700); padding: 6px 4px 0; -webkit-overflow-scrolling: touch; }
+.sc-ftab { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 18px; border: 1px solid var(--color-neutral-700); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--color-neutral-800); color: var(--color-neutral-400); font: inherit; font-size: 14.5px; white-space: nowrap; cursor: pointer; position: relative; transition: background 120ms ease, color 120ms ease; }
+.sc-ftab i { font-size: 17px; opacity: 0.85; }
+.sc-ftab:hover { color: var(--color-text); background: var(--color-neutral-700); }
+.sc-ftab[aria-selected="true"] { min-height: 50px; margin-bottom: -2px; padding-bottom: 2px; background: var(--color-surface); color: var(--color-text); font-weight: 700; border-top: 3px solid var(--color-accent); border-left-color: var(--color-neutral-600); border-right-color: var(--color-neutral-600); box-shadow: 0 -6px 14px rgba(0, 0, 0, 0.18); z-index: 2; }
+.sc-ftab[aria-selected="true"] i { opacity: 1; color: var(--color-accent-300); }
+html[data-theme="light"] .sc-ftabs { border-bottom-color: #c7ccd8; }
+html[data-theme="light"] .sc-ftab { background: #dfe3ec; border-color: #c7ccd8; color: #4a5060; }
+html[data-theme="light"] .sc-ftab:hover { background: #eef1f6; color: #14286b; }
+html[data-theme="light"] .sc-ftab[aria-selected="true"] { background: #ffffff; color: #14286b; border-top-color: #1e3a8a; box-shadow: 0 -6px 14px rgba(20, 30, 70, 0.10); }
+html[data-theme="light"] .sc-ftab[aria-selected="true"] i { color: #1e3a8a; }

@@ -8372,6 +8372,7 @@ class Component extends DCLogic {
           sbJustify: mini ? 'center' : 'flex-start',
           sbIcoG: mini ? '23px' : '17px', sbIcoGBox: mini ? '36px' : '28px', sbIcoI: mini ? '22px' : '16px', sbItemH: mini ? '44px' : '38px',
           sbItemPad: mini ? 'var(--space-3)' : 'var(--space-3)',
+          sbTick: mini ? '0' : '1',
           sbSubIndent: mini ? '0' : '17px',
           sbSubPad: mini ? '0' : '10px',
           sbSubLine: mini ? 'none' : '1px solid var(--color-neutral-700)',
@@ -10801,9 +10802,9 @@ class Component extends DCLogic {
       reports: REPORTS,
 
       // 설정
-      setTabs: Component.SET_TABS.filter(t => !t.hidden && allowSet(t.k)).map(t => ({ key: t.k, label: t.n })).map(t => ({
-        label: t.label, active: stEff === t.key, inactive: stEff !== t.key,
-        go: () => { if (t.key === stEff) return; guardLeave(() => this.setState({ setTab: t.key })); }
+      setTabs: Component.SET_TABS.filter(t => !t.hidden && allowSet(t.k)).map(t => ({ key: t.k, label: t.n, icon: { ai: 'ph ph-scan-smiley', consent: 'ph ph-article', program: 'ph ph-squares-four', ward: 'ph ph-bed', staff: 'ph ph-identification-badge', notify: 'ph ph-bell', privacy: 'ph ph-eye-slash', approval: 'ph ph-signature', org: 'ph ph-buildings', cloud: 'ph ph-cloud', reset: 'ph ph-trash', migrate: 'ph ph-arrow-fat-lines-right' }[t.k] || 'ph ph-gear' })).map(t => ({
+        label: t.label, icon: t.icon, active: stEff === t.key, inactive: stEff !== t.key,
+        go: () => { if (t.key === stEff) return; guardLeave(() => { this.setState({ setTab: t.key }); setTimeout(() => { const el = document.querySelector('.sc-ftab[aria-selected="true"]'); if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' }); }, 60); }); }
       })),
       setAi: stEff === 'ai', setConsentTab: stEff === 'consent',
       setProgramTab: stEff === 'program', setStaffTab: stEff === 'staff',
@@ -10857,6 +10858,10 @@ class Component extends DCLogic {
       setNotifyTab: allowSet('notify') && stEff === 'notify',
       setPrivacyTab: allowSet('privacy') && stEff === 'privacy',
       setJournalTab: allowSet('approval') && stEff === 'approval',
+      sysName: (() => { try { const v = localStorage.getItem('smartcare.sysName.v1'); return v && v.trim() ? v.trim() : '스마트케어'; } catch (e) { return '스마트케어'; } })(), 
+      sysNameRaw: (() => { try { return localStorage.getItem('smartcare.sysName.v1') || ''; } catch (e) { return ''; } })(),
+      onSysName: (e) => { const v = (e.target.value || '').slice(0, 24); try { localStorage.setItem('smartcare.sysName.v1', v); } catch (x) {} this.setState({ sysRev: (this.state.sysRev || 0) + 1 }); },
+      sysNameReset: () => { try { localStorage.removeItem('smartcare.sysName.v1'); localStorage.setItem('smartcare.sysName.v1', ''); } catch (x) {} this.setState({ sysRev: (this.state.sysRev || 0) + 1 }); },
       ...(() => {
         const roles = this.sigRoles();
         const upd = (i, patch) => { const l = roles.map(r => Object.assign({}, r)); l[i] = Object.assign({}, l[i], patch); this.saveSigRoles(l); };
