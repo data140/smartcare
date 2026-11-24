@@ -304,15 +304,12 @@
                 <button sc-camel-on-click="{{ uiScaleUp }}" disabled="{{ uiScaleMaxDis }}" class="btn btn-secondary" aria-label="화면 크게" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-plus" style="font-size: 15px;"></i></button>
               </span>
             </div>
-            <div style="display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-1); min-width: 0;">
-              <span style="width: 34px; height: 34px; flex: none; border-radius: 50%; background: var(--color-accent-800); color: var(--color-accent-300); display: grid; place-items: center; font-size: 13.5px;">{{ userInitial }}</span>
-              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-                <span style="font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ userName }}</span>
-                <span style="font-size: 12.5px; color: var(--color-neutral-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ role }}</span>
-              </span>
+            <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+              <span style="width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--color-accent-800); color: var(--color-accent-300); display: grid; place-items: center; font-size: 13.5px;">{{ userInitial }}</span>
+              <span title="{{ userName }} · {{ role }}" style="flex: 1; min-width: 0; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ userName }}</span>
+              <sc-if value="{{ pwcAvail }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ pwcShow }}" class="btn btn-ghost" aria-label="비밀번호 변경" title="비밀번호 변경" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-password" style="font-size: 17px;"></i></button></sc-if>
+              <button type="button" sc-camel-on-click="{{ logout }}" class="btn btn-secondary" aria-label="로그아웃" title="로그아웃" style="min-height: 34px; width: 34px; padding: 0; justify-content: center; flex: none;"><i class="ph ph-sign-out" style="font-size: 17px;"></i><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">로그아웃</span></button>
             </div>
-            <sc-if value="{{ pwcAvail }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ pwcShow }}" class="btn btn-ghost btn-block" style="min-height: 34px; font-size: 13.5px;"><i class="ph ph-password" style="font-size: 15px;"></i> 비밀번호 변경</button></sc-if>
-            <button sc-camel-on-click="{{ logout }}" class="btn btn-secondary btn-block" style="min-height: 38px; font-size: 14px;"><i class="ph ph-sign-out" style="font-size: 16px;"></i> 로그아웃</button>
           </sc-if>
           <sc-if value="{{ sbMini }}" hint-placeholder-val="{{ false }}">
             <button sc-camel-on-click="{{ uiScaleUp }}" disabled="{{ uiScaleMaxDis }}" class="btn btn-ghost" aria-label="화면 크게" title="화면 크게 · 현재 {{ uiScaleLabel }}" style="min-height: 32px; width: 38px; padding: 0; margin: 0 auto; justify-content: center;"><i class="ph ph-magnifying-glass-plus" style="font-size: 21px;"></i></button>
