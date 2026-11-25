@@ -14,6 +14,7 @@
 | `supabase/schema.sql` | 운영 서버(도쿄) 보안 구성 — 기관 공용 계정 |
 | `supabase/schema-next.sql` | 새 서버(서울) 구성 — 직원별 계정 · 기관/역할별 권한 · 감사 기록 |
 | `supabase/functions/smartcare-staff/` | 계정 관리 서버 함수 (직원 계정 만들기·비밀번호·권한) |
+| `supabase/functions/smartcare-security/` · `supabase/schema-security.sql` | 보안 경보 2단계: 로그인 실패·접속 IP 서버 감시, 이메일·문자 알림 |
 | `supabase/tests/` | 서버 권한 규칙 시험 (로컬 PostgreSQL) |
 | `tools/` | 빌드·개발 서버·가상 데이터 |
 | `tests/smoke.js` · `tests/smoke-staff.js` · `tests/migrate.js` | 화면 동작 시험 (공용 계정 방식 · 직원별 계정 방식 · 데이터 이전) |
@@ -66,6 +67,19 @@
 2. 서버 함수 등록: Edge Functions › Deploy a new function › Via Editor → 이름 `smartcare-staff`, 내용은 `supabase/functions/smartcare-staff/index.ts`
 3. 첫 시스템 관리자: Authentication › Users › Add user 로 `s99.smartcare@smartcare.invalid` 생성(Auto Confirm) 후 `schema-next.sql` 맨 아래 문장 다시 실행
 4. `https://data140.github.io/smartcare/next/` 에서 시스템 관리자(`admin`)로 로그인 → 비밀번호 변경
+
+## 보안 경보 2단계 설정 (서버 감시 · 이메일/문자 알림)
+
+1. SQL Editor 에서 `supabase/schema-security.sql` 실행 (여러 번 실행해도 안전)
+2. Edge Functions › Deploy a new function › Via Editor → 이름 `smartcare-security`, 내용은 `supabase/functions/smartcare-security/index.ts`
+   (로그인 전에도 호출되므로 **Verify JWT 는 끄지 않아도** 됩니다 — 앱이 anon 키로 호출)
+3. 알림 발송 서비스 키 등록 (Edge Functions › Secrets). 둘 중 쓰는 것만 등록하면 됩니다
+   - 이메일(resend.com): `RESEND_API_KEY`, `MAIL_FROM`
+   - 문자(solapi.com, 발신번호 사전 등록 필요): `SOLAPI_KEY`, `SOLAPI_SECRET`, `SMS_FROM`
+4. 앱 › 설정 › 시스템 관리 › 보안 알림 › **서버 감시 · 이메일/문자 알림** 에서 받을 사람과 기준을 저장하고 **시험 알림 보내기**
+
+기록하는 것은 로그인 시도한 계정 이름과 접속 IP, 시각뿐이며 환자 정보는 보내지도 저장하지도 않습니다.
+앱 로그인 화면을 거치지 않고 서버로 직접 시도하는 공격은 기록되지 않습니다(Supabase 기본 횟수 제한이 막음).
 
 ## 데이터 이전 (운영 서버 → 새 서버)
 
