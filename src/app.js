@@ -11578,7 +11578,7 @@ class Component extends DCLogic {
         { key: 'me', label: '내 설정', icon: 'ph ph-user-circle' }
       ].map(t => ({
         label: t.label, icon: t.icon,
-        active: s.mobileView === t.key, inactive: s.mobileView !== t.key,
+        active: s.mobileView === t.key, inactive: s.mobileView !== t.key, cur: s.mobileView === t.key ? 'page' : 'false',
         go: () => this.setState({ mobileView: t.key })
       })),
 
