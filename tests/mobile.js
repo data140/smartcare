@@ -39,9 +39,9 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
       const txt = await p.evaluate(() => document.body.innerText);
       check(name + ': 로그인 후 현장 앱 화면이 나옴 (빈 화면 아님)', txt.length > 60 && /오늘/.test(txt), '글자 수 ' + txt.length);
       // 하단 탭 막대: 화면 맨 아래에 붙어 있고(위로 뜨지 않음), 아이콘이 충분히 큼
-      const tabs = await p.evaluate(() => { const bs = [...document.querySelectorAll('button')].filter(b => /^(오늘|일지|검수|운영일지|동의서|내 설정)$/.test(b.innerText.trim()) && b.offsetParent); const r = bs.map(b => b.getBoundingClientRect()); const ic = bs[0] && bs[0].querySelector('i'); return { n: bs.length, bottom: Math.max(...r.map(x => x.bottom)), vh: window.innerHeight, icon: ic ? parseFloat(getComputedStyle(ic).fontSize) : 0 }; });
-      check(name + ': 하단 탭 막대가 화면 맨 아래에 붙어 있음', tabs.n >= 5 && tabs.vh - tabs.bottom < 30, JSON.stringify(tabs));
-      check(name + ': 하단 탭 아이콘이 화면 너비에 맞는 크기(30px 이상)', tabs.icon >= 30, tabs.icon + 'px');
+      const tabs = await p.evaluate(() => { const bs = [...document.querySelectorAll('.sc-dock .sc-tab')].filter(b => b.offsetParent); const r = bs.map(b => b.getBoundingClientRect()); const ic = bs[0] && bs[0].querySelector('.sc-tab-ic'); return { n: bs.length, bottom: Math.max(...r.map(x => x.bottom)), vh: window.innerHeight, tile: ic ? ic.getBoundingClientRect().width : 0, icon: ic ? parseFloat(getComputedStyle(ic.querySelector('i')).fontSize) : 0, cur: bs.filter(b => b.getAttribute('aria-current') === 'page').length }; });
+      check(name + ': 하단 메뉴(독)가 화면 맨 아래에 붙어 있음 (6개 · 선택 1개)', tabs.n === 6 && tabs.cur === 1 && tabs.vh - tabs.bottom < 30, JSON.stringify(tabs));
+      check(name + ': 하단 메뉴 타일 40px 이상 · 아이콘 22px 이상', tabs.tile >= 40 && tabs.icon >= 22, tabs.tile + '/' + tabs.icon);
       // 맨 위 오른쪽 빈 공간에 놓이고, 끌어서 옮길 수 있고, 옮긴 위치를 기억함
       const box0 = await p.locator('button[aria-label="AI 비서 열기"]').boundingBox();
       check(name + ': AI 버튼 기본 위치가 맨 위 오른쪽 (하단 탭·버튼 아님)', box0 && box0.y < 140 && box0.x > (opt.viewport.width - 110), JSON.stringify(box0));
