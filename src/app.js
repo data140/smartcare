@@ -2467,6 +2467,12 @@ class Component extends DCLogic {
       });
     } catch (e) {}
   }
+  // 상태 배지: 한눈에 띄도록 진한 색 바탕 + 굵은 글자 (미작성=빨강, 검수=주황, 완료=초록)
+  static statusChip(st) {
+    const m = { '미작성': ['#d92d20', '#fff', 'ph-fill ph-warning-circle'], '검수 대기': ['#f79009', '#1b1300', 'ph-fill ph-hourglass-medium'], '검수 필요': ['#f79009', '#1b1300', 'ph-fill ph-hourglass-medium'], '확정': ['#12b76a', '#04210f', 'ph-fill ph-check-circle'] };
+    const c = m[st] || ['#475467', '#fff', 'ph-fill ph-minus-circle'];
+    return { bg: c[0], fg: c[1], icon: c[2], label: st };
+  }
   static xmlEsc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   jrnApBox(titles, h) {
     const e = Component.xmlEsc; if (!titles || !titles.length) return '';
@@ -7610,7 +7616,7 @@ class Component extends DCLogic {
       const key = l.date.slice(0, 10) + '|' + l.program;
       const meta = l.date.slice(11) + ' · ' + l.place + ' · ' + l.staff;
       return {
-        program: l.program, status: l.status,
+        program: l.program, status: l.status, chip: Component.statusChip(l.status),
         meta: l.date + ' · ' + l.place + ' · ' + l.staff,
         countLabel: l.status === '미작성' ? '사진 첨부 전' : (attention ? 'AI 인식 ' : '확정 ') + l.count + '명',
         attention: attention, settled: !attention,
@@ -11611,6 +11617,10 @@ class Component extends DCLogic {
           statusColor: status === '미작성' ? 'var(--cal-red, oklch(0.68 0.19 25))' : 'inherit',
           statusWeight: status === '미작성' ? '600' : 'inherit',
           _fk: status === '확정' ? '검수 완료' : status === '검수 대기' ? '검수 필요' : '미작성',
+          key: key, timeTxt: p.start + (p.end ? '~' + p.end : ''),
+          open: (s.mOpenCard === undefined ? mDayPlans.length === 1 : s.mOpenCard === key), closed: !(s.mOpenCard === undefined ? mDayPlans.length === 1 : s.mOpenCard === key),
+          toggle: () => this.setState({ mOpenCard: (s.mOpenCard === undefined ? mDayPlans.length === 1 : s.mOpenCard === key) ? '' : key }),
+          chip: Component.statusChip(status),
           program: p.program, status: status,
           meta: where + '\n' + (has ? '참여 ' + ss.review.filter(r => r.id).length + '명' + (unk ? ' · 미확인 ' + unk + '명' : '') : '담당 ' + (p.staff || []).join(', ')),
           attention: status === '검수 대기', settled: status !== '검수 대기',
@@ -11635,7 +11645,7 @@ class Component extends DCLogic {
           mHasCards: all.length > 0,
           mFilterOpts: ['전체', '미작성', '검수 필요', '검수 완료'].map(k => ({
             label: k, n: cnt(k), on: f === k, off: f !== k,
-            numColor: k === '검수 필요' && cnt(k) > 0 ? 'var(--color-accent-300)' : 'var(--color-text)',
+            numColor: k === '미작성' && cnt(k) > 0 ? '#ff6b5e' : (k === '검수 필요' && cnt(k) > 0 ? '#ffb23d' : 'var(--color-text)'),
             go: () => this.setState({ mLogFilter: k })
           })),
           _mStates: all, _mFilter: f,
