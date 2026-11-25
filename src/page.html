@@ -2214,6 +2214,7 @@
                 </span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--color-neutral-900); font-size: 13px; color: var(--color-neutral-400);"><i class="ph ph-sparkle" style="color: var(--color-accent-300); font-size: 16px;"></i>{{ jrnAutoNote }}</div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px; font-size: 12.5px; color: var(--color-neutral-500);"><i class="ph ph-brain"></i><span>{{ jrnLearnTxt }}</span><sc-if value="{{ jrnLearnHas }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ jrnLearnClear }}" class="btn btn-ghost" style="min-height: 30px; font-size: 12.5px; padding: 0 8px;">학습 지우기</button></sc-if></div>
               <div style="display: flex; flex-direction: column; gap: 6px;">
                 <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">프로그램 사진 (최대 4장 · 앨범(아카이브) 사진이 자동으로 들어갑니다)
                   <sc-if value="{{ jrnPhone }}" hint-placeholder-val="{{ false }}"><label class="btn btn-secondary" style="min-height: 40px; cursor: pointer; font-size: 13.5px; margin-left: auto;"><i class="ph ph-camera"></i> 사진 찍기<input type="file" accept="image/*" capture="environment" sc-camel-on-change="{{ jrnPhPick }}" style="display: none;"></label></sc-if>
@@ -4323,6 +4324,7 @@
                 </span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--color-neutral-900); font-size: 13px; color: var(--color-neutral-400);"><i class="ph ph-sparkle" style="color: var(--color-accent-300); font-size: 16px;"></i>{{ jrnAutoNote }}</div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px; font-size: 12.5px; color: var(--color-neutral-500);"><i class="ph ph-brain"></i><span>{{ jrnLearnTxt }}</span><sc-if value="{{ jrnLearnHas }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ jrnLearnClear }}" class="btn btn-ghost" style="min-height: 30px; font-size: 12.5px; padding: 0 8px;">학습 지우기</button></sc-if></div>
               <div style="display: flex; flex-direction: column; gap: 6px;">
                 <span style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--color-neutral-500);">프로그램 사진 (최대 4장 · 앨범(아카이브) 사진이 자동으로 들어갑니다)
                   <sc-if value="{{ jrnPhone }}" hint-placeholder-val="{{ false }}"><label class="btn btn-secondary" style="min-height: 40px; cursor: pointer; font-size: 13.5px; margin-left: auto;"><i class="ph ph-camera"></i> 사진 찍기<input type="file" accept="image/*" capture="environment" sc-camel-on-change="{{ jrnPhPick }}" style="display: none;"></label></sc-if>
