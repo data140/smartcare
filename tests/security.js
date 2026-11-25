@@ -31,6 +31,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     check('허용되지 않은 외부 주소 전송 시도가 차단되어 경고로 기록됨(evil.example.com)', /허용되지 않은 주소로 데이터를 보내려는 시도/.test(txt) && /evil\.example\.com/.test(txt));
     await p.locator('button:has-text("모두 확인")').click(); await sleep(500);
     l = await lamp(); check('모두 확인하면 경보등이 정상으로 돌아감', !!l && /sc-sec-ok/.test(l.cls), JSON.stringify(l));
+    { const t2 = await p.evaluate(() => document.body.innerText); check('모두 확인하면 목록에 확인된 알림이 남아 보이지 않고, 원하면 [확인한 알림 보기]로 열람', /확인이 필요한 알림이 없습니다/.test(t2) && !/대량으로 내려받았습니다/.test(t2) && /확인한 알림 \d+건 보기/.test(t2)); }
     await p.locator('button[aria-label="닫기"] >> visible=true').first().click(); await sleep(300);
     // 설정 > 시스템 관리 > 보안 알림 : 경보 시험
     await p.locator('aside button:has-text("담당자 명단 및 권한") >> visible=true').first().click(); await sleep(600);
