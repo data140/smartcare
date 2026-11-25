@@ -320,16 +320,16 @@ html[data-theme="light"] .sc-ftab[aria-selected="true"] { background: #ffffff; c
 html[data-theme="light"] .sc-ftab[aria-selected="true"] i { color: #1e3a8a; }
 
 /* 휴대폰·태블릿 하단 메뉴: 떠 있는 입체 독(dock) — 아이콘마다 볼록한 타일, 선택한 메뉴는 색이 차오르며 위로 솟아오름 */
-.sc-dock { flex: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; margin: 0 clamp(6px, 2.4vw, 14px) calc(8px + env(safe-area-inset-bottom)); padding: clamp(5px, 1.6vw, 8px) clamp(3px, 1vw, 6px) clamp(5px, 1.4vw, 7px); border-radius: clamp(20px, 6vw, 28px);
+.sc-dock { flex: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; margin: 0 clamp(6px, 2.4cqw, 14px) calc(8px + env(safe-area-inset-bottom)); padding: clamp(5px, 1.6cqw, 8px) clamp(3px, 1cqw, 6px) clamp(5px, 1.4cqw, 7px); border-radius: clamp(20px, 6cqw, 28px);
   background: linear-gradient(180deg, color-mix(in oklch, var(--color-surface) 82%, white 18%), var(--color-surface) 38%, color-mix(in oklch, var(--color-surface) 88%, black 12%));
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -2px 6px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--color-neutral-700); }
-.sc-tab { display: flex; flex-direction: column; align-items: center; gap: clamp(3px, 1vw, 5px); padding: 0 0 2px; border: 0; background: transparent; color: var(--color-neutral-300); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; min-width: 0; }
-.sc-tab-ic { width: clamp(40px, 11.4vw, 54px); height: clamp(40px, 11.4vw, 54px); display: grid; place-items: center; border-radius: clamp(13px, 3.8vw, 18px);
+.sc-tab { display: flex; flex-direction: column; align-items: center; gap: clamp(3px, 1cqw, 5px); padding: 0 0 2px; border: 0; background: transparent; color: var(--color-neutral-300); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; min-width: 0; }
+.sc-tab-ic { width: clamp(40px, 11.4cqw, 54px); height: clamp(40px, 11.4cqw, 54px); display: grid; place-items: center; border-radius: clamp(13px, 3.8cqw, 18px);
   background: linear-gradient(180deg, color-mix(in oklch, var(--color-neutral-800) 72%, white 28%), var(--color-neutral-800) 52%, color-mix(in oklch, var(--color-neutral-800) 82%, black 18%));
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.5), 0 5px 8px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease; }
-.sc-tab-ic i { font-size: clamp(22px, 6.2vw, 30px); color: var(--color-neutral-200); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
-.sc-tab-lb { font-size: clamp(11.5px, 3.1vw, 13.5px); line-height: 1.1; white-space: nowrap; letter-spacing: -0.01em; }
+.sc-tab-ic i { font-size: clamp(22px, 6.2cqw, 30px); color: var(--color-neutral-200); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
+.sc-tab-lb { font-size: clamp(11.5px, 3.1cqw, 13.5px); line-height: 1.1; white-space: nowrap; letter-spacing: -0.01em; }
 .sc-tab:active .sc-tab-ic { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5), inset 0 2px 5px rgba(0, 0, 0, 0.35); }
 .sc-tab[aria-current="page"] { color: var(--color-text); font-weight: 700; }
 .sc-tab[aria-current="page"] .sc-tab-ic { transform: translateY(-6px);
@@ -345,6 +345,9 @@ html[data-theme="light"] .sc-tab[aria-current="page"] { color: #14286b; }
 html[data-theme="light"] .sc-tab[aria-current="page"] .sc-tab-ic { background: linear-gradient(180deg, #3b5bdb, #1e3a8a); box-shadow: 0 4px 0 #14286b, 0 12px 20px rgba(30, 58, 138, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
 html[data-theme="light"] .sc-tab[aria-current="page"] .sc-tab-lb { color: #1e3a8a; }
 @media (prefers-reduced-motion: reduce) { .sc-tab-ic { transition: none; } }
+
+/* 현장 앱 틀 안에서 크기를 재도록(PC에서 휴대폰·태블릿 모드로 볼 때도 실제 기기와 같은 크기) */
+.sc-appbox { container-type: inline-size; }
 .sc-ftabs::-webkit-scrollbar { display: none; }
 .sc-ftab { padding: 0 15px; font-size: 14px; }
 /* 시스템 관리 하위 메뉴 줄 */
