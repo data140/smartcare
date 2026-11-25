@@ -33,7 +33,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.locator('button[role=tab]:has-text("결재라인") >> visible=true').first().click(); await sleep(500);
     await p.locator('input[aria-label="시스템 이름"]').fill('가족사랑 스마트케어'); await p.locator('input[aria-label="시스템 이름"]').blur(); await sleep(600);
     check('설정에서 바꾼 시스템 이름이 PC 맨 위에 표시됨', (await p.locator('.nav-brand').first().innerText()).trim() === '가족사랑 스마트케어');
-    check('설정 메뉴가 폴더 탭(role=tab) 모양으로 표시됨', (await p.locator('.sc-ftabs [role=tab]').count()) >= 8 && (await p.locator('.sc-ftab[aria-selected="true"]').count()) === 1);
+    check('설정 메뉴가 폴더 탭(role=tab) 모양으로 표시됨', (await p.locator('.sc-ftabs [role=tab]').count()) >= 7 && (await p.locator('.sc-ftab[aria-selected="true"]').count()) === 1);
     // 휴대폰 동의서 화면에 반영
     const cm = await browser.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' });
     const m = await cm.newPage(); await m.goto(BASE + '/'); await m.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });

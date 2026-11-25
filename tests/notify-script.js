@@ -21,7 +21,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     await p.locator('button:has-text("로그인")').last().click();
     await p.waitForSelector('text=가상환자1', { timeout: 20000 });
     await p.locator('text=계정 · 권한 >> visible=true').first().click(); await p.waitForTimeout(800);
-    await p.locator('text=일정 알림 >> visible=true').first().click(); await p.waitForTimeout(1200);
+    await p.locator('button[role=tab]:has-text("시스템 관리") >> visible=true').first().click(); await p.waitForTimeout(500); await p.locator('button[role=tab]:has-text("일정 알림") >> visible=true').first().click(); await p.waitForTimeout(1200);
     const body = await p.evaluate(() => document.body.innerText);
     check('안내에 SB_ID(직원 번호)가 나옴', body.includes('SB_ID'));
     check('공용 계정(SB_EMAIL) 안내는 나오지 않음', !body.includes('SB_EMAIL'));
