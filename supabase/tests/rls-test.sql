@@ -104,6 +104,25 @@ insert into smartcare_audit (ws, action) values ('smartcare', 'staff.test');
 insert into results select '서버 함수: 직원 정보 수정·감사 기록 추가', (count(*) = 1)::text, 'true' from smartcare_audit where action = 'staff.test';
 reset role;
 
+-- 보안 경보 2단계 테이블
+reset role; set role service_role;
+insert into smartcare_sec_events (ws, kind, ip, acct) values ('smartcare', 'login_fail', '203.0.113.9', 's1.smartcare');
+insert into smartcare_sec_cfg (ws, emails) values ('smartcare', array['a@example.com']);
+reset role; select pg_temp.as_user('00000000-0000-0000-0000-000000000011');
+insert into results select '보안 기록: 담당자는 못 봄', (select count(*) from smartcare_sec_events)::text || '/' || (select count(*) from smartcare_sec_cfg)::text, '0/0';
+reset role; select pg_temp.as_user('00000000-0000-0000-0000-000000000001');
+insert into results select '보안 기록: 관리자는 봄', (select count(*) from smartcare_sec_events)::text || '/' || (select count(*) from smartcare_sec_cfg)::text, '1/1';
+do $$ begin
+  insert into smartcare_sec_events (ws, kind) values ('smartcare', 'alert');
+  insert into results values ('보안 기록: 관리자도 직접 쓰기 불가', '허용됨', '거부');
+exception when insufficient_privilege then insert into results values ('보안 기록: 관리자도 직접 쓰기 불가', '거부', '거부'); end $$;
+reset role; set role anon;
+do $$ begin
+  perform count(*) from smartcare_sec_events;
+  insert into results values ('보안 기록: 로그인 전 읽기 불가', '허용됨', '거부');
+exception when insufficient_privilege then insert into results values ('보안 기록: 로그인 전 읽기 불가', '거부', '거부'); end $$;
+reset role;
+
 \set QUIET off
 select case when got is not distinct from want then '✓' else '✗' end as "결과", name as "항목", got as "실제", want as "기대" from results;
 select count(*) filter (where got is distinct from want) as "실패 수" from results;

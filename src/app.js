@@ -2405,7 +2405,7 @@ class Component extends DCLogic {
   secAdd(ev) {
     const cfg = this.secCfg(); if (!cfg.on && !ev.force) return false;
     const list = this.secList(); if (list.some(x => x.id === ev.id)) return false;
-    list.push({ id: ev.id, at: new Date().toISOString(), level: ev.level || 'warn', kind: ev.kind || '', title: ev.title, detail: ev.detail || '', ack: '' });
+    list.push({ id: ev.id, at: ev.at || new Date().toISOString(), level: ev.level || 'warn', kind: ev.kind || '', title: ev.title, detail: ev.detail || '', ack: '' });
     this.secStore(list);
     if (ev.level === 'crit') {
       this.flash('🚨 보안 경보: ' + ev.title);
@@ -2446,6 +2446,25 @@ class Component extends DCLogic {
     if (this._secExpL) window.removeEventListener('sc-export', this._secExpL);
     clearInterval(this._secT);
   }
+  // 보안 감시 서버 함수(smartcare-security) 호출 — 알림 받을 사람·기준 설정, 시험 발송
+  async secSrv(action, extra) {
+    const c = this.cloudCfg(); if (!c || !(await this.authEnsure())) return { ok: false, error: '데이터 서버에 연결되어 있지 않습니다' };
+    try {
+      const r = await fetch(c.url + '/functions/v1/smartcare-security', { method: 'POST', headers: this.cloudHeaders(c), body: JSON.stringify(Object.assign({ ws: c.ws, action: action }, extra || {})) });
+      const j = await r.json().catch(() => ({}));
+      return r.ok ? j : { ok: false, status: r.status, error: j.error || ('서버 응답 오류 (HTTP ' + r.status + ')') };
+    } catch (e) { return { ok: false, error: '서버에 연결할 수 없습니다' }; }
+  }
+  secSrvDraftOf(cfg) { return { emails: (cfg.emails || []).join(', '), phones: (cfg.phones || []).join(', '), fail_ip: String(cfg.fail_ip), fail_acct: String(cfg.fail_acct), window_min: String(cfg.window_min), new_ip_notify: !!cfg.new_ip_notify }; }
+  async secSrvLoad() {
+    const j = await this.secSrv('cfg_get');
+    if (j && j.ok) this.setState({ secSrv: { loaded: true, providers: j.providers || {}, draft: this.secSrvDraftOf(j.cfg), msg: '' } });
+    else this.setState({ secSrv: Object.assign({}, this.state.secSrv, { loaded: false, missing: !!(j && (j.status === 404 || j.status === 401 || j.status === 403)), msg: '' }) });
+  }
+  // 로그인 화면에서 일어난 실패·성공을 서버에 알림(접속 IP 는 서버가 직접 확인). 실패해도 로그인에는 영향 없음
+  secReportLogin(kind, b, email, token) {
+    try { fetch(b.url + '/functions/v1/smartcare-security', { method: 'POST', keepalive: true, headers: { apikey: b.key, Authorization: 'Bearer ' + (token || b.key), 'Content-Type': 'application/json' }, body: JSON.stringify({ ws: b.ws, action: kind, acct: String(email || '').replace(/@.*$/, '') }) }).catch(() => {}); } catch (e) {}
+  }
   async secScanAudit() {
     try {
       if (!this._secOn) return;
@@ -2453,6 +2472,13 @@ class Component extends DCLogic {
       const me = (s.roster || []).find(m => m.id === s.userId) || {}; const roles = Array.isArray(me.roles) ? me.roles : [me.role];
       if (!(roles.indexOf('시스템관리자') >= 0 || roles.indexOf('관리자') >= 0)) return;
       const c = this.cloudCfg(); if (!c || !(await this.authEnsure())) return;
+      // 서버가 잡아낸 경보 (로그인 실패 반복·접속 IP — smartcare-security 함수가 기록)
+      try {
+        const sinceA = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+        const ra = await fetch(c.url + '/rest/v1/smartcare_sec_events?select=id,at,level,ip,title,detail&kind=eq.alert&ws=eq.' + encodeURIComponent(c.ws) + '&at=gte.' + encodeURIComponent(sinceA) + '&order=at.desc&limit=100', { headers: this.cloudHeaders(c) });
+        if (ra.ok) { const al = await ra.json(); if (Array.isArray(al)) al.forEach(x => this.secAdd({ id: 'srv:' + x.id, at: x.at, level: x.level === 'crit' ? 'crit' : 'warn', kind: 'server', title: x.title || '서버 보안 경보', detail: x.detail || '' })); }
+        if (!(this.state.secSrv && this.state.secSrv.loaded)) this.secSrvLoad();
+      } catch (e) {}
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const r = await fetch(c.url + '/rest/v1/smartcare_audit?select=at,user_id,action,k&ws=eq.' + encodeURIComponent(c.ws) + '&at=gte.' + encodeURIComponent(since) + '&order=at.desc&limit=3000', { headers: this.cloudHeaders(c) });
       if (!r.ok) return; const rows = await r.json(); if (!Array.isArray(rows)) return;
@@ -4283,6 +4309,7 @@ class Component extends DCLogic {
       r = await fetch(b.url + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: b.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, password: password }) });
     } catch (e) { throw Object.assign(new Error('서버에 연결할 수 없습니다 — 인터넷 연결을 확인하세요'), { code: 'network' }); }
     const j = await r.json().catch(() => ({}));
+    if (!r.ok && (r.status === 400 || r.status === 401)) this.secReportLogin('login_fail', b, email);
     if (!r.ok) throw Object.assign(new Error(r.status === 400 || r.status === 401 ? '서버 계정 이메일 또는 비밀번호가 맞지 않습니다' : '서버 로그인 실패 (HTTP ' + r.status + ')'), { code: r.status === 400 || r.status === 401 ? 'bad_login' : 'server' });
     const a = this.authFrom(j, b.url, email);
     // 작업공간 구성원인지 확인 (등록 안 된 계정은 데이터가 비어 보이므로 미리 막음)
@@ -4290,6 +4317,7 @@ class Component extends DCLogic {
     if (!rm || !rm.ok) throw new Error(rm && rm.status === 404 ? '서버 보안 설정(SQL)이 아직 적용되지 않았습니다 — 관리자에게 문의하세요' : '작업공간 확인 실패' + (rm ? ' (HTTP ' + rm.status + ')' : ''));
     if ((await rm.json().catch(() => false)) !== true) throw Object.assign(new Error('이 서버 계정은 작업공간 "' + b.ws + '"에 등록되지 않았습니다 — 관리자에게 문의하세요'), { code: 'not_member' });
     this.authStore(a);
+    this.secReportLogin('login_ok', b, email, a.access_token);
   }
   // 토큰 만료 5분 전이면 새로 받음 (동시에 여러 번 불러도 한 번만 요청)
   authEnsure(force) {
@@ -11280,6 +11308,30 @@ class Component extends DCLogic {
           secAckAll: () => { this.secStore(this.secList().map(x => x.ack ? x : Object.assign({}, x, { ack: new Date().toISOString(), ackBy: userName }))); },
           secScanNow: async () => { this.flash('서버 기록을 분석하는 중…'); await this.secScanAudit(); this.flash('분석을 마쳤습니다'); },
           secTest: () => { this.secAdd({ id: 'test:' + Date.now(), level: 'crit', kind: 'test', title: '경보 시험 — 실제 위협이 아닙니다', detail: '경보등과 알림 동작을 확인하는 시험 항목입니다', force: true }); },
+          ...(() => {
+            const sv = s.secSrv || {}; const d = sv.draft || {};
+            const upd = (p) => this.setState({ secSrv: Object.assign({}, this.state.secSrv, { draft: Object.assign({}, (this.state.secSrv || {}).draft, p) }) });
+            const msg = (t) => this.setState({ secSrv: Object.assign({}, this.state.secSrv, { msg: t }) });
+            const parse = (t) => String(t || '').split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+            const save = async () => {
+              const dd = (this.state.secSrv || {}).draft || {};
+              const j = await this.secSrv('cfg_set', { emails: parse(dd.emails), phones: parse(dd.phones), fail_ip: Number(dd.fail_ip), fail_acct: Number(dd.fail_acct), window_min: Number(dd.window_min), new_ip_notify: !!dd.new_ip_notify });
+              if (j && j.ok) { this.setState({ secSrv: Object.assign({}, this.state.secSrv, { draft: this.secSrvDraftOf(j.cfg), msg: '저장했습니다 — 이메일 ' + j.cfg.emails.length + '개 · 휴대폰 ' + j.cfg.phones.length + '개' }) }); } else msg('저장하지 못했습니다: ' + ((j && j.error) || ''));
+            };
+            const test = async () => { msg('시험 알림을 보내는 중…'); const j = await this.secSrv('test'); msg(j && j.ok ? (j.sent ? '시험 알림을 ' + j.sent + '곳에 보냈습니다.' : '') + (j.failed && j.failed.length ? ' 보내지 못함: ' + j.failed.join(' / ') : '') : '시험 실패: ' + ((j && j.error) || '')); };
+            const pv = sv.providers || {};
+            return {
+              secSrvLoaded: !!sv.loaded, secSrvNotLoaded: !sv.loaded, secSrvMissing: !!sv.missing,
+              secSrvLoad: () => this.secSrvLoad(),
+              secSrvEmails: d.emails || '', onSecSrvEmails: (e) => upd({ emails: e.target.value }),
+              secSrvPhones: d.phones || '', onSecSrvPhones: (e) => upd({ phones: e.target.value }),
+              secSrvRows: [{ k: 'fail_ip', label: '같은 IP 에서 로그인 실패', unit: '회 이상' }, { k: 'fail_acct', label: '한 계정에 로그인 실패', unit: '회 이상' }, { k: 'window_min', label: '위 횟수를 세는 시간', unit: '분' }].map(r => ({ label: r.label, unit: r.unit, val: d[r.k] || '', on: (e) => upd({ [r.k]: e.target.value }) })),
+              secSrvNewIp: !!d.new_ip_notify, secSrvNewIpToggle: () => upd({ new_ip_notify: !d.new_ip_notify }),
+              secSrvSave: save, secSrvTest: test,
+              secSrvMsg: sv.msg || '', secSrvHasMsg: !!sv.msg,
+              secSrvProvTxt: '이메일 발송 ' + (pv.email ? '준비됨' : '미설정') + ' · 문자 발송 ' + (pv.sms ? '준비됨' : '미설정')
+            };
+          })(),
           secCfgOn: !!cfg.on, secCfgToggle: () => this.secSaveCfg({ on: !cfg.on }),
           secNotifyOn: !!cfg.notify,
           secNotifyGo: async () => { try { if (!window.Notification) { this.flash('이 브라우저는 알림을 지원하지 않습니다'); return; } const p = await Notification.requestPermission(); this.secSaveCfg({ notify: p === 'granted' }); this.flash(p === 'granted' ? '브라우저 알림을 켰습니다 (화면을 보지 않을 때 경고 알림)' : '알림이 허용되지 않았습니다'); } catch (e) {} },
