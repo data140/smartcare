@@ -354,3 +354,15 @@ html[data-theme="light"] .sc-tab[aria-current="page"] .sc-tab-lb { color: #1e3a8
 .sc-subtab:hover { border-color: var(--color-accent); }
 .sc-subtab i { font-size: 16px; }
 html[data-theme="light"] .sc-subtab { background: #ffffff; border-color: #c7ccd8; color: #2c3447; }
+
+/* 보안 경보등 (PC 맨 위): 정상=초록, 주의=주황, 경고=빨강 깜빡임 */
+.sc-sec { position: relative; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); cursor: pointer; color: #fff; font: inherit; }
+.sc-sec i { font-size: 22px; }
+.sc-sec b { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #fff; color: #b42318; font-size: 12px; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--color-surface); }
+.sc-sec-ok i { color: oklch(0.72 0.14 150); }
+.sc-sec-warn { background: color-mix(in oklch, #f5a623 22%, var(--color-neutral-900)); border-color: #f5a623; }
+.sc-sec-warn i { color: #ffb84a; }
+.sc-sec-crit { background: #c2271b; border-color: #ff6a5c; animation: scSecBlink 1s ease-in-out infinite; box-shadow: 0 0 0 0 rgba(255, 70, 50, 0.6); }
+.sc-sec-crit i { color: #fff; }
+@keyframes scSecBlink { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 70, 50, 0.65); filter: brightness(1); } 50% { box-shadow: 0 0 0 9px rgba(255, 70, 50, 0); filter: brightness(1.25); } }
+@media (prefers-reduced-motion: reduce) { .sc-sec-crit { animation: none; } }
