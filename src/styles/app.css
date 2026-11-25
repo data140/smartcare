@@ -307,7 +307,7 @@ html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[
 [data-sb-sub] > div:last-child::after { content: ""; position: absolute; left: calc(-1 * var(--sb-pad, 10px) - 1px); bottom: -8px; width: 8px; height: 8px; border-radius: 0 0 0 6px; border-left: 2px solid var(--sbt, var(--color-accent)); border-bottom: 2px solid var(--sbt, var(--color-accent)); opacity: 0; }
 
 /* 설정 메뉴: 폴더 탭 모양 (한 줄로 옆으로 밀어 넘김, 선택한 탭은 위로 올라와 아래 내용과 이어짐) */
-.sc-ftabs { display: flex; align-items: flex-end; gap: 3px; overflow-x: auto; scrollbar-width: thin; border-bottom: 2px solid var(--color-neutral-700); padding: 6px 4px 0; -webkit-overflow-scrolling: touch; }
+.sc-ftabs { display: flex; align-items: flex-end; gap: 3px; overflow-x: auto; scrollbar-width: none; border-bottom: 2px solid var(--color-neutral-700); padding: 6px 4px 0; -webkit-overflow-scrolling: touch; }
 .sc-ftab { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 18px; border: 1px solid var(--color-neutral-700); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--color-neutral-800); color: var(--color-neutral-400); font: inherit; font-size: 14.5px; white-space: nowrap; cursor: pointer; position: relative; transition: background 120ms ease, color 120ms ease; }
 .sc-ftab i { font-size: 17px; opacity: 0.85; }
 .sc-ftab:hover { color: var(--color-text); background: var(--color-neutral-700); }
@@ -345,3 +345,12 @@ html[data-theme="light"] .sc-tab[aria-current="page"] { color: #14286b; }
 html[data-theme="light"] .sc-tab[aria-current="page"] .sc-tab-ic { background: linear-gradient(180deg, #3b5bdb, #1e3a8a); box-shadow: 0 4px 0 #14286b, 0 12px 20px rgba(30, 58, 138, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
 html[data-theme="light"] .sc-tab[aria-current="page"] .sc-tab-lb { color: #1e3a8a; }
 @media (prefers-reduced-motion: reduce) { .sc-tab-ic { transition: none; } }
+.sc-ftabs::-webkit-scrollbar { display: none; }
+.sc-ftab { padding: 0 15px; font-size: 14px; }
+/* 시스템 관리 하위 메뉴 줄 */
+.sc-subtabs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 6px 4px; }
+.sc-subtabs-lb { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; font-size: 13px; color: var(--color-neutral-500); }
+.sc-subtab { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-200); font: inherit; font-size: 14px; cursor: pointer; }
+.sc-subtab:hover { border-color: var(--color-accent); }
+.sc-subtab i { font-size: 16px; }
+html[data-theme="light"] .sc-subtab { background: #ffffff; border-color: #c7ccd8; color: #2c3447; }

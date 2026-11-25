@@ -10814,10 +10814,28 @@ class Component extends DCLogic {
       reports: REPORTS,
 
       // 설정
-      setTabs: Component.SET_TABS.filter(t => !t.hidden && allowSet(t.k)).map(t => ({ key: t.k, label: t.n, icon: { ai: 'ph ph-scan-smiley', consent: 'ph ph-article', program: 'ph ph-squares-four', ward: 'ph ph-bed', staff: 'ph ph-identification-badge', notify: 'ph ph-bell', privacy: 'ph ph-eye-slash', approval: 'ph ph-signature', org: 'ph ph-buildings', cloud: 'ph ph-cloud', reset: 'ph ph-trash', migrate: 'ph ph-arrow-fat-lines-right' }[t.k] || 'ph ph-gear' })).map(t => ({
-        label: t.label, icon: t.icon, active: stEff === t.key, inactive: stEff !== t.key,
-        go: () => { if (t.key === stEff) return; guardLeave(() => { this.setState({ setTab: t.key }); setTimeout(() => { const el = document.querySelector('.sc-ftab[aria-selected="true"]'); if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' }); }, 60); }); }
-      })),
+      ...(() => {
+        // 설정 메뉴가 많아 가로로 넘기던 문제: AI 판독·일정 알림·데이터 서버·운영 데이터 초기화는 '시스템 관리' 한 탭의 하위 메뉴로 묶음
+        const ICON = { ai: 'ph ph-scan-smiley', consent: 'ph ph-article', program: 'ph ph-squares-four', ward: 'ph ph-bed', staff: 'ph ph-identification-badge', notify: 'ph ph-bell', privacy: 'ph ph-eye-slash', approval: 'ph ph-signature', org: 'ph ph-buildings', cloud: 'ph ph-cloud', reset: 'ph ph-trash', migrate: 'ph ph-arrow-fat-lines-right' };
+        const GROUP = ['ai', 'notify', 'cloud', 'reset'];
+        const grp = GROUP.filter(k => allowSet(k));
+        const inGrp = GROUP.indexOf(stEff) >= 0;
+        const tops = Component.SET_TABS.filter(t => !t.hidden && GROUP.indexOf(t.k) < 0 && allowSet(t.k)).map(t => ({ key: t.k, label: t.n, icon: ICON[t.k] || 'ph ph-gear' }));
+        if (grp.length) tops.push({ key: 'system', label: '시스템 관리', icon: 'ph ph-shield-check' });
+        const scrollTab = () => setTimeout(() => { const el = document.querySelector('.sc-ftab[aria-selected="true"]'); if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' }); }, 60);
+        const SUBN = { ai: 'AI 판독 파라미터', notify: '일정 알림', cloud: '데이터 서버', reset: '운영 데이터 초기화' };
+        return {
+          setTabs: tops.map(t => { const on = t.key === 'system' ? inGrp : stEff === t.key; return {
+            label: t.label, icon: t.icon, active: on, inactive: !on,
+            go: () => {
+              if (on) return;
+              const target = t.key === 'system' ? ((s.sysSub && grp.indexOf(s.sysSub) >= 0) ? s.sysSub : grp[0]) : t.key;
+              guardLeave(() => { this.setState({ setTab: target }); scrollTab(); });
+            } }; }),
+          setShowSub: inGrp && grp.length > 0,
+          setSubTabs: grp.map(k => ({ label: SUBN[k], icon: ICON[k], cls: stEff === k ? 'sel-chip' : '', on: stEff === k, go: () => { if (stEff === k) return; guardLeave(() => this.setState({ setTab: k, sysSub: k })); } }))
+        };
+      })(),
       setAi: stEff === 'ai', setConsentTab: stEff === 'consent',
       setProgramTab: stEff === 'program', setStaffTab: stEff === 'staff',
       setWardTab: stEff === 'ward',

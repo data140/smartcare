@@ -28,7 +28,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.locator('input[autocomplete="username"]').first().fill('100101'); await p.locator('input[autocomplete="current-password"]').first().fill('1234');
     await p.locator('button:has-text("로그인")').last().click(); await p.waitForSelector('text=가상환자1', { timeout: 20000 }); await sleep(800);
     await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(600);
-    await p.locator('button:has-text("일정 알림")').first().click(); await sleep(600);
+    await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400); await p.locator('button[role=tab]:has-text("일정 알림")').first().click(); await sleep(600);
     check('일정 알림에 "알림 발송 서버 계정" 구역이 있음', await p.evaluate(() => document.body.innerText.includes('알림 발송 서버 계정')));
     await p.locator('button:has-text("알림 발송 계정 만들기")').first().click(); await sleep(2500);
     const pw = await p.evaluate(() => { const c = [...document.querySelectorAll('code')].find(e => /^[A-Za-z0-9]{14}$/.test(e.textContent.trim())); return c ? c.textContent.trim() : ''; });
@@ -41,7 +41,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     check('알림 발송 계정으로 서버 로그인이 됨', await tryLogin('NOTI01', pw));
     check('틀린 비밀번호로는 로그인되지 않음', !(await tryLogin('NOTI01', 'wrongpassword12')));
     // 다시 만들기
-    await p.locator('button:has-text("일정 알림")').first().click(); await sleep(500);
+    { const sy = p.locator('button[role=tab]:has-text("시스템 관리") >> visible=true'); if (await sy.count()) { await sy.first().click(); await sleep(400); } const tb = p.locator('button[role=tab]:has-text("일정 알림") >> visible=true'); if (await tb.count()) await tb.first().click(); await sleep(600); }
     await p.locator('button:has-text("비밀번호 다시 만들기")').first().click(); await sleep(2000);
     const pw2 = await p.evaluate(() => { const c = [...document.querySelectorAll('code')].find(e => /^[A-Za-z0-9]{14}$/.test(e.textContent.trim())); return c ? c.textContent.trim() : ''; });
     check('비밀번호를 다시 만들면 이전 비밀번호는 못 쓰고 새 비밀번호로 로그인됨', !!pw2 && pw2 !== pw && !(await tryLogin('NOTI01', pw)) && (await tryLogin('NOTI01', pw2)));

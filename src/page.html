@@ -3008,6 +3008,11 @@
               <button type="button" role="tab" class="sc-ftab" aria-selected="{{ st.active }}" sc-camel-on-click="{{ st.go }}" data-keep="1"><i class="{{ st.icon }}"></i>{{ st.label }}</button>
             </sc-for>
           </div>
+          <sc-if value="{{ setShowSub }}" hint-placeholder-val="{{ false }}">
+            <div role="tablist" aria-label="시스템 관리 하위 메뉴" class="sc-subtabs"><span class="sc-subtabs-lb"><i class="ph ph-shield-check"></i> 시스템 관리</span>
+              <sc-for list="{{ setSubTabs }}" as="sb" hint-placeholder-count="4"><button type="button" role="tab" class="sc-subtab {{ sb.cls }}" aria-selected="{{ sb.on }}" sc-camel-on-click="{{ sb.go }}" data-keep="1"><i class="{{ sb.icon }}"></i>{{ sb.label }}</button></sc-for>
+            </div>
+          </sc-if>
 
           <div style="display: flex; flex-direction: column; gap: var(--space-8); max-width: {{ setMaxW }};">
             <sc-if value="{{ setAi }}" hint-placeholder-val="{{ true }}">

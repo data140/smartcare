@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const path = require('path');
 const PORT = 8934, BASE = 'http://localhost:' + PORT;
-const results = []; let failed = false;
+const results = []; let failed = false; const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + name + (extra ? ' — ' + extra : '')); if (!ok) failed = true; };
 
 (async () => {
@@ -25,7 +25,8 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     else await p.waitForSelector(wait || 'text=가상환자1', { timeout: 20000 });
     return p;
   };
-  const tabs = (p) => p.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent && /^(AI 판독 파라미터|동의서식 관리|프로그램 관리|병동 · 호실|담당자 명단 및 권한|일정 알림|개인정보 표시|결재라인 · 문서 서식|기관 관리|데이터 서버)$/.test(b.innerText.trim())).map(b => b.innerText.trim()));
+  const tabs = async (p) => { const sy = p.locator('button[role=tab]:has-text("시스템 관리") >> visible=true'); if (await sy.count()) { await sy.first().click(); await sleep(400); const r = await tabsRaw(p); await p.locator('button[role=tab]:has-text("담당자 명단 및 권한")').first().click(); await sleep(500); return r; } return tabsRaw(p); };
+  const tabsRaw = (p) => p.evaluate(() => [...document.querySelectorAll('button')].filter(b => b.offsetParent && /^(AI 판독 파라미터|동의서식 관리|프로그램 관리|병동 · 호실|담당자 명단 및 권한|일정 알림|개인정보 표시|결재라인 · 문서 서식|기관 관리|데이터 서버|운영 데이터 초기화)$/.test(b.innerText.trim())).map(b => b.innerText.trim()));
   try {
     // 기관 관리자 (김체험)
     const a = await login('100101', '1234');
