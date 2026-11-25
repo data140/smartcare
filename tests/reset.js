@@ -19,7 +19,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const a = await c0.newPage(); await a.goto(BASE + '/'); await a.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     await a.locator('input[autocomplete="username"]').first().fill('100101'); await a.locator('input[autocomplete="current-password"]').first().fill('1234');
     await a.locator('button:has-text("로그인")').last().click(); await a.waitForSelector('text=가상환자1', { timeout: 20000 });
-    await a.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(700);
+    await a.locator('aside button:has-text("담당자 명단 및 권한") >> visible=true').first().click(); await sleep(700);
     await a.locator('button[role=tab]:has-text("시스템 관리")').first().click().catch(() => {}); await sleep(400);
     check('기관 관리자에게는 "운영 데이터 초기화" 탭이 없음', (await a.locator('button[role=tab]:has-text("운영 데이터 초기화") >> visible=true').count()) === 0);
     await c0.close();
@@ -30,7 +30,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.click('button:has-text("시스템 관리자")');
     await p.locator('input[autocomplete="username"]').first().fill('admin'); await p.locator('input[autocomplete="current-password"]').first().fill('demo1234');
     await p.locator('button:has-text("로그인")').last().click(); await sleep(4500);
-    if (!(await p.locator('text=계정 · 권한 >> visible=true').count())) { await p.getByText('설정', { exact: true }).first().click().catch(() => {}); await sleep(600); }
+    if (!(await p.locator('text=담당자 명단 및 권한 >> visible=true').count())) { await p.getByText('설정', { exact: true }).first().click().catch(() => {}); await sleep(600); }
     // 다른 기기(오래된 사본을 가진 휴대폰 역할): 같은 계정으로 로그인해 두고, 초기화 뒤 새로고침했을 때 옛 데이터가 지워지는지 확인
     const c2 = await browser.newContext({ viewport: { width: 1200, height: 900 } });
     const q = await c2.newPage(); await q.goto(BASE + '/'); await q.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
@@ -43,7 +43,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       localStorage.setItem('smartcare.cfiles.v1', JSON.stringify({ files: { 'PT-D001': [{ name: 'a.pdf' }] } }));
     });
     await sleep(2500);
-    await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(700);
+    await p.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await sleep(700);
     await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400); await p.locator('button[role=tab]:has-text("운영 데이터 초기화")').first().click(); await sleep(500);
     check('시스템 관리자에게 "운영 데이터 초기화" 탭이 보임', (await p.locator('text=되돌릴 수 없습니다 >> visible=true').count()) >= 1);
     check('처음에는 실행 단추가 잠겨 있음', await p.locator('button:has-text("운영 데이터 초기화 실행")').isDisabled());
@@ -74,8 +74,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.locator('input[autocomplete="username"]').first().fill('admin'); await p.locator('input[autocomplete="current-password"]').first().fill('demo1234');
     await p.locator('button:has-text("로그인")').last().click(); await sleep(4500);
     } else await sleep(2000);
-    if (!(await p.locator('text=계정 · 권한 >> visible=true').count())) { await p.getByText('설정', { exact: true }).first().click().catch(() => {}); await sleep(600); }
-    await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(700);
+    if (!(await p.locator('text=담당자 명단 및 권한 >> visible=true').count())) { await p.getByText('설정', { exact: true }).first().click().catch(() => {}); await sleep(600); }
+    await p.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await sleep(700);
     await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400); await p.locator('button[role=tab]:has-text("운영 데이터 초기화")').first().click(); await sleep(500);
     await p.locator('button:has-text("삭제될 항목 확인")').click(); await sleep(1500);
     const cnt2 = await p.evaluate(() => [...document.querySelectorAll('button[aria-pressed] span')].map(x => x.innerText).filter(t => /^\d+건$/.test(t)));

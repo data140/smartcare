@@ -21,7 +21,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     await p.locator('input[autocomplete="current-password"]').first().fill('1234');
     await p.locator('button:has-text("로그인")').last().click();
     await p.waitForSelector('text=가상환자1', { timeout: 20000 });
-    await p.locator('text=계정 · 권한 >> visible=true').first().click(); await p.waitForTimeout(1500);
+    await p.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await p.waitForTimeout(1500);
 
     // 처음에는 한 줄 요약만 보이고, [상세]를 눌러야 입력칸이 펼쳐짐
     const collapsed = await p.evaluate(() => ({

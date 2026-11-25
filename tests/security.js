@@ -32,7 +32,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     l = await lamp(); check('모두 확인하면 경보등이 정상으로 돌아감', !!l && /sc-sec-ok/.test(l.cls), JSON.stringify(l));
     await p.locator('button[aria-label="닫기"] >> visible=true').first().click(); await sleep(300);
     // 설정 > 시스템 관리 > 보안 알림 : 경보 시험
-    await p.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(600);
+    await p.locator('aside button:has-text("담당자 명단 및 권한") >> visible=true').first().click(); await sleep(600);
     await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400);
     await p.locator('button[role=tab]:has-text("보안 알림")').first().click(); await sleep(500);
     check('설정 › 시스템 관리 › 보안 알림에 감지 기준 입력칸이 있음', (await p.locator('input[type=number]').count()) >= 5);

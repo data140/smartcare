@@ -8348,13 +8348,14 @@ class Component extends DCLogic {
             { k: 'st-07', label: '병동별 건수 · 비율', icon: 'ph ph-table', sec: '07' }
           ].map(x => Object.assign(x, { show: can('stats'), on: v === 'stats' && (s.statSec || 'all') === x.sec, go: goView('stats', { fetch: 'ready', statSec: x.sec }) })) },
           { k: 'settings', label: '설정', icon: 'ph ph-gear', items: [
-            { k: 'set-ai', label: 'AI 판독 파라미터', icon: 'ph ph-scan-smiley', show: can('settings') && allowSet('ai'), on: v === 'settings' && st === 'ai', go: goView('settings', { setTab: 'ai' }) },
             { k: 'set-consent', label: '동의서식 관리', icon: 'ph ph-article', show: can('settings') && allowSet('consent'), on: v === 'settings' && st === 'consent', go: goView('settings', { setTab: 'consent' }) },
             { k: 'set-program', label: '프로그램 관리', icon: 'ph ph-squares-four', show: can('settings') && allowSet('program'), on: v === 'settings' && st === 'program', go: goView('settings', { setTab: 'program' }) },
             { k: 'set-ward', label: '병동 · 호실', icon: 'ph ph-bed', show: can('settings') && allowSet('ward'), on: v === 'settings' && st === 'ward', go: goView('settings', { setTab: 'ward' }) },
-            { k: 'set-staff', label: '계정 · 권한', icon: 'ph ph-identification-badge', show: can('settings') && allowSet('staff'), on: v === 'settings' && st === 'staff', go: goView('settings', { setTab: 'staff' }) },
+            { k: 'set-staff', label: '담당자 명단 및 권한', icon: 'ph ph-identification-badge', show: can('settings') && allowSet('staff'), on: v === 'settings' && st === 'staff', go: goView('settings', { setTab: 'staff' }) },
+            { k: 'set-privacy', label: '개인정보 표시', icon: 'ph ph-eye-slash', show: can('settings') && allowSet('privacy'), on: v === 'settings' && st === 'privacy', go: goView('settings', { setTab: 'privacy' }) },
+            { k: 'set-approval', label: '결재라인 · 문서 서식', icon: 'ph ph-signature', show: can('settings') && allowSet('approval'), on: v === 'settings' && st === 'approval', go: goView('settings', { setTab: 'approval' }) },
             { k: 'set-org', label: '기관 관리', icon: 'ph ph-buildings', show: can('settings') && allowSet('org'), on: v === 'settings' && st === 'org', go: goView('settings', { setTab: 'org' }) },
-            { k: 'set-cloud', label: '데이터 서버', icon: 'ph ph-cloud', show: can('settings') && allowSet('cloud'), on: v === 'settings' && st === 'cloud', go: goView('settings', { setTab: 'cloud' }) },
+            { k: 'set-system', label: '시스템 관리', icon: 'ph ph-shield-check', show: can('settings') && ['ai', 'notify', 'security', 'cloud', 'reset'].some(k => allowSet(k)), on: v === 'settings' && ['ai', 'notify', 'security', 'cloud', 'reset'].indexOf(st) >= 0, go: goView('settings', { setTab: (['ai', 'notify', 'security', 'cloud', 'reset'].indexOf(this.state.sysSub) >= 0 && allowSet(this.state.sysSub)) ? this.state.sysSub : ['ai', 'notify', 'security', 'cloud', 'reset'].find(k => allowSet(k)) }) },
             { k: 'set-migrate', label: '데이터 이전', icon: 'ph ph-arrow-fat-lines-right', show: can('settings') && isSys && Component.isStaffMode() && Component.MIG_SRC.url !== Component.CLOUD_DEFAULT.url, on: v === 'settings' && st === 'migrate', go: goView('settings', { setTab: 'migrate' }) }
           ] }
         ];

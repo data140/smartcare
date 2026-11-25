@@ -27,7 +27,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.goto(BASE + '/'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     await p.locator('input[autocomplete="username"]').first().fill('100101'); await p.locator('input[autocomplete="current-password"]').first().fill('1234');
     await p.locator('button:has-text("로그인")').last().click(); await p.waitForSelector('text=가상환자1', { timeout: 20000 }); await sleep(800);
-    await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(600);
+    await p.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await sleep(600);
     await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400); await p.locator('button[role=tab]:has-text("일정 알림")').first().click(); await sleep(600);
     check('일정 알림에 "알림 발송 서버 계정" 구역이 있음', await p.evaluate(() => document.body.innerText.includes('알림 발송 서버 계정')));
     await p.locator('button:has-text("알림 발송 계정 만들기")').first().click(); await sleep(2500);
@@ -35,7 +35,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const emp = await p.evaluate(() => { const b = [...document.querySelectorAll('b')].find(e => /^NOTI\d+$/.test(e.textContent.trim())); return b ? b.textContent.trim() : ''; });
     check('계정이 만들어지고 사번(SB_ID)과 비밀번호가 한 번 표시됨', !!pw && emp === 'NOTI01', 'SB_ID=' + emp + ' · 비밀번호 ' + pw.length + '자');
     // 계정 목록에는 나오지 않음
-    await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(900);
+    await p.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await sleep(900);
     check('만든 계정은 계정 목록에 나오지 않음', !(await p.evaluate(() => document.body.innerText.includes('알림 발송 서버') && /NOTI01/.test(document.body.innerText))));
     // 새 계정으로 로그인 가능 (조회 전용)
     check('알림 발송 계정으로 서버 로그인이 됨', await tryLogin('NOTI01', pw));
