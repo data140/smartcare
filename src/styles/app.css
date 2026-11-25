@@ -391,3 +391,8 @@ html[data-theme="light"] .sc-subtab { background: #ffffff; border-color: #c7ccd8
 .sc-secbar-bt { min-height: 40px; padding: 0 18px; border-radius: 999px; border: 2px solid #fff; background: #fff; color: #8a1c12; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 @keyframes scSecBar { 0%, 100% { background: #c2271b; } 50% { background: #8f1710; } }
 @media (prefers-reduced-motion: reduce) { .sc-sec-ok::after, .sc-sec-ok i, .sc-sec-warn, .sc-sec-crit, .sc-sec-crit i, .sc-secbar-crit, .sc-secbar-ic i { animation: none; } }
+
+/* 보안 경보등 아이콘: 시스템 보안(방패)을 크게 */
+.sc-sec { width: 46px; height: 46px; border-radius: 14px; }
+.sc-sec i { font-size: 30px; }
+.sc-secbar-ic i { font-size: 36px; }

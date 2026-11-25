@@ -103,12 +103,17 @@ function filters(sp) {
 const pick = (rows, sel) => (!sel || sel === '*') ? rows : rows.map(r => Object.fromEntries(sel.split(',').map(c => [c, r[c]])));
 
 // ───── 서버 함수 (실제 파일을 그대로 실행) ─────
-let fnHandler = null;
+let fnHandler = null, secHandler = null;
+const secEvents = [], secCfg = [], outbox = [];   // 보안 감시 시험용: 기록·설정·'발송한' 메일·문자
 function loadFunction() {
-  const code = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', 'smartcare-staff', 'index.ts'), 'utf8');
-  const env = { SUPABASE_URL: BASE, SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY };
-  const ctx = { Deno: { env: { get: k => env[k] }, serve: h => { fnHandler = h; } }, fetch, Request, Response, Headers, URL, console, Date, JSON, Number, String, Array, Set, Object, Math, encodeURIComponent, Error };
-  vm.runInNewContext(code, ctx, { filename: 'smartcare-staff/index.ts' });
+  const base = { fetch, Request, Response, Headers, URL, console, Date, JSON, Number, String, Array, Set, Object, Math, encodeURIComponent, Error, Promise, Uint8Array, TextEncoder, crypto: crypto.webcrypto, isFinite: Number.isFinite };
+  const run = (name, env, set) => {
+    const code = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', name, 'index.ts'), 'utf8');
+    vm.runInNewContext(code, Object.assign({ Deno: { env: { get: k => env[k] }, serve: set } }, base), { filename: name + '/index.ts' });
+  };
+  run('smartcare-staff', { SUPABASE_URL: BASE, SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY }, h => { fnHandler = h; });
+  // 보안 감시: 실제 메일·문자 대신 이 서버의 /mock/* 로 보내 시험에서 확인
+  run('smartcare-security', { SUPABASE_URL: BASE, SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, MAIL_API_URL: BASE + '/mock/mail', SMS_API_URL: BASE + '/mock/sms', RESEND_API_KEY: 'k', MAIL_FROM: 'a@example.com', SOLAPI_KEY: 'k', SOLAPI_SECRET: 's', SMS_FROM: '01000000000' }, h => { secHandler = h; });
 }
 if (STAFF) loadFunction();
 
@@ -170,6 +175,16 @@ async function route(req, res, body) {
     res.writeHead(r.status, Object.assign({ 'Content-Type': 'application/json' }, CORS)); return res.end(txt);
   }
 
+  if (p === '/functions/v1/smartcare-security') {
+    if (!STAFF) return send(res, 404, {});
+    const h = Object.assign({}, req.headers); if (!h['x-forwarded-for'] && !h['cf-connecting-ip']) h['x-forwarded-for'] = (req.socket.remoteAddress || '').replace('::ffff:', '');
+    const r = await secHandler(new Request(BASE + p, { method: req.method, headers: h, body: req.method === 'POST' ? body : undefined }));
+    const txt = await r.text();
+    res.writeHead(r.status, Object.assign({ 'Content-Type': 'application/json' }, CORS)); return res.end(txt);
+  }
+  if (p === '/mock/mail' || p === '/mock/sms') { outbox.push({ kind: p.slice(6), body: J, at: Date.now() }); return send(res, 200, { id: 'mock' }); }
+  if (p === '/mock/outbox') return send(res, 200, outbox);
+
   // REST
   if (!p.startsWith('/rest/v1/')) return send(res, 404, {});
   if (!who) {
@@ -184,6 +199,7 @@ async function route(req, res, body) {
       return send(res, 200, s ? staffEmail(ws, s.roster_id) : 'x' + crypto.createHash('md5').update([ws, J.p_mode, J.p_org, J.p_id].join('|')).digest('hex').slice(0, 16) + '@smartcare.invalid');
     }
     case '/rest/v1/rpc/smartcare_login_orgs': { const row = kv.get(ws + ':smartcare.orgs.v1'); let a = []; try { a = JSON.parse(row.v); } catch (e) {} return send(res, 200, a.map(o => ({ id: o.id, name: o.name }))); }
+    case '/rest/v1/rpc/smartcare_sec_names': { const m = meRow(who, ws); return send(res, 200, m && m.roles.some(r => r === '관리자' || r === '시스템관리자') ? staff.filter(x => x.ws === ws).map(x => ({ user_id: x.user_id, name: x.name, org: x.org })) : []); }
     case '/rest/v1/rpc/smartcare_me': { const s = meRow(who, ws); return send(res, 200, s ? { roster_id: s.roster_id, org: s.org, roles: s.roles, name: s.name, must_change: s.must_change } : null); }
     case '/rest/v1/rpc/smartcare_touch_login': { const s = meRow(who, ws); if (s) { s.last_login = new Date().toISOString(); logAudit(who, ws, 'login'); } return send(res, 200, null); }
   }
@@ -213,6 +229,22 @@ async function route(req, res, body) {
   if (p === '/rest/v1/smartcare_audit') {
     if (req.method === 'POST' && who === 'service') { logAudit(J.user_id, J.ws, J.action, J.k, J.size, J.detail); return send(res, 201); }
     if (req.method === 'GET') { const rows = audit.filter(filters(u.searchParams)).filter(a => who === 'service' || (STAFF && meRow(who, a.ws) && meRow(who, a.ws).roles.some(r => r === '관리자' || r === '시스템관리자'))); return send(res, 200, rows); }
+    return send(res, 403, {});
+  }
+  if (p === '/rest/v1/smartcare_sec_events' || p === '/rest/v1/smartcare_sec_cfg') {
+    const isEv = p.endsWith('events'), T = isEv ? secEvents : secCfg;
+    const adminOk = (w) => who === 'service' || (STAFF && meRow(who, w) && meRow(who, w).roles.some(r => r === '관리자' || r === '시스템관리자'));
+    if (req.method === 'POST') {
+      if (who !== 'service') return send(res, 403, { code: '42501' });
+      const rows = [].concat(J);
+      rows.forEach(r => { if (isEv) T.push(Object.assign({ id: T.length + 1, at: new Date().toISOString() }, r)); else { const i = T.findIndex(x => x.ws === r.ws); if (i >= 0) Object.assign(T[i], r); else T.push(r); } });
+      return send(res, 201);
+    }
+    if (req.method === 'GET') {
+      const rows = T.filter(filters(u.searchParams)).filter(r => adminOk(r.ws));
+      const total = rows.length;
+      return send(res, 200, pick(rows, u.searchParams.get('select')), (req.headers.prefer || '').includes('count=exact') ? { 'Content-Range': '0-0/' + total } : {});
+    }
     return send(res, 403, {});
   }
   return send(res, 404, {});
