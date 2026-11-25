@@ -70,8 +70,14 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     await p.locator('text=환자 등록 관리').first().click().catch(() => {}); await p.waitForTimeout(1500);
     check('새로고침 후 환자 명부 표시 (저장 공간 부족이어도)', await p.isVisible('text=가상환자1'));
     await p.locator('text=서면 동의서 관리').first().click().catch(() => {}); await p.waitForTimeout(2000);
-    const body = await p.evaluate(() => document.body.innerText);
-    const none = (body.match(/동의 없음\s*(\d+)/) || [])[1], nofile = (body.match(/서면 파일 없음\s*(\d+)/) || [])[1];
+    // 큰 항목이 단계적으로 반영되므로(느린 환경에서는 더 오래), 기대한 값이 될 때까지 최대 25초 기다림
+    let none, nofile;
+    for (let i = 0; i < 25; i++) {
+      const body = await p.evaluate(() => document.body.innerText);
+      none = (body.match(/동의 없음\s*(\d+)/) || [])[1]; nofile = (body.match(/서면 파일 없음\s*(\d+)/) || [])[1];
+      if (none === '444' && nofile === '454') break;
+      await p.waitForTimeout(1000);
+    }
     check('전자 동의·서면 동의서 반영 (동의 없음 444 · 서면 파일 없음 454)', none === '444' && nofile === '454', '동의 없음 ' + none + ' · 서면 파일 없음 ' + nofile);
     check('화면 오류 없음', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
