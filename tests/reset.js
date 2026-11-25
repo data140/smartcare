@@ -67,11 +67,13 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const stale = await q.evaluate(() => ({ j: localStorage.getItem('smartcare.journals.v1'), p: localStorage.getItem('smartcare.plans.v1') || '' }));
     check('초기화 뒤 다른 기기를 새로고침하면 옛 일정·운영일지 사본이 지워짐', !stale.j && !/옛일정/.test(stale.p), JSON.stringify(stale).slice(0, 80));
     await sleep(4500);   // 자동 새로고침
-    await p.waitForSelector('input[autocomplete="username"]', { timeout: 30000 });
-    // 서버 상태 확인: 다시 로그인해 같은 탭에서 개수를 세어 봄
+    // 초기화 뒤: 로그인 화면으로 돌아오거나, 이 기기가 초기화 표식을 보고 옛 사본만 지우고 로그인 상태로 새로 불러옴 — 둘 다 정상
+    const loginNeeded = await p.waitForSelector('input[autocomplete="username"]', { timeout: 8000 }).then(() => true, () => false);
+    if (loginNeeded) {
     await p.click('button:has-text("시스템 관리자")');
     await p.locator('input[autocomplete="username"]').first().fill('admin'); await p.locator('input[autocomplete="current-password"]').first().fill('demo1234');
     await p.locator('button:has-text("로그인")').last().click(); await sleep(4500);
+    } else await sleep(2000);
     if (!(await p.locator('text=계정 · 권한 >> visible=true').count())) { await p.getByText('설정', { exact: true }).first().click().catch(() => {}); await sleep(600); }
     await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(700);
     await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400); await p.locator('button[role=tab]:has-text("운영 데이터 초기화")').first().click(); await sleep(500);
@@ -91,10 +93,12 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.locator('input[aria-label="확인 문구"]').fill('환자 포함 운영 데이터 초기화'); await sleep(200);
     await p.locator('button:has-text("운영 데이터 초기화 실행")').click();
     await p.waitForSelector('text=초기화가 끝났습니다', { timeout: 15000 }).then(() => check('환자 포함 초기화가 끝남', true), () => check('환자 포함 초기화가 끝남', false));
-    await sleep(4500); await p.waitForSelector('input[autocomplete="username"]', { timeout: 30000 });
+    await sleep(4500);
+    if (await p.waitForSelector('input[autocomplete="username"]', { timeout: 8000 }).then(() => true, () => false)) {
     await p.click('button:has-text("시스템 관리자")');
     await p.locator('input[autocomplete="username"]').first().fill('admin'); await p.locator('input[autocomplete="current-password"]').first().fill('demo1234');
     await p.locator('button:has-text("로그인")').last().click(); await sleep(4500);
+    } else await sleep(2000);
     const pv2 = await p.evaluate(() => { try { return JSON.parse(localStorage.getItem('smartcare.patients.v1') || '[]'); } catch (e) { return ['x']; } });
     check('환자 명부가 비어 있음(0명)', Array.isArray(pv2) && pv2.length === 0, pv2.length + '명');
     check('화면 오류 없음', errs.length === 0, errs.slice(0, 2).join('|'));

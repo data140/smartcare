@@ -2447,6 +2447,7 @@ class Component extends DCLogic {
   }
   async secScanAudit() {
     try {
+      if (!this._secOn) return;
       const s = this.state; const cfg = this.secCfg(); if (!cfg.on || !s.logged) return;
       const me = (s.roster || []).find(m => m.id === s.userId) || {}; const roles = Array.isArray(me.roles) ? me.roles : [me.role];
       if (!(roles.indexOf('시스템관리자') >= 0 || roles.indexOf('관리자') >= 0)) return;
@@ -4324,6 +4325,7 @@ class Component extends DCLogic {
     'smartcare.sbW.v1', 'smartcare.kpiView.v1', 'smartcare.flowView.v1', 'smartcare.ptCols.v1', 'smartcare.emrCols.v1', 'smartcare.calBg.v1', 'smartcare.cformMargin.v1', 'smartcare.theme.v1',
     'sc.theme', 'sc.uiScale', 'sc.aiFab.v1', 'sc.aiSize', 'sc.alThumbSize', 'sc.alTileSize', 'sc.albumLayout', 'sc.calPct', 'sc.cpPct', 'sc.server.v1']);
   wipeLocalData() {
+    try { this.secStop(); } catch (e) {}   // 로그아웃·초기화 중에는 보안 점검이 서버 로그인을 다시 만들지 않도록 멈춤
     try {
       const keys = []; for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(k => {
