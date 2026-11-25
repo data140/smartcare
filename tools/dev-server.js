@@ -199,6 +199,7 @@ async function route(req, res, body) {
       return send(res, 200, s ? staffEmail(ws, s.roster_id) : 'x' + crypto.createHash('md5').update([ws, J.p_mode, J.p_org, J.p_id].join('|')).digest('hex').slice(0, 16) + '@smartcare.invalid');
     }
     case '/rest/v1/rpc/smartcare_login_orgs': { const row = kv.get(ws + ':smartcare.orgs.v1'); let a = []; try { a = JSON.parse(row.v); } catch (e) {} return send(res, 200, a.map(o => ({ id: o.id, name: o.name }))); }
+    case '/rest/v1/rpc/smartcare_sec_names': { const m = meRow(who, ws); return send(res, 200, m && m.roles.some(r => r === '관리자' || r === '시스템관리자') ? staff.filter(x => x.ws === ws).map(x => ({ user_id: x.user_id, name: x.name, org: x.org })) : []); }
     case '/rest/v1/rpc/smartcare_me': { const s = meRow(who, ws); return send(res, 200, s ? { roster_id: s.roster_id, org: s.org, roles: s.roles, name: s.name, must_change: s.must_change } : null); }
     case '/rest/v1/rpc/smartcare_touch_login': { const s = meRow(who, ws); if (s) { s.last_login = new Date().toISOString(); logAudit(who, ws, 'login'); } return send(res, 200, null); }
   }

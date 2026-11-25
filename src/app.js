@@ -2446,6 +2446,48 @@ class Component extends DCLogic {
     if (this._secExpL) window.removeEventListener('sc-export', this._secExpL);
     clearInterval(this._secT);
   }
+  // ───── 일지 삭제 (착오 등록 정리): 확정 전 일지만 · 사유 필수 · 사람당 하루 한도 · 기록과 백업이 남음 ─────
+  logDelLog() { let a = []; try { a = JSON.parse(localStorage.getItem('smartcare.logDel.v1') || '[]') || []; } catch (e) {} return Array.isArray(a) ? a : []; }
+  logDelToday(uid) { const d = this.todayIso(); return this.logDelLog().filter(x => x.byId === uid && (x.at || '').slice(0, 10) === d).length; }
+  logDelete(key, reason, limit) {
+    const s = this.state; const cur = this.curKey(s);
+    const ss = Object.assign({}, s.sessions || {});
+    const v = key === cur ? { review: s.review, confirmed: s.confirmed, photos: s.photos } : ss[key];
+    if (!v) { this.flash('이미 없는 일지입니다'); return false; }
+    if (v.confirmed) { this.flash('확정된 일지는 삭제할 수 없습니다'); return false; }
+    if (!reason) { this.flash('삭제 사유를 선택하세요'); return false; }
+    if (this.logDelToday(s.userId) >= limit) { this.flash('오늘 삭제 가능 횟수(' + limit + '회)를 모두 썼습니다 — 관리자에게 요청하세요'); return false; }
+    const enc = encodeURIComponent(key), now = new Date().toISOString();
+    try { localStorage.setItem('smartcare.wsessbak.' + enc + '.' + Date.now(), JSON.stringify(v)); } catch (e) {}   // 복구용 백업
+    const tomb = JSON.stringify({ deleted: true, at: now, by: this._userName || '', reason: reason });
+    this._sessSaved = this._sessSaved || {}; this._sessSaved[key] = tomb; this._sessDel = this._sessDel || {}; this._sessDel[key] = true; this._sessDirty = this._sessDirty || {}; delete this._sessDirty[key];
+    try { localStorage.setItem(Component.WSESS_PREFIX + enc, tomb); } catch (e) {}
+    const entry = { at: now, by: this._userName || '', byId: s.userId, key: key, reason: reason, photos: (v.photos || []).length, people: (v.review || []).filter(r => r && r.id).length };
+    const log = this.logDelLog(); log.unshift(entry);
+    try { localStorage.setItem('smartcare.logDel.v1', JSON.stringify(log.slice(0, 300))); } catch (e) {}
+    const mine = this.logDelToday(s.userId);
+    if (mine >= 3) this.secAdd({ id: 'logdel:' + s.userId + ':' + this.todayIso(), level: 'warn', kind: 'logdel', title: '일지 삭제가 잦습니다', detail: (this._userName || '') + ' 님이 오늘 일지를 ' + mine + '건 삭제했습니다 (설정 › 보안 알림에서 삭제 기록 확인)', force: true });
+    delete ss[key];
+    const mm = Object.assign({}, s.sessionMeta || {}); delete mm[key];
+    const patch = { sessions: ss, sessionMeta: mm, logDel: null };
+    if (key === cur) { const dk = this.demoKey(); const d = ss[dk] || this.defaultSession(dk); Object.assign(patch, { activeSession: null, review: d.review, confirmed: d.confirmed, photos: d.photos, mobileView: s.device === 'pc' ? s.mobileView : 'logs', pcView: s.device === 'pc' ? 'logs' : s.pcView }); }
+    this.setState(patch);
+    this.flash('일지를 삭제했습니다 (삭제 기록과 백업이 남았습니다)');
+    return true;
+  }
+  // 경보의 계정 코드(uuid 앞 8자)를 이름으로: 서버가 주는 관리자용 이름 목록을 기기에 보관
+  secNames() { try { return JSON.parse(localStorage.getItem('smartcare.secNames.v1') || '{}') || {}; } catch (e) { return {}; } }
+  secWho(u) { const id = String(u || '').slice(0, 8); const n = this.secNames()[id]; return n ? n : '알 수 없는 계정(' + id + ')'; }
+  async secLoadNames(c) {
+    try {
+      if (Date.now() - (this._secNamesAt || 0) < 10 * 60000) return; this._secNamesAt = Date.now();
+      const r = await fetch(c.url + '/rest/v1/rpc/smartcare_sec_names', { method: 'POST', headers: this.cloudHeaders(c), body: JSON.stringify({ p_ws: c.ws }) });
+      if (!r.ok) return; const rows = await r.json(); if (!Array.isArray(rows) || !rows.length) return;
+      const orgs = {}; (this.state.orgs || []).forEach(o => { orgs[o.id] = o.name; });
+      const map = {}; rows.forEach(x => { if (x.user_id) map[String(x.user_id).slice(0, 8)] = (x.name || '이름 없음') + (x.org === '*' ? ' (시스템 관리자)' : (orgs[x.org] ? ' (' + orgs[x.org] + ')' : '')); });
+      localStorage.setItem('smartcare.secNames.v1', JSON.stringify(map)); this.setState({ secRev: (this.state.secRev || 0) + 1 });
+    } catch (e) {}
+  }
   // 보안 감시 서버 함수(smartcare-security) 호출 — 알림 받을 사람·기준 설정, 시험 발송
   async secSrv(action, extra) {
     const c = this.cloudCfg(); if (!c || !(await this.authEnsure())) return { ok: false, error: '데이터 서버에 연결되어 있지 않습니다' };
@@ -2479,6 +2521,7 @@ class Component extends DCLogic {
         if (ra.ok) { const al = await ra.json(); if (Array.isArray(al)) al.forEach(x => this.secAdd({ id: 'srv:' + x.id, at: x.at, level: x.level === 'crit' ? 'crit' : 'warn', kind: 'server', title: x.title || '서버 보안 경보', detail: x.detail || '' })); }
         if (!(this.state.secSrv && this.state.secSrv.loaded)) this.secSrvLoad();
       } catch (e) {}
+      await this.secLoadNames(c);
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const r = await fetch(c.url + '/rest/v1/smartcare_audit?select=at,user_id,action,k&ws=eq.' + encodeURIComponent(c.ws) + '&at=gte.' + encodeURIComponent(since) + '&order=at.desc&limit=3000', { headers: this.cloudHeaders(c) });
       if (!r.ok) return; const rows = await r.json(); if (!Array.isArray(rows)) return;
@@ -2488,8 +2531,8 @@ class Component extends DCLogic {
       const byUser = {}; rows.filter(x => x.action === 'login').forEach(x => { (byUser[x.user_id] = byUser[x.user_id] || []).push(Date.parse(x.at)); });
       Object.keys(byUser).forEach(u => {
         const t = byUser[u].sort((a, b) => a - b);
-        for (let i = 0; i + cfg.loginBurst - 1 < t.length; i++) { if (t[i + cfg.loginBurst - 1] - t[i] <= W) { this.secAdd({ id: 'burst:' + u + ':' + Math.floor(t[i] / W), level: 'warn', kind: 'login', title: '같은 계정이 짧은 시간에 반복 로그인했습니다', detail: '계정 ' + String(u).slice(0, 8) + ' · 10분 안에 ' + cfg.loginBurst + '회 이상' }); break; } }
-        t.forEach(ms => { const hr = new Date(ms + 9 * 3600 * 1000).getUTCHours(); const night = cfg.afterFrom > cfg.afterTo ? (hr >= cfg.afterFrom || hr < cfg.afterTo) : (hr >= cfg.afterFrom && hr < cfg.afterTo); if (night) this.secAdd({ id: 'night:' + u + ':' + new Date(ms + 9 * 3600 * 1000).toISOString().slice(0, 10), level: 'warn', kind: 'night', title: '평소와 다른 시간(심야·새벽)에 로그인했습니다', detail: '계정 ' + String(u).slice(0, 8) + ' · ' + new Date(ms).toLocaleString('ko-KR') }); });
+        for (let i = 0; i + cfg.loginBurst - 1 < t.length; i++) { if (t[i + cfg.loginBurst - 1] - t[i] <= W) { this.secAdd({ id: 'burst:' + u + ':' + Math.floor(t[i] / W), level: 'warn', kind: 'login', title: '같은 계정이 짧은 시간에 반복 로그인했습니다', detail: '계정 ' + this.secWho(u) + ' · 10분 안에 ' + cfg.loginBurst + '회 이상' }); break; } }
+        t.forEach(ms => { const hr = new Date(ms + 9 * 3600 * 1000).getUTCHours(); const night = cfg.afterFrom > cfg.afterTo ? (hr >= cfg.afterFrom || hr < cfg.afterTo) : (hr >= cfg.afterFrom && hr < cfg.afterTo); if (night) this.secAdd({ id: 'night:' + u + ':' + new Date(ms + 9 * 3600 * 1000).toISOString().slice(0, 10), level: 'warn', kind: 'night', title: '평소와 다른 시간(심야·새벽)에 로그인했습니다', detail: '계정 ' + this.secWho(u) + ' · ' + new Date(ms).toLocaleString('ko-KR') }); });
       });
     } catch (e) {}
   }
@@ -6998,7 +7041,7 @@ class Component extends DCLogic {
     const me = s.roster.find(m => m.id === s.userId)
       || s.roster.find(m => (Array.isArray(m.roles) ? m.roles : [m.role]).indexOf(s.role) >= 0)
       || s.roster[1] || { name: '사용자', roles: ['조회'] };
-    const userName = me.name;
+    const userName = me.name; this._userName = userName || '';
     const myRoles = Array.isArray(me.roles) ? me.roles : [me.role];
     const isSys = myRoles.indexOf('시스템관리자') >= 0;
     const hasRole = (r) => myRoles.indexOf(r) >= 0 || (isSys && (r === '관리자' || r === '담당자'));
@@ -10944,7 +10987,7 @@ class Component extends DCLogic {
       // 설정
       ...(() => {
         // 설정 메뉴가 많아 가로로 넘기던 문제: AI 판독·일정 알림·데이터 서버·운영 데이터 초기화는 '시스템 관리' 한 탭의 하위 메뉴로 묶음
-        const ICON = { ai: 'ph ph-scan-smiley', consent: 'ph ph-article', program: 'ph ph-squares-four', ward: 'ph ph-bed', staff: 'ph ph-identification-badge', notify: 'ph ph-bell', privacy: 'ph ph-eye-slash', approval: 'ph ph-signature', org: 'ph ph-buildings', cloud: 'ph ph-cloud', reset: 'ph ph-trash', security: 'ph ph-siren', migrate: 'ph ph-arrow-fat-lines-right' };
+        const ICON = { ai: 'ph ph-scan-smiley', consent: 'ph ph-article', program: 'ph ph-squares-four', ward: 'ph ph-bed', staff: 'ph ph-identification-badge', notify: 'ph ph-bell', privacy: 'ph ph-eye-slash', approval: 'ph ph-signature', org: 'ph ph-buildings', cloud: 'ph ph-cloud', reset: 'ph ph-trash', security: 'ph ph-shield-check', migrate: 'ph ph-arrow-fat-lines-right' };
         const GROUP = ['ai', 'notify', 'security', 'cloud', 'reset'];
         const grp = GROUP.filter(k => allowSet(k));
         const inGrp = GROUP.indexOf(stEff) >= 0;
@@ -11296,6 +11339,7 @@ class Component extends DCLogic {
         const ack = (id) => { const l = this.secList().map(x => x.id === id ? Object.assign({}, x, { ack: new Date().toISOString(), ackBy: userName }) : x); this.secStore(l); };
         return {
           secShow: (isSys || hasRole('관리자')) && cfg.on !== false,
+          secIcon: lvl === 'ok' ? 'ph-fill ph-shield-check' : 'ph-fill ph-shield-warning',
           secLvl: lvl, secCls: 'sc-sec sc-sec-' + lvl, secCount: String(crit + warn), secHasCount: crit + warn > 0,
           secBanner: (isSys || hasRole('관리자')) && cfg.on !== false && crit + warn > 0,
           secBannerCls: 'sc-secbar sc-secbar-' + lvl,
@@ -11303,7 +11347,7 @@ class Component extends DCLogic {
           secBannerWhen: un[0] ? fmt(un[0].at) : '',
           secTitle: lvl === 'crit' ? '보안 경보 — 확인이 필요한 경고 ' + crit + '건' : (lvl === 'warn' ? '보안 주의 ' + warn + '건' : '보안 상태 정상'),
           secOpen: !!s.secOpen, secToggle: () => this.setState({ secOpen: !s.secOpen }),
-          secItems: list.slice(0, 50).map(x => ({ id: x.id, title: x.title, detail: x.detail, when: fmt(x.at), crit: x.level === 'crit', op: x.ack ? '0.6' : '1', bg: x.level === 'crit' ? '#c2271b' : '#d98a0b', levelTxt: x.level === 'crit' ? '경고' : '주의', ackd: !!x.ack, open: !x.ack, ackTxt: x.ack ? fmt(x.ack) + ' 확인' + (x.ackBy ? ' · ' + x.ackBy : '') : '', go: () => ack(x.id) })),
+          secItems: list.slice(0, 50).map(x => ({ id: x.id, title: x.title, detail: String(x.detail || '').replace(/계정 ([0-9a-f]{8})(?![0-9a-f])/g, (m0, id) => '계정 ' + this.secWho(id)), when: fmt(x.at), crit: x.level === 'crit', op: x.ack ? '0.6' : '1', bg: x.level === 'crit' ? '#c2271b' : '#d98a0b', levelTxt: x.level === 'crit' ? '경고' : '주의', ackd: !!x.ack, open: !x.ack, ackTxt: x.ack ? fmt(x.ack) + ' 확인' + (x.ackBy ? ' · ' + x.ackBy : '') : '', go: () => ack(x.id) })),
           secNone: list.length === 0,
           secAckAll: () => { this.secStore(this.secList().map(x => x.ack ? x : Object.assign({}, x, { ack: new Date().toISOString(), ackBy: userName }))); },
           secScanNow: async () => { this.flash('서버 기록을 분석하는 중…'); await this.secScanAudit(); this.flash('분석을 마쳤습니다'); },
@@ -11628,6 +11672,28 @@ class Component extends DCLogic {
       reviewMeta: this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', '),
       reviewHead: this.curKey(s).split('|')[0] + ' · ' + (this.sessionMetaOf(this.curKey(s), s) || (s.logPlace || '프로그램실') + ' · ' + (s.staff || []).join(', ')),
       mobileBack: s.mobileView !== 'today',
+      ...(() => {
+        const key = this.curKey(s);
+        const lim = (isSys || hasRole('관리자')) ? 10 : 3;
+        const used = this.logDelToday(s.userId);
+        const has = (s.review || []).length > 0 || (s.photos || []).length > 0;
+        const d = s.logDel || null;
+        const fmtT = (iso) => { try { return new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return iso; } };
+        return {
+          logDelCan: (isSys || hasRole('관리자') || hasRole('담당자')) && !s.confirmed && has,
+          logDelAsk: () => this.setState({ logDel: { key: key, reason: '' } }),
+          logDelOpen: !!d,
+          logDelTitle: d ? d.key.split('|')[1] + ' · ' + d.key.split('|')[0] : '',
+          logDelLeft: '오늘 남은 삭제 횟수 ' + Math.max(0, lim - used) + '회 (하루 ' + lim + '회까지)',
+          logDelNoLeft: used >= lim,
+          logDelReasons: ['착오로 등록했어요', '같은 일지를 중복 등록했어요', '그 밖의 사유'].map(t => ({ label: t, cls: d && d.reason === t ? 'sel-chip' : '', pick: () => this.setState({ logDel: Object.assign({}, this.state.logDel, { reason: t }) }) })),
+          logDelBlocked: !(d && d.reason) || used >= lim,
+          logDelCancel: () => this.setState({ logDel: null }),
+          logDelGo: () => { const dd = this.state.logDel; if (dd) this.logDelete(dd.key, dd.reason, lim); },
+          logDelRows: this.logDelLog().slice(0, 20).map(x => ({ when: fmtT(x.at), who: x.by, what: String(x.key || '').split('|').reverse().join(' · '), why: x.reason + (x.photos || x.people ? ' (사진 ' + (x.photos || 0) + ' · 참여자 ' + (x.people || 0) + ')' : '') })),
+          logDelNone: this.logDelLog().length === 0
+        };
+      })(),
       mobileTitle: s.mobileView === 'newLog' ? '일지 작성'
         : (s.mobileView === 'review' ? '판독 결과 · ' + this.curKey(s).split('|')[1] + ' ' + this.curKey(s).split('|')[0].slice(5).replace('-', '/')
         : (s.mobileView === 'consent' ? '동의서 작성' : (s.mobileView === 'me' ? '내 설정' : (s.mobileView === 'journal' ? '프로그램 운영일지' : '프로그램 일지')))),

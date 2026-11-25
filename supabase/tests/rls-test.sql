@@ -116,6 +116,10 @@ do $$ begin
   insert into smartcare_sec_events (ws, kind) values ('smartcare', 'alert');
   insert into results values ('보안 기록: 관리자도 직접 쓰기 불가', '허용됨', '거부');
 exception when insufficient_privilege then insert into results values ('보안 기록: 관리자도 직접 쓰기 불가', '거부', '거부'); end $$;
+insert into results select '계정 이름 목록: 관리자는 이름·소속을 봄', (count(*) >= 5)::text, 'true' from smartcare_sec_names('smartcare');
+reset role; select pg_temp.as_user('00000000-0000-0000-0000-000000000011');
+insert into results select '계정 이름 목록: 담당자는 못 봄', count(*)::text, '0' from smartcare_sec_names('smartcare');
+reset role;
 reset role; set role anon;
 do $$ begin
   perform count(*) from smartcare_sec_events;
