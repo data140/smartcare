@@ -20,7 +20,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await a.locator('input[autocomplete="username"]').first().fill('100101'); await a.locator('input[autocomplete="current-password"]').first().fill('1234');
     await a.locator('button:has-text("로그인")').last().click(); await a.waitForSelector('text=가상환자1', { timeout: 20000 });
     await a.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(700);
-    check('기관 관리자에게는 "운영 데이터 초기화" 탭이 없음', (await a.locator('button:has-text("운영 데이터 초기화") >> visible=true').count()) === 0);
+    await a.locator('button[role=tab]:has-text("시스템 관리")').first().click().catch(() => {}); await sleep(400);
+    check('기관 관리자에게는 "운영 데이터 초기화" 탭이 없음', (await a.locator('button[role=tab]:has-text("운영 데이터 초기화") >> visible=true').count()) === 0);
     await c0.close();
 
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
@@ -43,7 +44,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     });
     await sleep(2500);
     await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(700);
-    await p.locator('button:has-text("운영 데이터 초기화") >> visible=true').first().click(); await sleep(500);
+    await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400); await p.locator('button[role=tab]:has-text("운영 데이터 초기화")').first().click(); await sleep(500);
     check('시스템 관리자에게 "운영 데이터 초기화" 탭이 보임', (await p.locator('text=되돌릴 수 없습니다 >> visible=true').count()) >= 1);
     check('처음에는 실행 단추가 잠겨 있음', await p.locator('button:has-text("운영 데이터 초기화 실행")').isDisabled());
     await p.locator('button:has-text("삭제될 항목 확인")').click(); await sleep(1500);
@@ -73,7 +74,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.locator('button:has-text("로그인")').last().click(); await sleep(4500);
     if (!(await p.locator('text=계정 · 권한 >> visible=true').count())) { await p.getByText('설정', { exact: true }).first().click().catch(() => {}); await sleep(600); }
     await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(700);
-    await p.locator('button:has-text("운영 데이터 초기화") >> visible=true').first().click(); await sleep(500);
+    await p.locator('button[role=tab]:has-text("시스템 관리")').first().click(); await sleep(400); await p.locator('button[role=tab]:has-text("운영 데이터 초기화")').first().click(); await sleep(500);
     await p.locator('button:has-text("삭제될 항목 확인")').click(); await sleep(1500);
     const cnt2 = await p.evaluate(() => [...document.querySelectorAll('button[aria-pressed] span')].map(x => x.innerText).filter(t => /^\d+건$/.test(t)));
     check('초기화 뒤에는 삭제할 항목이 모두 0건', cnt2.length >= 2 && cnt2.every(t => parseInt(t) === 0), cnt2.join(','));
