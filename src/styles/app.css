@@ -369,3 +369,25 @@ html[data-theme="light"] .sc-subtab { background: #ffffff; border-color: #c7ccd8
 .sc-sec-crit i { color: #fff; }
 @keyframes scSecBlink { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 70, 50, 0.65); filter: brightness(1); } 50% { box-shadow: 0 0 0 9px rgba(255, 70, 50, 0); filter: brightness(1.25); } }
 @media (prefers-reduced-motion: reduce) { .sc-sec-crit { animation: none; } }
+
+/* 보안 경보등: 동작 중임을 보이는 모션(정상=레이더 파동, 주의=흔들림, 경고=크게 확대+흔들림) + 상단 경고 띠 */
+.sc-sec::after { content: ""; position: absolute; inset: -2px; border-radius: 14px; border: 2px solid transparent; pointer-events: none; }
+.sc-sec-ok::after { border-color: oklch(0.72 0.14 150); animation: scSecPing 2.4s ease-out infinite; }
+.sc-sec-ok i { animation: scSecGlow 2.4s ease-in-out infinite; }
+.sc-sec-warn { animation: scSecWobble 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.sc-sec-crit { animation: scSecBlink 1s ease-in-out infinite, scSecBig 0.9s ease-in-out infinite; transform-origin: 50% 50%; z-index: 5; }
+.sc-sec-crit i { animation: scSecShake 0.5s linear infinite; }
+@keyframes scSecPing { 0% { transform: scale(0.9); opacity: 0.9; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes scSecGlow { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 5px oklch(0.8 0.16 150)); } }
+@keyframes scSecWobble { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-9deg); } 40% { transform: rotate(8deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } }
+@keyframes scSecBig { 0%, 100% { transform: scale(1.3); } 50% { transform: scale(1.6); } }
+@keyframes scSecShake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+.sc-secbar { position: fixed; top: 0; left: 0; right: 110px; border-radius: 0 0 16px 0; z-index: 340; display: flex; align-items: center; gap: 14px; padding: 12px 20px; color: #fff; font-size: 17px; font-weight: 700; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45); }
+.sc-secbar-warn { background: #b7791f; }
+.sc-secbar-crit { background: #c2271b; animation: scSecBar 1s ease-in-out infinite; font-size: 20px; padding: 16px 24px; }
+.sc-secbar-ic i { font-size: 30px; display: inline-block; animation: scSecShake 0.5s linear infinite; }
+.sc-secbar-tx { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-secbar-wh { font-size: 13px; font-weight: 500; opacity: 0.9; }
+.sc-secbar-bt { min-height: 40px; padding: 0 18px; border-radius: 999px; border: 2px solid #fff; background: #fff; color: #8a1c12; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+@keyframes scSecBar { 0%, 100% { background: #c2271b; } 50% { background: #8f1710; } }
+@media (prefers-reduced-motion: reduce) { .sc-sec-ok::after, .sc-sec-ok i, .sc-sec-warn, .sc-sec-crit, .sc-sec-crit i, .sc-secbar-crit, .sc-secbar-ic i { animation: none; } }

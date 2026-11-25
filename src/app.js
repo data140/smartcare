@@ -11269,6 +11269,10 @@ class Component extends DCLogic {
         return {
           secShow: (isSys || hasRole('관리자')) && cfg.on !== false,
           secLvl: lvl, secCls: 'sc-sec sc-sec-' + lvl, secCount: String(crit + warn), secHasCount: crit + warn > 0,
+          secBanner: (isSys || hasRole('관리자')) && cfg.on !== false && crit + warn > 0,
+          secBannerCls: 'sc-secbar sc-secbar-' + lvl,
+          secBannerTitle: (lvl === 'crit' ? '보안 경고 ' + crit + '건' : '보안 주의 ' + warn + '건') + (un[0] ? ' · ' + un[0].title : ''),
+          secBannerWhen: un[0] ? fmt(un[0].at) : '',
           secTitle: lvl === 'crit' ? '보안 경보 — 확인이 필요한 경고 ' + crit + '건' : (lvl === 'warn' ? '보안 주의 ' + warn + '건' : '보안 상태 정상'),
           secOpen: !!s.secOpen, secToggle: () => this.setState({ secOpen: !s.secOpen }),
           secItems: list.slice(0, 50).map(x => ({ id: x.id, title: x.title, detail: x.detail, when: fmt(x.at), crit: x.level === 'crit', op: x.ack ? '0.6' : '1', bg: x.level === 'crit' ? '#c2271b' : '#d98a0b', levelTxt: x.level === 'crit' ? '경고' : '주의', ackd: !!x.ack, open: !x.ack, ackTxt: x.ack ? fmt(x.ack) + ' 확인' + (x.ackBy ? ' · ' + x.ackBy : '') : '', go: () => ack(x.id) })),
