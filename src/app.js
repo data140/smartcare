@@ -2198,7 +2198,119 @@ class Component extends DCLogic {
   ];
   jrnKeyOf(p) { return p.date + '|' + p.program; }
   jrnDateTxt(d) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? m[1] + '년 ' + (+m[2]) + '월 ' + (+m[3]) + '일' : (d || ''); }
-  jrnDraft(p, s) {
+  // ───── 운영일지 자동 작성: 프로그램 종류별 문장 은행 + 다시 쓸 때마다 다른 문장 + 직접 고친 내용 학습 ─────
+  // 환자 정보는 어디로도 보내지 않고, 이 기기·내 서버 안의 문장 조합만 사용합니다.
+  static JRN_BANK = [
+    { k: 'art', re: /미술|그림|컬러링|색칠|만들기|공예|꾸미기|캘리|서예|색연필|점토/, name: '미술·공예',
+      topic: ['색과 선으로 표현하는 마음', '나만의 작품 만들기', '손으로 만드는 즐거움', '계절을 담은 작품 활동'],
+      prep: ['도화지, 색연필, 크레파스', '밑그림 도안, 색연필, 지우개', '점토, 색종이, 풀, 가위', '물감, 붓, 팔레트, 앞치마'],
+      content: ['1. 오늘의 주제와 재료를 소개하고 작품 만드는 방법을 안내한다.\n2. 참여자가 원하는 색과 도구를 골라 자유롭게 작품을 만든다.\n3. 완성한 작품을 함께 둘러보며 느낌을 나눈다.', '1. 손 풀기 체조로 활동을 시작한다.\n2. 밑그림을 보며 색을 칠하거나 직접 그려 작품을 완성한다.\n3. 작품에 이름을 붙이고 서로 감상한다.', '1. 재료를 나누고 활동 순서를 설명한다.\n2. 담당자가 곁에서 도우며 각자의 속도로 작품 활동을 한다.\n3. 완성된 작품을 전시하고 소감을 이야기한다.', '1. 지난 시간 작품을 떠올리며 오늘 활동을 소개한다.\n2. 색채와 질감을 살려 개인 작품을 만든다.\n3. 정리하며 오늘 활동의 소감을 나눈다.'],
+      obs: ['색을 고르고 칠하는 동안 몰입하는 모습이 두드러졌다.', '평소 말수가 적던 참여자도 작품 이야기를 먼저 꺼내는 모습이 보였다.', '손의 움직임이 불편한 분도 보조 도구를 활용해 끝까지 완성하였다.', '서로의 작품을 보며 칭찬을 주고받는 따뜻한 분위기가 이어졌다.', '색 선택에서 각자의 취향이 분명하게 드러나 개별 특성을 파악할 수 있었다.', '처음에는 망설이던 분들도 시간이 지나며 자신감 있게 참여하였다.'],
+      eff: ['작품을 완성하며 성취감과 자존감이 높아지는 것을 확인하였다.', '손 소근육 사용과 집중력 유지에 도움이 되는 활동이었다.', '자기표현의 기회가 되어 정서적 안정에 긍정적인 영향을 주었다.', '완성한 작품을 병동에 전시하여 활동의 의미를 이어갈 수 있었다.'],
+      safe: ['가위·도구 사용 시 안전에 유의하며 진행하였다.', '재료가 바닥에 떨어지지 않도록 책상 주변을 수시로 정리하였다.', '피로한 분은 중간에 쉬도록 하며 무리하지 않게 진행하였다.'],
+      next: ['다음 시간에는 계절 소재를 활용한 작품 활동을 계획하고 있다.', '완성 작품으로 작은 전시회를 열어 성취감을 이어갈 계획이다.', '참여자 관심이 높았던 재료를 반영해 활동을 확장할 예정이다.', '개별 선호를 반영한 맞춤형 미술 활동을 준비하고자 한다.'] },
+    { k: 'music', re: /음악|노래|합창|악기|밴드|가요|트로트|노래방/, name: '음악',
+      topic: ['추억의 노래와 함께하는 시간', '리듬에 맞춰 마음 열기', '함께 부르는 우리 노래', '악기 연주로 만드는 하모니'],
+      prep: ['반주 음원, 가사지, 간단한 타악기', '스피커, 가사 큰글씨판, 리듬악기', '키보드(반주), 가사집, 마라카스', '추억의 가요 음원, 가사지'],
+      content: ['1. 인사와 함께 목 풀기·박수 치기로 분위기를 연다.\n2. 익숙한 노래를 함께 부르고 리듬 악기를 연주한다.\n3. 좋아하는 노래를 신청받아 부르며 마무리한다.', '1. 호흡과 발성 스트레칭으로 시작한다.\n2. 노랫말을 보며 함께 부르고 박자에 맞춰 몸을 움직인다.\n3. 노래에 얽힌 추억을 나누고 소감을 이야기한다.', '1. 오늘의 곡을 소개하고 가사를 함께 읽는다.\n2. 악기를 나누어 합주하며 박자를 맞춘다.\n3. 참여자 신청곡을 부르며 활동을 정리한다.'],
+      obs: ['익숙한 노래가 나오자 자연스럽게 따라 부르며 표정이 밝아졌다.', '노래와 함께 옛 기억을 이야기하는 분이 많아 회상의 시간이 되었다.', '리듬 악기를 연주하며 박자를 맞추는 모습에서 집중력이 보였다.', '평소 조용하던 분도 신청곡을 요청하는 등 적극적으로 참여하였다.', '서로의 노래에 박수를 보내며 지지하는 분위기가 형성되었다.'],
+      eff: ['노래 부르기가 정서 표현과 기분 전환에 도움이 되었다.', '호흡과 발성을 사용하여 폐활량 유지에 도움이 되는 활동이었다.', '함께 노래하며 소속감과 유대감이 높아지는 효과가 있었다.'],
+      safe: ['목이 마르지 않도록 중간에 물을 마시게 하며 진행하였다.', '소리가 너무 커지지 않도록 음량을 조절하며 진행하였다.', '앉아서 참여하는 분의 자세를 수시로 살피며 진행하였다.'],
+      next: ['다음 시간에는 계절 노래와 신청곡 중심으로 진행할 계획이다.', '악기 연주 비중을 늘려 참여 폭을 넓히고자 한다.', '참여자들이 좋아한 노래를 목록으로 정리해 활동에 반영할 예정이다.'] },
+    { k: 'garden', re: /원예|식물|화분|텃밭|꽃|가드닝|정원/, name: '원예',
+      topic: ['식물과 함께하는 마음 가꾸기', '꽃과 흙을 만지는 시간', '내가 키우는 작은 화분', '계절 꽃으로 꾸미는 화분'],
+      prep: ['화분, 배양토, 모종, 모종삽', '계절 꽃, 화분, 흙, 물뿌리개', '꽃꽂이용 오아시스, 생화, 가위', '다육식물, 작은 화분, 자갈'],
+      content: ['1. 오늘 심을 식물의 이름과 특징을 소개한다.\n2. 화분에 흙을 담고 모종을 옮겨 심은 뒤 물을 준다.\n3. 완성한 화분에 이름을 붙이고 돌보는 방법을 이야기한다.', '1. 식물을 만져 보며 색과 향을 느껴 본다.\n2. 꽃을 골라 자르고 화병·화분에 꽂아 꾸민다.\n3. 서로의 작품을 구경하며 소감을 나눈다.', '1. 재료를 확인하고 작업 순서를 안내한다.\n2. 흙과 식물을 직접 만지며 화분을 완성한다.\n3. 병실에서 돌볼 방법을 함께 정리한다.'],
+      obs: ['흙을 만지고 식물 향을 맡으며 편안해하는 모습이 보였다.', '어릴 적 농사와 꽃 이야기를 꺼내는 분이 많아 회상이 자연스럽게 이어졌다.', '모종을 조심스럽게 다루며 책임감 있게 참여하는 모습이 인상적이었다.', '완성한 화분을 병실에 가져가고 싶다는 요청이 많았다.'],
+      eff: ['살아있는 식물을 돌보며 정서적 안정과 생명에 대한 관심이 높아졌다.', '손 사용과 감각 자극에 도움이 되는 활동이었다.', '완성한 화분을 돌보는 일이 일상의 즐거움으로 이어질 수 있다.'],
+      safe: ['모종삽 등 도구 사용 시 안전에 유의하며 진행하였다.', '흙이 바닥에 흩어져 미끄럽지 않도록 수시로 정리하였다.', '알레르기가 있는 분이 없는지 사전에 확인하였다.'],
+      next: ['다음 시간에는 오늘 심은 식물의 성장을 함께 살펴볼 계획이다.', '계절 꽃을 활용한 꽃꽂이 활동으로 이어갈 예정이다.', '화분 관리 기록표를 만들어 병동에서 돌보도록 안내하고자 한다.'] },
+    { k: 'exercise', re: /운동|체조|걷기|건강|재활|요가|스트레칭|율동|댄스|게이트볼|볼링|풍선/, name: '신체활동',
+      topic: ['몸을 깨우는 즐거운 움직임', '가볍게 하는 건강 체조', '함께하는 신체 활동', '근력과 균형을 키우는 시간'],
+      prep: ['음원, 스트레칭 밴드, 공', '의자, 풍선, 가벼운 공', '요가 매트, 음악, 수건', '체조 영상, 스피커'],
+      content: ['1. 가벼운 준비 운동과 호흡으로 몸을 푼다.\n2. 상체·하체 체조와 균형 운동을 단계별로 진행한다.\n3. 정리 운동을 하며 몸 상태와 소감을 나눈다.', '1. 앉은 자세에서 목·어깨·팔을 풀어준다.\n2. 음악에 맞춰 율동과 공 던지기 활동을 한다.\n3. 호흡을 가다듬으며 활동을 마무리한다.', '1. 오늘의 운동 순서를 설명하고 시범을 보인다.\n2. 각자의 컨디션에 맞는 강도로 운동한다.\n3. 스트레칭으로 정리하고 몸 상태를 확인한다.'],
+      obs: ['시범을 보고 정확히 따라 하려는 의욕적인 모습이 보였다.', '음악이 나오자 어깨를 들썩이며 즐겁게 참여하였다.', '함께 구령을 외치며 서로 격려하는 분위기가 이어졌다.', '운동 후 몸이 가벼워졌다고 표현하는 분이 많았다.'],
+      eff: ['신체 활동을 통해 근력과 균형 감각 유지에 도움이 되었다.', '활동 후 기분 전환과 숙면에 도움이 되는 효과를 기대할 수 있다.', '함께 움직이며 활력과 소속감이 높아졌다.'],
+      safe: ['낙상 위험이 있는 분은 의자에 앉아 참여하도록 하며 곁에서 살폈다.', '통증이나 어지러움을 호소하면 즉시 쉬도록 안내하였다.', '활동 전후 수분을 보충하도록 안내하였다.'],
+      next: ['다음 시간에는 참여자 상태에 맞춰 강도를 조절하여 진행할 계획이다.', '균형 운동 비중을 늘려 낙상 예방에 도움이 되도록 구성할 예정이다.', '꾸준한 참여를 위해 간단한 운동 확인표를 활용하고자 한다.'] },
+    { k: 'cook', re: /요리|베이킹|간식|다과|쿠킹|음식|떡|차 /, name: '요리',
+      topic: ['함께 만드는 건강 간식', '맛과 향으로 여는 추억', '직접 만드는 즐거움', '계절 음식 만들기'],
+      prep: ['재료, 일회용 장갑, 앞치마', '간식 재료, 접시, 위생 도구', '과일, 요거트, 컵, 수저', '반죽 재료, 모양틀'],
+      content: ['1. 오늘 만들 음식과 재료를 소개하고 손 씻기를 한다.\n2. 순서에 따라 재료를 다듬고 함께 만든다.\n3. 완성한 음식을 나누어 먹으며 이야기를 나눈다.', '1. 위생 수칙을 안내하고 재료를 나눈다.\n2. 각자 역할을 맡아 간단한 조리를 한다.\n3. 맛을 보며 소감을 나눈다.'],
+      obs: ['음식 냄새와 맛에 반응하며 옛 기억을 이야기하는 모습이 보였다.', '재료를 다듬는 역할을 서로 나누며 협력하는 모습이 보였다.', '직접 만든 음식을 맛있게 먹으며 만족감을 표현하였다.'],
+      eff: ['오감을 자극하여 식욕과 기분 전환에 도움이 되었다.', '역할을 맡아 참여하며 성취감과 자신감이 높아졌다.'],
+      safe: ['식이 제한이 있는 분은 사전에 확인하여 재료를 조정하였다.', '칼·뜨거운 도구는 담당자가 직접 다루어 안전하게 진행하였다.', '삼킴이 불편한 분은 먹기 쉬운 크기로 준비하였다.'],
+      next: ['다음 시간에는 계절 재료를 활용한 간식 만들기를 계획하고 있다.', '참여자가 원하는 메뉴를 조사하여 반영할 예정이다.'] },
+    { k: 'cog', re: /인지|치매|퀴즈|게임|회상|두뇌|퍼즐|한글|숫자|놀이|보드|bingo|빙고/, name: '인지·놀이',
+      topic: ['기억을 깨우는 두뇌 놀이', '추억을 꺼내는 회상 활동', '즐겁게 하는 인지 게임', '말과 숫자로 하는 두뇌 운동'],
+      prep: ['퀴즈 카드, 빙고판, 필기구', '사진 카드, 회상 자료', '퍼즐, 숫자 카드, 타이머', '그림 카드, 점수판'],
+      content: ['1. 날짜·계절 등 오늘의 정보를 함께 확인하며 시작한다.\n2. 퀴즈·빙고 등 인지 자극 활동을 단계별로 진행한다.\n3. 결과를 함께 정리하고 격려하며 마무리한다.', '1. 옛 사진·물건을 보며 기억을 떠올려 본다.\n2. 떠오른 이야기를 서로 나누고 관련 활동을 한다.\n3. 오늘의 느낌을 이야기하며 정리한다.'],
+      obs: ['정답을 맞히며 즐거워하고 적극적으로 참여하는 모습이 보였다.', '옛 기억을 구체적으로 이야기하는 분이 있어 회상 효과가 컸다.', '어려운 문제에는 서로 힌트를 주며 도와주는 모습이 인상적이었다.', '처음에는 소극적이던 분도 점차 발언 횟수가 늘었다.'],
+      eff: ['주의집중과 기억력 유지에 도움이 되는 활동이었다.', '성공 경험을 통해 자신감과 정서적 안정을 얻을 수 있었다.', '대화를 통해 사회성과 의사소통 능력이 자극되었다.'],
+      safe: ['정답에 대한 부담이 없도록 격려하며 진행하였다.', '난이도를 참여자 수준에 맞춰 조절하였다.', '피로한 분은 쉬도록 하여 무리하지 않게 진행하였다.'],
+      next: ['다음 시간에는 난이도를 조절하여 더 많은 분이 성공 경험을 하도록 할 계획이다.', '회상 주제를 계절·명절 등으로 확장하여 진행할 예정이다.', '개별 인지 수준을 고려한 맞춤 활동을 준비하고자 한다.'] },
+    { k: 'spirit', re: /종교|예배|미사|법회|기도|명상|힐링|찬양/, name: '종교·명상',
+      topic: ['마음을 모으는 시간', '평안을 나누는 예배', '고요히 하는 명상', '감사와 위로의 시간'],
+      prep: ['찬송가·가사집, 음원', '조용한 음악, 방석', '성경·경전, 방송 장비'],
+      content: ['1. 마음을 가다듬고 인사를 나눈다.\n2. 말씀·명상·노래 등 프로그램을 순서대로 진행한다.\n3. 기도와 축복으로 마무리한다.', '1. 호흡으로 마음을 안정시킨다.\n2. 안내에 따라 명상·찬양을 하고 소감을 나눈다.\n3. 서로를 위한 인사로 마친다.'],
+      obs: ['차분하고 경건한 분위기 속에서 진지하게 참여하였다.', '위로와 격려의 말을 서로 나누는 모습이 보였다.', '평소 불안해하던 분도 편안한 표정으로 참여하였다.'],
+      eff: ['정서적 안정과 마음의 평안에 도움이 되었다.', '신앙·영적 지지를 통해 희망과 위로를 얻는 시간이 되었다.'],
+      safe: ['이동이 불편한 분은 휠체어를 이용해 편하게 참여하도록 지원하였다.', '개인의 신앙을 존중하며 강요 없이 진행하였다.'],
+      next: ['다음 시간에도 안정적인 분위기에서 정기적으로 진행할 계획이다.', '참여자 요청을 반영해 구성을 보완할 예정이다.'] },
+    { k: 'event', re: /생일|명절|행사|잔치|파티|송년|설날|추석|어버이|가정의|기념|축제|레크|웃음/, name: '행사·레크리에이션',
+      topic: ['함께 웃고 즐기는 시간', '축하와 감사를 나누는 자리', '명절을 함께하는 마음', '웃음이 있는 레크리에이션'],
+      prep: ['장식, 선물, 음원, 다과', '행사 안내판, 게임 도구, 상품', '카네이션·소품, 케이크, 음악'],
+      content: ['1. 행사 취지를 소개하고 인사를 나눈다.\n2. 게임·공연·축하 순서를 진행하며 함께 즐긴다.\n3. 기념 촬영과 다과를 나누며 마무리한다.', '1. 박수와 웃음 체조로 분위기를 연다.\n2. 팀을 나누어 간단한 게임을 하고 시상한다.\n3. 소감을 나누고 정리한다.'],
+      obs: ['행사 분위기에 맞춰 웃음과 박수가 끊이지 않았다.', '게임에 적극적으로 참여하며 서로를 응원하는 모습이 보였다.', '가족과 함께하는 듯한 따뜻한 분위기였다는 반응이 있었다.'],
+      eff: ['즐거운 경험을 통해 기분 전환과 정서적 활력을 얻었다.', '함께 어울리며 소속감과 유대감이 높아졌다.'],
+      safe: ['이동 동선을 정리하여 낙상 위험이 없도록 하였다.', '소리나 자극이 과하지 않도록 조절하였다.', '피로한 분은 중간에 쉴 수 있게 배려하였다.'],
+      next: ['다음 행사에는 참여자 의견을 반영한 구성으로 준비할 계획이다.', '계절·절기에 맞는 소규모 행사로 이어갈 예정이다.'] },
+    { k: 'nature', re: /산책|나들이|소풍|외출|야외|영화|관람|독서|도서|책/, name: '산책·문화',
+      topic: ['바깥 공기와 함께하는 시간', '영화와 이야기', '책 속의 한 줄', '계절을 느끼는 산책'],
+      prep: ['휠체어·보조기구 점검, 물, 모자', '영상 자료, 팝콘·다과', '책, 독서대, 큰글씨 자료'],
+      content: ['1. 안전 수칙을 안내하고 준비물을 점검한다.\n2. 계절 풍경을 느끼며 천천히 이동하고 활동한다.\n3. 돌아와 소감을 나누며 정리한다.', '1. 오늘의 작품·도서를 소개한다.\n2. 함께 감상하고 인상 깊은 장면·문장을 이야기한다.\n3. 소감을 나누고 마무리한다.'],
+      obs: ['바깥 공기와 풍경을 느끼며 기분이 좋아지는 모습이 보였다.', '이야기 속 장면을 자신의 경험과 연결해 말하는 분이 많았다.', '서로 속도를 맞추며 배려하는 모습이 보였다.'],
+      eff: ['자연·문화 자극을 통해 기분 전환과 정서적 안정에 도움이 되었다.', '활동 후 대화가 늘어 사회적 상호작용이 활발해졌다.'],
+      safe: ['날씨와 컨디션을 확인하고 안전하게 이동하도록 지원하였다.', '낙상 예방을 위해 인원별로 담당자를 배치하였다.'],
+      next: ['다음 시간에는 계절 변화를 느낄 수 있는 장소·소재로 진행할 계획이다.', '참여자가 원하는 작품·장소를 조사해 반영할 예정이다.'] },
+    { k: 'default', re: /./, name: '일반',
+      topic: ['함께하는 즐거운 시간', '마음을 나누는 활동', '오늘의 프로그램', '서로를 알아가는 시간'],
+      prep: ['프로그램 진행 자료, 필기구', '활동 도구, 다과', '활동지, 음악'],
+      content: ['1. 인사와 함께 오늘 프로그램을 소개한다.\n2. 참여자 상태에 맞춰 활동을 진행한다.\n3. 활동을 마치며 소감을 나눈다.', '1. 참여자의 컨디션을 확인하고 활동 방법을 안내한다.\n2. 담당자의 도움을 받으며 각자의 속도로 참여한다.\n3. 서로 격려하며 마무리한다.', '1. 준비 활동으로 분위기를 연다.\n2. 주제 활동을 함께 진행한다.\n3. 정리하며 느낌을 이야기한다.'],
+      obs: ['끝까지 집중하며 즐겁게 참여하는 모습이 보였다.', '서로 도우며 따뜻한 분위기 속에서 활동이 진행되었다.', '처음에는 소극적이던 분도 점차 적극적으로 참여하였다.', '활동 후 만족감을 표현하는 분이 많았다.'],
+      eff: ['정서적 안정과 사회적 교류에 도움이 되었다.', '성취감을 느끼며 자신감이 높아지는 모습이 확인되었다.', '규칙적인 활동 참여가 일상의 활력이 되는 것으로 보인다.'],
+      safe: ['낙상 예방을 위해 이동 시 담당자가 곁에서 살피며 진행하였다.', '피로하거나 불편한 분은 쉬도록 안내하며 무리하지 않게 진행하였다.'],
+      next: ['다음 시간에도 참여자 상태에 맞춰 활동을 조정하여 진행할 계획이다.', '참여자 의견을 반영하여 활동 내용을 보완할 예정이다.', '더 많은 분이 참여할 수 있도록 안내와 지원을 강화하고자 한다.'] }
+  ];
+  jrnProfile(program) { const t = String(program || ''); return Component.JRN_BANK.find(b => b.re.test(t)) || Component.JRN_BANK[Component.JRN_BANK.length - 1]; }
+  static jrnHash(str) { let h = 7; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0; return h; }
+  // 같은 변형 번호면 항상 같은 결과, 번호가 하나 늘면 칸마다 다른 문장 (길이와 서로소인 걸음으로 돌려 뽑음)
+  static jrnPick(arr, base, v, salt) {
+    if (!arr.length) return '';
+    const gcd = (a, b) => b ? gcd(b, a % b) : a;
+    let st = 1 + (salt % 5); while (gcd(st, arr.length) !== 1) st++;
+    return arr[(base + v * st) % arr.length];
+  }
+  jrnLearn() {
+    const raw = localStorage.getItem('smartcare.jrnLearn.v1') || '';
+    if (raw !== this._jlRaw) { this._jlRaw = raw; try { this._jl = JSON.parse(raw || '{}') || {}; } catch (e) { this._jl = {}; } }
+    return this._jl;
+  }
+  jrnVarOf(key) { try { return Number((JSON.parse(localStorage.getItem('smartcare.jrnVar.v1') || '{}') || {})[key]) || 0; } catch (e) { return 0; } }
+  jrnVarSet(key, n) { let o = {}; try { o = JSON.parse(localStorage.getItem('smartcare.jrnVar.v1') || '{}') || {}; } catch (e) {} o[key] = n; try { localStorage.setItem('smartcare.jrnVar.v1', JSON.stringify(o)); } catch (e) {} return n; }
+  jrnVarBump(key) { let o = {}; try { o = JSON.parse(localStorage.getItem('smartcare.jrnVar.v1') || '{}') || {}; } catch (e) {} o[key] = (Number(o[key]) || 0) + 1; try { localStorage.setItem('smartcare.jrnVar.v1', JSON.stringify(o)); } catch (e) {} return o[key]; }
+  // 사용자가 직접 고친 문장을 프로그램 종류(이름)별로 기억 — 환자 이름은 '환우분'으로 바꿔 저장
+  jrnLearnAdd(program, field, text, patients, prevText) {
+    let t = String(text || '').trim(); if (t.length < 12) return false;
+    (patients || []).forEach(nm => { if (nm && nm.length >= 2) t = t.split(nm).join('환우분'); });
+    const L = Object.assign({}, this.jrnLearn()); const P = Object.assign({}, L[program] || {}); const arr = (P[field] || []).filter(x => x !== t && x !== prevText);
+    arr.unshift(t); P[field] = arr.slice(0, 5); L[program] = P;
+    try { localStorage.setItem('smartcare.jrnLearn.v1', JSON.stringify(L)); } catch (e) { return false; }
+    return true;
+  }
+  jrnLearnCount(program) { const P = this.jrnLearn()[program] || {}; return Object.keys(P).reduce((n, f) => n + (P[f] || []).length, 0); }
+  jrnLearnClear(program) { const L = Object.assign({}, this.jrnLearn()); delete L[program]; try { localStorage.setItem('smartcare.jrnLearn.v1', JSON.stringify(L)); } catch (e) {} }
+  jrnDraft(p, s, vOver) {
     const key = this.jrnKeyOf(p);
     const sess = (s.activeSession === key) ? { review: s.review, photos: s.photos } : ((s.sessions || {})[key] || {});
     const ids = []; (sess.review || []).forEach(r => { if (r && r.id && ids.indexOf(r.id) < 0) ids.push(r.id); });
@@ -2207,9 +2319,33 @@ class Component extends DCLogic {
     const staffTxt = (p.staff || []).map(nm => { const m = roster.find(x => x.name === nm); const t = m && m.type && m.type !== '기타' && m.type !== '본사' ? m.type + ' ' : ''; return t + nm; }).join(', ');
     const place = p.place || '';
     const M = +(p.date || '').slice(5, 7) || '';
-    const content = '1. ' + p.program + ' 프로그램을 ' + (place ? place + '에서 ' : '') + '진행한다.\n2. ' + (n ? '참여 환우 ' + n + '명이 함께 참여한다.' : '참여 환우의 입장과 이동을 돕는다.') + '\n3. 프로그램을 마친 후 소감을 나눈다.';
-    const note = (M ? M + '월 ' : '') + p.program + ' 프로그램에서는 ' + (n ? n + '명의 환우가 ' : '환우분들이 ') + '참여하였다. 환우분들은 프로그램이 끝나는 시간까지 집중하여 참여하였으며, 즐겁게 참여하는 모습을 보여주었다. 많은 환우분들이 한자리에 모이는 만큼 안전에도 각별히 신경을 썼다. 프로그램실 이동 시에는 병동별로 순차적으로 이동하도록 하였으며, 특히 엘리베이터 이용 시 혼잡하지 않도록 안전을 세심하게 살피며 진행하였다. 앞으로도 환우분들의 의견과 욕구를 반영하여 즐겁고 편안하게 참여하실 수 있는 프로그램을 이어갈 계획이다.';
-    return { prep: p.memo ? '준비물 : ' + p.memo : '준비물 : ', topic: '', place: place, staffTxt: staffTxt, content: content, note: note, next: '어르신의 정서적 요구를 충족시키고 어르신들의 공감대를 형성할 수 있는 프로그램을 운영하여 행복감을 증진시키고자 함.' };
+    const B = this.jrnProfile(p.program), v = vOver != null ? vOver : this.jrnVarOf(key);
+    const LP = this.jrnLearn()[p.program] || {};
+    const h0 = Component.jrnHash(p.program || '');
+    const pick = Component.jrnPick;
+    // 학습한 문장이 있으면 먼저 쓰고(0번째부터), 없으면 프로그램·날짜에 따라 시작 위치를 달리함
+    const cand = (f, bank) => { const l = LP[f] || []; return { arr: l.concat(bank), base: l.length ? 0 : (h0 + Component.jrnHash(p.date || '')) }; };
+    const one = (f, bank, salt) => { const c = cand(f, bank); return pick(c.arr, c.base, v, salt); };
+    // 학습한 '특이사항' 문장은 한 문장씩 잘라 문장 후보에 섞음
+    const sentsOf = (t) => (String(t || '').match(/[^.!?]+[.!?]?/g) || []).map(x => x.trim()).filter(x => x.length >= 10 && x.length <= 140);
+    const learnedS = (LP.note || []).reduce((a, t) => a.concat(sentsOf(t)), []);
+    const pool = (bank) => ({ arr: learnedS.filter((x, i, a) => a.indexOf(x) === i).slice(0, 6).concat(bank), base: learnedS.length ? 0 : h0 });
+    const pickS = (bank, salt, off) => { const c = pool(bank); return pick(c.arr, c.base + (off || 0), v, salt); };
+    const nTxt = n ? n + '명의 환우가' : '환우분들이';
+    const intro = [
+      (M ? M + '월 ' : '') + p.program + ' 프로그램에서는 ' + nTxt + ' 참여하였다.',
+      p.program + ' 시간에 ' + nTxt + ' 함께하였다.',
+      (place ? place + '에서 진행한 ' : '오늘 진행한 ') + p.program + '에 ' + nTxt + ' 참여하였다.',
+      nTxt + ' ' + (M ? M + '월 ' : '') + p.program + ' 프로그램에 참여하였다.'
+    ];
+    const learnedNoteWhole = (LP.note || []);
+    const note = (v % 3 === 2 && learnedNoteWhole.length) ? pick(learnedNoteWhole, 0, Math.floor(v / 3), 1)
+      : [pick(intro, h0, v, 1), pickS(B.obs, 2, 0), pickS(B.eff, 3, 1), pickS(B.safe, 4, 2)].join(' ');
+    const memoPrep = p.memo ? '준비물 : ' + p.memo : '';
+    const prep = memoPrep || ('준비물 : ' + one('prep', B.prep, 2).replace(/^준비물\s*:\s*/, ''));
+    let content = one('content', B.content, 3);
+    if (n && !(LP.content || []).length) content = content.replace(/참여자/, '참여 환우 ' + n + '명');
+    return { prep: prep, topic: one('topic', B.topic, 4), place: place, staffTxt: staffTxt, content: content, note: note, next: one('next', B.next, 5) };
   }
   jrnGet(key, s) {
     const p = (s.plans || []).find(x => this.jrnKeyOf(x) === key);
@@ -2228,10 +2364,26 @@ class Component extends DCLogic {
     const j = this.jrnGet(key, s); if (!j) return;
     const cur = (s.journals || {})[key] || { f: {} };
     const all = Object.assign({}, s.journals || {}, { [key]: { f: Object.assign({}, j.f, { [name]: val }), at: Date.now(), by: this._userName || '', done: !!(cur && cur.done) } });
+    this._jrnEd = this._jrnEd || {}; this._jrnEd[key + '|' + name] = { key: key, name: name };
     this.setState({ journals: all });
     clearTimeout(this._jrnT);
     this._jrnT = setTimeout(() => this.jrnFlush(), 600);
   }
+  // 고쳐 쓰기를 마친 칸(칸을 벗어날 때·완료·다시 쓰기 직전)의 내용을 프로그램별로 학습
+  jrnLearnFlush() {
+    const ed = this._jrnEd || {}; this._jrnEd = {}; this._jrnLast = this._jrnLast || {};
+    const names = (this.state.patients || []).map(x => x && x.name);
+    let n = 0;
+    Object.keys(ed).forEach(k => {
+      const { key, name } = ed[k]; if (['prep', 'topic', 'content', 'note', 'next'].indexOf(name) < 0) return;
+      const j = this.jrnGet(key, this.state); if (!j) return;
+      const text = String(j.f[name] || '').trim(); const auto = String(this.jrnDraft(j.p, this.state)[name] || '').trim();
+      if (!text || text === auto) return;
+      if (this.jrnLearnAdd(j.p.program, name, text, names, this._jrnLast[k])) { this._jrnLast[k] = text.length >= 12 ? this.jrnLearnNorm(text, names) : ''; n++; }
+    });
+    return n;
+  }
+  jrnLearnNorm(t, names) { let x = String(t || '').trim(); (names || []).forEach(nm => { if (nm && nm.length >= 2) x = x.split(nm).join('환우분'); }); return x; }
   jrnFlush() { try { localStorage.setItem('smartcare.journals.v1', JSON.stringify(this.state.journals || {})); } catch (e) {} }
   jrnPhSave(key, list) {
     const all = Object.assign({}, this.state.jrnPh || {}); if (list === null) delete all[key]; else all[key] = list;
@@ -2763,7 +2915,7 @@ class Component extends DCLogic {
     return {
       jrnStTabs: [{ k: 'all', label: '전체' }, { k: 'before', label: '작성 전' }, { k: 'doing', label: '작성 중' }, { k: 'done', label: '완료' }].map(t => ({ label: t.label, n: String(cnt[t.k]), cls: jt === t.k ? 'sel-chip' : '', on: jt === t.k, go: () => this.setState({ jrnTab: t.k }) })),
       jrnSt: j ? ({ before: '작성 전', doing: '작성 중', done: '완료' })[stOf(j.p)] : '', jrnIsDone: !!(j && stOf(j.p) === 'done'), jrnNotDone: !!(j && stOf(j.p) !== 'done'),
-      jrnDoneGo: () => { if (!j) return; const cur = (this.state.journals || {})[selKey]; const nxt = !(cur && cur.done); const all = Object.assign({}, this.state.journals || {}, { [selKey]: Object.assign({ f: j.f, at: Date.now(), by: this._userName || '' }, cur || {}, { done: nxt }) }); this.setState({ journals: all }); this.jrnFlush(); this.flash(nxt ? '운영일지를 완료로 표시했습니다' : '작성 중으로 되돌렸습니다'); },
+      jrnDoneGo: () => { if (!j) return; this.jrnLearnFlush(); const cur = (this.state.journals || {})[selKey]; const nxt = !(cur && cur.done); const all = Object.assign({}, this.state.journals || {}, { [selKey]: Object.assign({ f: j.f, at: Date.now(), by: this._userName || '' }, cur || {}, { done: nxt }) }); this.setState({ journals: all }); this.jrnFlush(); this.flash(nxt ? '운영일지를 완료로 표시했습니다' : '작성 중으로 되돌렸습니다'); },
       jrnPlans: rows.map(p => { const k = this.jrnKeyOf(p); const sst = stOf(p); const on = k === selKey;
         return { title: p.program, date: p.date.slice(5).replace('-', '/') + (p.start ? ' ' + p.start : ''), st: ({ before: '작성 전', doing: '작성 중', done: '완료' })[sst], stFg: sst === 'before' ? 'var(--color-neutral-400)' : '#ffffff', stBg: sst === 'before' ? 'var(--color-neutral-800)' : (sst === 'done' ? 'oklch(0.52 0.12 150)' : 'var(--color-accent-800)'), on: on, off: !on, cls: on ? 'sel-chip' : '', go: () => { this.setState({ jrnSel: k }); } }; }),
       jrnNone: rows.length === 0, jrnHas: !!j,
@@ -2780,12 +2932,21 @@ class Component extends DCLogic {
       jrnSaved: !!(j && j.saved), jrnAutoNote: j && j.saved ? '작성 중인 내용이 저장되어 있습니다. 끝나면 [완료 처리]를 눌러 주세요' : '일정·사진·참여 기록으로 자동 작성된 초안입니다. 고쳐 쓰면 바로 저장됩니다',
       jrnFields: j ? Component.JRN_FIELDS.map(f => ({ k: f.k, label: f.label, multi: f.multi, single: !f.multi, rows: f.rows || 3, val: j.f[f.k] || '',
         on: (e) => this.jrnSetField(selKey, f.k, e.target.value, this.state),
-        blur: () => this.jrnFlush(),
+        blur: () => { this.jrnLearnFlush(); this.jrnFlush(); },
         hasMic: phone && f.multi, micOn: s.jrnMic === f.k, micCls: s.jrnMic === f.k ? 'sel-chip' : '', micLabel: s.jrnMic === f.k ? '중지' : '음성 입력',
         micPhaseTxt: s.jrnMicPhase === 'hearing' ? '녹음 중 · 소리가 들립니다' : (s.jrnMicPhase === 'listening' ? '녹음 중 · 말씀해 주세요' : '마이크 연결 중…'), micWave: s.jrnMicPhase === 'hearing' ? 'sc-wave hear' : (s.jrnMicPhase === 'listening' ? 'sc-wave' : 'sc-wave idle'), micInterim: s.jrnInterim || '', micHasInterim: !!s.jrnInterim,
         mic: () => this.jrnMic(f.k, selKey) })) : [],
       jrnPhone: phone,
-      jrnRedo: () => { if (!selKey) return; const all = Object.assign({}, this.state.journals || {}); delete all[selKey]; this.setState({ journals: all }); this.jrnFlush(); this.flash('자동 초안으로 다시 작성했습니다'); },
+      jrnRedo: () => {
+        if (!selKey) return;
+        const learned = this.jrnLearnFlush();
+        const v = learned ? this.jrnVarSet(selKey, 0) : this.jrnVarBump(selKey);   // 방금 고친 내용이 있으면 그것부터 반영
+        const all = Object.assign({}, this.state.journals || {}); delete all[selKey]; this.setState({ journals: all, jrnVarRev: (this.state.jrnVarRev || 0) + 1 }); this.jrnFlush();
+        this.flash('새 문장으로 다시 작성했습니다 (' + (v + 1) + '번째 안)' + (learned ? ' · 고친 내용 ' + learned + '건을 학습했습니다' : ''));
+      },
+      jrnLearnTxt: j ? (this.jrnLearnCount(j.p.program) ? '이 프로그램(' + j.p.program + ')에서 직접 고쳐 쓴 문장 ' + this.jrnLearnCount(j.p.program) + '개를 학습해 자동 작성에 반영합니다.' : '직접 고쳐 쓰면 이 프로그램(' + j.p.program + ')의 다음 자동 작성에 반영됩니다. [자동으로 다시 쓰기]를 누를 때마다 다른 문장으로 작성됩니다.') : '',
+      jrnLearnHas: !!(j && this.jrnLearnCount(j.p.program)),
+      jrnLearnClear: () => { if (!j) return; this.jrnLearnClear(j.p.program); this.setState({ jrnVarRev: (this.state.jrnVarRev || 0) + 1 }); this.flash(j.p.program + ' 학습 내용을 지웠습니다'); },
       jrnPreview: () => this.setState({ jrnPrev: true, jrnFmt: 'pdf' }),
       jrnPrevOpen: !!s.jrnPrev && !!j, jrnPrevClose: () => this.setState({ jrnPrev: false }),
       jrnTabs: [{ k: 'pdf', label: '인쇄 · PDF', icon: 'ph ph-printer' }, { k: 'docx', label: 'Word', icon: 'ph ph-file-doc' }, { k: 'hwpx', label: '한글(hwpx)', icon: 'ph ph-file-text' }].map(t => ({ label: t.label, icon: t.icon, on: (s.jrnFmt || 'pdf') === t.k, cls: (s.jrnFmt || 'pdf') === t.k ? 'sel-chip' : '', go: () => this.setState({ jrnFmt: t.k }) })),
