@@ -759,6 +759,7 @@ class Component extends DCLogic {
       else if (e.key === 'Backspace' && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') && !(e.target && e.target.isContentEditable)) { if (this.navGoBack()) e.preventDefault(); }
     };
     window.addEventListener('keydown', this._onNavKey);
+    this.secStart();
     // 통계 '데이터 목록'의 [엑셀 다운로드] — 차트 부품이 호출
     window.__scXlsx = (id, cols, rows) => {
       const st = (REPORTS.find(r => r.id === id) || {}).name || '통계';
@@ -923,6 +924,8 @@ class Component extends DCLogic {
           this.setState({ journals: v });
         } else if (e.key === 'smartcare.journalph.v1' && v && typeof v === 'object') {
           this.setState({ jrnPh: v });
+        } else if ((e.key === 'smartcare.secEvents.v1' || e.key === 'smartcare.secCfg.v1')) {
+          this.setState({ secRev: (this.state.secRev || 0) + 1 });
         } else if (e.key === 'smartcare.jrnOpt.v1' && v && typeof v === 'object') {
           this.setState({ jrnOpt: v });
         } else if (e.key === 'smartcare.signs.v1') {
@@ -2130,6 +2133,7 @@ class Component extends DCLogic {
         const imgs = [...doc.images];
         await Promise.all(imgs.map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
         setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { this.flash('인쇄 창을 열 수 없습니다'); } setTimeout(() => fr.remove(), 60000); }, 150);
+        try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '통계 인쇄' })); } catch (e) {}
         this.flash('인쇄 창을 엽니다 — 통계 ' + shots.length + '개, 1통계 1페이지');
       } else if (kind === 'pdf') {
         const runPdf = async () => {
@@ -2171,7 +2175,7 @@ class Component extends DCLogic {
         let y = pad + headH;
         shots.forEach(s => { ctx.drawImage(s.canvas, pad, y); y += s.canvas.height + gap; });
         this._expRun = async () => {
-          const a = document.createElement('a'); a.href = out.toDataURL('image/jpeg', 0.92); a.download = name + '.jpg';
+          try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '통계 JPG' })); } catch (e) {} const a = document.createElement('a'); a.href = out.toDataURL('image/jpeg', 0.92); a.download = name + '.jpg';
           document.body.appendChild(a); a.click(); a.remove();
           this.flash('JPG 다운로드 — ' + name + '.jpg');
         };
@@ -2391,6 +2395,78 @@ class Component extends DCLogic {
     if (/Android/i.test(ua)) { location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end'; return true; }
     return false;
   }
+  // ───── 보안 경보 (해킹 시도·개인정보 유출 징후 감지 → PC 상단 경보등 · 관리자 알림) ─────
+  static SEC_CFG = { on: true, massDelete: 20, loginBurst: 8, exportBurst: 6, afterFrom: 22, afterTo: 5, notify: false };
+  secCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem('smartcare.secCfg.v1') || '{}') || {}; } catch (e) {} return Object.assign({}, Component.SEC_CFG, c); }
+  secSaveCfg(p) { const c = Object.assign(this.secCfg(), p); try { localStorage.setItem('smartcare.secCfg.v1', JSON.stringify(c)); } catch (e) {} this.setState({ secRev: (this.state.secRev || 0) + 1 }); }
+  secList() { let a = []; try { a = JSON.parse(localStorage.getItem('smartcare.secEvents.v1') || '[]') || []; } catch (e) {} return Array.isArray(a) ? a : []; }
+  secStore(list) { const l = list.sort((a, b) => (b.at || '').localeCompare(a.at || '')).slice(0, 200); try { localStorage.setItem('smartcare.secEvents.v1', JSON.stringify(l)); } catch (e) {} this.setState({ secRev: (this.state.secRev || 0) + 1 }); }
+  // level: 'crit'(경고) · 'warn'(주의). id 가 같으면 다시 만들지 않음(같은 징후 중복 방지)
+  secAdd(ev) {
+    const cfg = this.secCfg(); if (!cfg.on && !ev.force) return false;
+    const list = this.secList(); if (list.some(x => x.id === ev.id)) return false;
+    list.push({ id: ev.id, at: new Date().toISOString(), level: ev.level || 'warn', kind: ev.kind || '', title: ev.title, detail: ev.detail || '', ack: '' });
+    this.secStore(list);
+    if (ev.level === 'crit') {
+      this.flash('🚨 보안 경보: ' + ev.title);
+      try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+      try { if (cfg.notify && window.Notification && Notification.permission === 'granted' && document.hidden) new Notification('스마트케어 보안 경보', { body: ev.title + (ev.detail ? ' — ' + ev.detail : '') }); } catch (e) {}
+    }
+    return true;
+  }
+  secNoteExport(label) {
+    const cfg = this.secCfg(); if (!cfg.on) return;
+    this._secExp = (this._secExp || []).filter(t => Date.now() - t < 10 * 60000); this._secExp.push(Date.now());
+    if (this._secExp.length >= cfg.exportBurst) {
+      const b = Math.floor(Date.now() / (10 * 60000));
+      this.secAdd({ id: 'export:' + b, level: 'crit', kind: 'export', title: '짧은 시간에 자료를 대량으로 내려받았습니다', detail: '10분 안에 ' + this._secExp.length + '건 (마지막: ' + (label || '내려받기') + ') · 개인정보 유출이 아닌지 확인하세요' });
+    }
+  }
+  secStart() {
+    if (this._secOn) return; this._secOn = true;
+    // 1) 브라우저가 허용되지 않은 주소로 데이터를 보내려는 시도를 막았을 때
+    this._secCsp = (e) => {
+      try {
+        const u = String(e.blockedURI || ''); if (!u || u === 'inline' || u === 'eval' || u === 'data' || u === 'blob') return;
+        let host = u; try { host = new URL(u).host || u; } catch (x) {}
+        this.secAdd({ id: 'csp:' + host + ':' + new Date().toISOString().slice(0, 13), level: /^connect-src/.test(e.violatedDirective || '') ? 'crit' : 'warn', kind: 'csp', title: '허용되지 않은 주소로 데이터를 보내려는 시도를 차단했습니다', detail: host + ' (' + (e.violatedDirective || '') + ')', force: true });
+      } catch (x) {}
+    };
+    document.addEventListener('securitypolicyviolation', this._secCsp);
+    // 2) 내려받기 폭주
+    this._secExpL = (e) => this.secNoteExport(e && e.detail);
+    window.addEventListener('sc-export', this._secExpL);
+    // 3) 서버 기록(감사 로그) 분석 — 관리자 화면에서 1분마다
+    this._secT = setInterval(() => { if (!document.hidden) this.secScanAudit(); }, 60000);
+    setTimeout(() => this.secScanAudit(), 4000);
+  }
+  secStop() {
+    this._secOn = false;
+    if (this._secCsp) document.removeEventListener('securitypolicyviolation', this._secCsp);
+    if (this._secExpL) window.removeEventListener('sc-export', this._secExpL);
+    clearInterval(this._secT);
+  }
+  async secScanAudit() {
+    try {
+      if (!this._secOn) return;
+      const s = this.state; const cfg = this.secCfg(); if (!cfg.on || !s.logged) return;
+      const me = (s.roster || []).find(m => m.id === s.userId) || {}; const roles = Array.isArray(me.roles) ? me.roles : [me.role];
+      if (!(roles.indexOf('시스템관리자') >= 0 || roles.indexOf('관리자') >= 0)) return;
+      const c = this.cloudCfg(); if (!c || !(await this.authEnsure())) return;
+      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const r = await fetch(c.url + '/rest/v1/smartcare_audit?select=at,user_id,action,k&ws=eq.' + encodeURIComponent(c.ws) + '&at=gte.' + encodeURIComponent(since) + '&order=at.desc&limit=3000', { headers: this.cloudHeaders(c) });
+      if (!r.ok) return; const rows = await r.json(); if (!Array.isArray(rows)) return;
+      const W = 10 * 60000;
+      const dels = rows.filter(x => x.action === 'delete').map(x => Date.parse(x.at)).sort((a, b) => a - b);
+      for (let i = 0; i + cfg.massDelete - 1 < dels.length; i++) { if (dels[i + cfg.massDelete - 1] - dels[i] <= W) { const b = Math.floor(dels[i] / W); this.secAdd({ id: 'del:' + b, level: 'crit', kind: 'delete', title: '짧은 시간에 데이터가 대량 삭제되었습니다', detail: '10분 안에 삭제 ' + cfg.massDelete + '건 이상 (' + new Date(dels[i]).toLocaleString('ko-KR') + ' 무렵) · 서버 감사 로그 기준' }); break; } }
+      const byUser = {}; rows.filter(x => x.action === 'login').forEach(x => { (byUser[x.user_id] = byUser[x.user_id] || []).push(Date.parse(x.at)); });
+      Object.keys(byUser).forEach(u => {
+        const t = byUser[u].sort((a, b) => a - b);
+        for (let i = 0; i + cfg.loginBurst - 1 < t.length; i++) { if (t[i + cfg.loginBurst - 1] - t[i] <= W) { this.secAdd({ id: 'burst:' + u + ':' + Math.floor(t[i] / W), level: 'warn', kind: 'login', title: '같은 계정이 짧은 시간에 반복 로그인했습니다', detail: '계정 ' + String(u).slice(0, 8) + ' · 10분 안에 ' + cfg.loginBurst + '회 이상' }); break; } }
+        t.forEach(ms => { const hr = new Date(ms + 9 * 3600 * 1000).getUTCHours(); const night = cfg.afterFrom > cfg.afterTo ? (hr >= cfg.afterFrom || hr < cfg.afterTo) : (hr >= cfg.afterFrom && hr < cfg.afterTo); if (night) this.secAdd({ id: 'night:' + u + ':' + new Date(ms + 9 * 3600 * 1000).toISOString().slice(0, 10), level: 'warn', kind: 'night', title: '평소와 다른 시간(심야·새벽)에 로그인했습니다', detail: '계정 ' + String(u).slice(0, 8) + ' · ' + new Date(ms).toLocaleString('ko-KR') }); });
+      });
+    } catch (e) {}
+  }
   static xmlEsc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   jrnApBox(titles, h) {
     const e = Component.xmlEsc; if (!titles || !titles.length) return '';
@@ -2482,7 +2558,7 @@ class Component extends DCLogic {
   }
   static dataUrlBytes(u) { const m = /^data:([^;,]+)(;base64)?,(.*)$/.exec(u || ''); if (!m) return null; const bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return { type: m[1], bytes: a }; }
   static imgSize(u) { return new Promise(r => { const im = new Image(); im.onload = () => r({ w: im.naturalWidth || 4, h: im.naturalHeight || 3 }); im.onerror = () => r({ w: 4, h: 3 }); im.src = u; }); }
-  static saveBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); }
+  static saveBlob(blob, name) { try { window.dispatchEvent(new CustomEvent('sc-export', { detail: name })); } catch (e) {} const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000); }
   async jrnDocx(j, org, logo, ap, ft) {
     ap = ap || { pos: 'none', titles: [] }; ft = ft || { logo: !!logo, text: org };
     const e = Component.xmlEsc, imgs = []; const media = [];
@@ -3060,6 +3136,7 @@ class Component extends DCLogic {
     if (this._onResize) window.removeEventListener('resize', this._onResize);
     if (this._onPop) window.removeEventListener('popstate', this._onPop);
     if (this._onNavKey) window.removeEventListener('keydown', this._onNavKey);
+    this.secStop();
     if (this._miniTipOver) document.removeEventListener('mouseover', this._miniTipOver);
     if (this._onSbScroll) window.removeEventListener('scroll', this._onSbScroll);
     if (this._verT) { clearInterval(this._verT); this._verT = null; }
@@ -3381,7 +3458,7 @@ class Component extends DCLogic {
     { k: 'ai', n: 'AI 판독 파라미터' }, { k: 'consent', n: '동의서식 관리' }, { k: 'program', n: '프로그램 관리' },
     { k: 'ward', n: '병동 · 호실' }, { k: 'staff', n: '담당자 명단 및 권한' }, { k: 'notify', n: '일정 알림' },
     { k: 'privacy', n: '개인정보 표시' }, { k: 'approval', n: '결재라인 · 문서 서식' },
-    { k: 'org', n: '기관 관리', sys: true }, { k: 'cloud', n: '데이터 서버', sys: true }, { k: 'reset', n: '운영 데이터 초기화', sys: true, only: true }, { k: 'migrate', n: '데이터 이전', sys: true, hidden: true }
+    { k: 'org', n: '기관 관리', sys: true }, { k: 'cloud', n: '데이터 서버', sys: true }, { k: 'reset', n: '운영 데이터 초기화', sys: true, only: true }, { k: 'security', n: '보안 알림' }, { k: 'migrate', n: '데이터 이전', sys: true, hidden: true }
   ];
   static setRolesOf(m) { return Array.isArray(m && m.roles) ? m.roles : [m && m.role]; }
   static setDefaults(m) {
@@ -4249,6 +4326,7 @@ class Component extends DCLogic {
     'smartcare.sbW.v1', 'smartcare.kpiView.v1', 'smartcare.flowView.v1', 'smartcare.ptCols.v1', 'smartcare.emrCols.v1', 'smartcare.calBg.v1', 'smartcare.cformMargin.v1', 'smartcare.theme.v1',
     'sc.theme', 'sc.uiScale', 'sc.aiFab.v1', 'sc.aiSize', 'sc.alThumbSize', 'sc.alTileSize', 'sc.albumLayout', 'sc.calPct', 'sc.cpPct', 'sc.server.v1']);
   wipeLocalData() {
+    try { this.secStop(); } catch (e) {}   // 로그아웃·초기화 중에는 보안 점검이 서버 로그인을 다시 만들지 않도록 멈춤
     try {
       const keys = []; for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(k => {
@@ -10357,6 +10435,7 @@ class Component extends DCLogic {
         const csv = '\ufeff' + [head].concat(attView.map(a => [a.name, a.room, a.sexAge, a.program, '2026-' + a.date, a.method, a.sim])).map(r => r.map(esc).join(',')).join('\r\n');
         const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
         const link = document.createElement('a');
+        try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '출석부 CSV' })); } catch (e) {}
         link.href = url; link.download = '출석부_' + attFrom + '_' + attTo + (attProgram === '전체' ? '' : '_' + attProgram) + (attPatient === '전체' ? '' : '_' + attPatient) + '.csv';
         document.body.appendChild(link); link.click(); link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -10836,14 +10915,14 @@ class Component extends DCLogic {
       // 설정
       ...(() => {
         // 설정 메뉴가 많아 가로로 넘기던 문제: AI 판독·일정 알림·데이터 서버·운영 데이터 초기화는 '시스템 관리' 한 탭의 하위 메뉴로 묶음
-        const ICON = { ai: 'ph ph-scan-smiley', consent: 'ph ph-article', program: 'ph ph-squares-four', ward: 'ph ph-bed', staff: 'ph ph-identification-badge', notify: 'ph ph-bell', privacy: 'ph ph-eye-slash', approval: 'ph ph-signature', org: 'ph ph-buildings', cloud: 'ph ph-cloud', reset: 'ph ph-trash', migrate: 'ph ph-arrow-fat-lines-right' };
-        const GROUP = ['ai', 'notify', 'cloud', 'reset'];
+        const ICON = { ai: 'ph ph-scan-smiley', consent: 'ph ph-article', program: 'ph ph-squares-four', ward: 'ph ph-bed', staff: 'ph ph-identification-badge', notify: 'ph ph-bell', privacy: 'ph ph-eye-slash', approval: 'ph ph-signature', org: 'ph ph-buildings', cloud: 'ph ph-cloud', reset: 'ph ph-trash', security: 'ph ph-siren', migrate: 'ph ph-arrow-fat-lines-right' };
+        const GROUP = ['ai', 'notify', 'security', 'cloud', 'reset'];
         const grp = GROUP.filter(k => allowSet(k));
         const inGrp = GROUP.indexOf(stEff) >= 0;
         const tops = Component.SET_TABS.filter(t => !t.hidden && GROUP.indexOf(t.k) < 0 && allowSet(t.k)).map(t => ({ key: t.k, label: t.n, icon: ICON[t.k] || 'ph ph-gear' }));
         if (grp.length) tops.push({ key: 'system', label: '시스템 관리', icon: 'ph ph-shield-check' });
         const scrollTab = () => setTimeout(() => { const el = document.querySelector('.sc-ftab[aria-selected="true"]'); if (el && el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest' }); }, 60);
-        const SUBN = { ai: 'AI 판독 파라미터', notify: '일정 알림', cloud: '데이터 서버', reset: '운영 데이터 초기화' };
+        const SUBN = { ai: 'AI 판독 파라미터', notify: '일정 알림', security: '보안 알림', cloud: '데이터 서버', reset: '운영 데이터 초기화' };
         return {
           setTabs: tops.map(t => { const on = t.key === 'system' ? inGrp : stEff === t.key; return {
             label: t.label, icon: t.icon, active: on, inactive: !on,
@@ -10908,6 +10987,7 @@ class Component extends DCLogic {
       setNotifyTab: allowSet('notify') && stEff === 'notify',
       setPrivacyTab: allowSet('privacy') && stEff === 'privacy',
       setJournalTab: allowSet('approval') && stEff === 'approval',
+      setSecTab: allowSet('security') && stEff === 'security',
       sysName: (() => { try { const v = localStorage.getItem('smartcare.sysName.v1'); return v && v.trim() ? v.trim() : '스마트케어'; } catch (e) { return '스마트케어'; } })(), 
       sysNameRaw: (() => { try { return localStorage.getItem('smartcare.sysName.v1') || ''; } catch (e) { return ''; } })(),
       onSysName: (e) => { const v = (e.target.value || '').slice(0, 24); try { localStorage.setItem('smartcare.sysName.v1', v); } catch (x) {} this.setState({ sysRev: (this.state.sysRev || 0) + 1 }); },
@@ -11178,6 +11258,29 @@ class Component extends DCLogic {
         };
       })(),
       isSysUser: isSys, notSysUser: !isSys,
+      ...(() => {
+        void s.secRev;
+        const list = this.secList(); const cfg = this.secCfg();
+        const un = list.filter(x => !x.ack); const crit = un.filter(x => x.level === 'crit').length, warn = un.filter(x => x.level === 'warn').length;
+        const lvl = crit ? 'crit' : (warn ? 'warn' : 'ok');
+        const fmt = (iso) => { try { return new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return iso; } };
+        const ack = (id) => { const l = this.secList().map(x => x.id === id ? Object.assign({}, x, { ack: new Date().toISOString(), ackBy: userName }) : x); this.secStore(l); };
+        return {
+          secShow: (isSys || hasRole('관리자')) && cfg.on !== false,
+          secLvl: lvl, secCls: 'sc-sec sc-sec-' + lvl, secCount: String(crit + warn), secHasCount: crit + warn > 0,
+          secTitle: lvl === 'crit' ? '보안 경보 — 확인이 필요한 경고 ' + crit + '건' : (lvl === 'warn' ? '보안 주의 ' + warn + '건' : '보안 상태 정상'),
+          secOpen: !!s.secOpen, secToggle: () => this.setState({ secOpen: !s.secOpen }),
+          secItems: list.slice(0, 50).map(x => ({ id: x.id, title: x.title, detail: x.detail, when: fmt(x.at), crit: x.level === 'crit', op: x.ack ? '0.6' : '1', bg: x.level === 'crit' ? '#c2271b' : '#d98a0b', levelTxt: x.level === 'crit' ? '경고' : '주의', ackd: !!x.ack, open: !x.ack, ackTxt: x.ack ? fmt(x.ack) + ' 확인' + (x.ackBy ? ' · ' + x.ackBy : '') : '', go: () => ack(x.id) })),
+          secNone: list.length === 0,
+          secAckAll: () => { this.secStore(this.secList().map(x => x.ack ? x : Object.assign({}, x, { ack: new Date().toISOString(), ackBy: userName }))); },
+          secScanNow: async () => { this.flash('서버 기록을 분석하는 중…'); await this.secScanAudit(); this.flash('분석을 마쳤습니다'); },
+          secTest: () => { this.secAdd({ id: 'test:' + Date.now(), level: 'crit', kind: 'test', title: '경보 시험 — 실제 위협이 아닙니다', detail: '경보등과 알림 동작을 확인하는 시험 항목입니다', force: true }); },
+          secCfgOn: !!cfg.on, secCfgToggle: () => this.secSaveCfg({ on: !cfg.on }),
+          secNotifyOn: !!cfg.notify,
+          secNotifyGo: async () => { try { if (!window.Notification) { this.flash('이 브라우저는 알림을 지원하지 않습니다'); return; } const p = await Notification.requestPermission(); this.secSaveCfg({ notify: p === 'granted' }); this.flash(p === 'granted' ? '브라우저 알림을 켰습니다 (화면을 보지 않을 때 경고 알림)' : '알림이 허용되지 않았습니다'); } catch (e) {} },
+          secCfgRows: [{ k: 'massDelete', label: '대량 삭제 경고', unit: '건 이상 (10분 안)', min: 5, max: 500 }, { k: 'loginBurst', label: '반복 로그인 주의', unit: '회 이상 (10분 안)', min: 3, max: 100 }, { k: 'exportBurst', label: '대량 내려받기 경고', unit: '건 이상 (10분 안)', min: 3, max: 100 }, { k: 'afterFrom', label: '심야 로그인 시작 시각', unit: '시', min: 0, max: 23 }, { k: 'afterTo', label: '심야 로그인 종료 시각', unit: '시', min: 0, max: 23 }].map(r => ({ label: r.label, unit: r.unit, val: String(cfg[r.k]), on: (e) => { const v = Math.max(r.min, Math.min(r.max, parseInt(e.target.value, 10) || cfg[r.k])); this.secSaveCfg({ [r.k]: v }); } }))
+        };
+      })(),
       orgIdCur: orgIdCur, orgName: orgName,
       // 시스템 관리자: 작업할 기관 선택 → 그 기관 데이터로 다시 엶 (기관 데이터는 서로 섞이지 않음)
       onSwitchOrg: (e) => {
