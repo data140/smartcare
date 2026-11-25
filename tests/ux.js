@@ -60,7 +60,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.keyboard.press('Escape'); await sleep(300);
 
     // 3) 일정 담당자로 표시 끄기
-    await p.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(1200);
+    await p.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await sleep(1200);
     const card = p.locator('button[aria-label="상세 열기·닫기"]:visible').nth(1); await card.click(); await sleep(500);
     const tog = p.locator('button:has-text("일정 담당자로 표시 ✓")').first();
     check('계정마다 "일정 담당자로 표시" 설정이 있음 (기본 켜짐)', await tog.isVisible());
@@ -131,7 +131,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await pp.locator('input[autocomplete="username"]').first().fill('100101'); await pp.locator('input[autocomplete="current-password"]').first().fill('1234');
     await pp.locator('button:has-text("로그인")').last().click(); await pp.waitForSelector('text=가상환자1', { timeout: 20000 }); await sleep(800);
     check('가리기 전에는 환자 이름이 그대로 보임', await pp.evaluate(() => document.body.innerText.includes('가상환자1')));
-    await pp.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(600);
+    await pp.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await sleep(600);
     await pp.locator('button:has-text("개인정보 표시")').first().click(); await sleep(500);
     check('설정에 "개인정보 표시" 탭이 있고 미리 보기가 보임', await pp.evaluate(() => document.body.innerText.includes('환자 이름') && document.body.innerText.includes('미리 보기')));
     await pp.locator('button:has-text("김*순 · 가운데만 가림")').first().click(); await sleep(400);
@@ -142,7 +142,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const ptxt = await pp.evaluate(() => document.body.innerText);
     check('환자 목록의 이름이 가려져 보임 (가상환자1 → 가*환자1 형태)', !ptxt.includes('가상환자1') && /가\*환자1/.test(ptxt));
     // 다른 시험에 영향이 없도록 설정을 원래대로(가리지 않음) 되돌림 — 이 설정은 서버에 저장되어 모든 화면에 적용됨
-    await pp.locator('text=계정 · 권한 >> visible=true').first().click(); await sleep(500);
+    await pp.locator('text=담당자 명단 및 권한 >> visible=true').first().click(); await sleep(500);
     await pp.locator('button:has-text("개인정보 표시")').first().click(); await sleep(400);
     for (const b of await pp.locator('button:has-text("가리지 않음")').all()) await b.click();
     await sleep(500);

@@ -52,7 +52,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     check('완료 탭에는 완료한 일지만 보임', (await p.locator('button[aria-pressed]:has-text("완료") >> visible=true').count()) >= 1);
     await p.locator('[role=tab]:has-text("전체") >> visible=true').first().click(); await sleep(300);
     check('운영일지 화면에는 로고 올리기가 없음(설정으로 이동)', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) === 0);
-    await p.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(700);
+    await p.locator('aside button:has-text("담당자 명단 및 권한") >> visible=true').first().click(); await sleep(700);
     await p.locator('button:has-text("결재라인") >> visible=true').first().click(); await sleep(500);
     check('설정 › 결재라인·문서 서식에 로고 올리기·글자 직접 작성이 있음', (await p.locator('label:has-text("로고 올리기") >> visible=true').count()) >= 1 && (await p.locator('input[aria-label="문서 하단 글자 (직접 작성)"]').count()) >= 1);
     await p.locator('button:has-text("글자만") >> visible=true').first().click(); await sleep(300);
@@ -67,7 +67,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await p.locator('button[aria-label="사진 빼기"]').first().click(); await sleep(400);
     check('사진 빼기', (await p.locator('img[alt="프로그램 사진"]').count()) === before);
     check('운영일지에는 결재라인 안내만 있고 위치는 설정에서 정함', (await p.locator('text=/결재라인:/ >> visible=true').count()) >= 1 && (await p.locator('button:has-text("표시 안 함") >> visible=true').count()) === 0);
-    await p.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(700);
+    await p.locator('aside button:has-text("담당자 명단 및 권한") >> visible=true').first().click(); await sleep(700);
     await p.locator('button:has-text("결재라인") >> visible=true').first().click(); await sleep(500);
     check('설정 › 결재라인에 상단·하단 × 왼쪽·가운데·오른쪽 위치 선택이 있음', (await p.locator('[role=tablist] button:has-text("가운데") >> visible=true').count()) >= 2 && (await p.locator('text=결재란 위치 >> visible=true').count()) >= 1);
     await p.locator('[role=tablist]:near(:text("상단")) button:has-text("가운데")').first().click(); await sleep(500);

@@ -19,7 +19,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.goto(BASE + '/'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     await p.locator('input[autocomplete="username"]').first().fill('100101'); await p.locator('input[autocomplete="current-password"]').first().fill('1234');
     await p.locator('button:has-text("로그인")').last().click(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
-    await p.locator('aside button:has-text("동의서식 관리") >> visible=true').first().click().catch(async () => { await p.locator('aside button:has-text("계정 · 권한") >> visible=true').first().click(); await sleep(600); await p.locator('button:has-text("동의서식 관리") >> visible=true').first().click(); });
+    await p.locator('aside button:has-text("동의서식 관리") >> visible=true').first().click().catch(async () => { await p.locator('aside button:has-text("담당자 명단 및 권한") >> visible=true').first().click(); await sleep(600); await p.locator('button:has-text("동의서식 관리") >> visible=true').first().click(); });
     await sleep(800);
     const rows = () => p.locator('input[aria-label="서명란 이름"]').count();
     check('기본 서명란은 2칸(동의인·보호자), 촬영자 없음', (await rows()) === 2 && !(await p.evaluate(() => [...document.querySelectorAll('input[aria-label="서명란 이름"]')].some(i => /촬영자/.test(i.value)))));

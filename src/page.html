@@ -3922,6 +3922,7 @@
   </sc-if>
 
   <!-- 보안 경보 패널 (관리자) -->
+  <sc-if value="{{ secBanner }}" hint-placeholder-val="{{ false }}"><div role="alert" class="{{ secBannerCls }}"><span class="sc-secbar-ic"><i class="ph-fill ph-siren"></i></span><span class="sc-secbar-tx">{{ secBannerTitle }}</span><span class="sc-secbar-wh">{{ secBannerWhen }}</span><button type="button" sc-camel-on-click="{{ secToggle }}" class="sc-secbar-bt">내용 보기</button></div></sc-if>
   <sc-if value="{{ secOpen }}" hint-placeholder-val="{{ false }}">
     <div role="dialog" aria-modal="true" aria-label="보안 경보" style="position: fixed; inset: 0; z-index: 330; display: flex; align-items: flex-start; justify-content: flex-end; padding: 64px 24px 24px; background: rgba(8, 12, 28, 0.45);">
       <div style="width: min(520px, 100%); max-height: calc(100vh - 100px); display: flex; flex-direction: column; border-radius: 18px; background: var(--color-surface); color: var(--color-text); box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px var(--color-neutral-700); overflow: hidden;">

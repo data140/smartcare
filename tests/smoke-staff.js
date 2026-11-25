@@ -98,7 +98,7 @@ async function login(page, id, pw) {
     }
     // 화면의 계정 관리 → 서버 계정 반영
     const staffRows = async () => (await (await fetch(BASE + '/rest/v1/smartcare_staff?ws=eq.smartcare&select=roster_id,status', { headers: { apikey: 'k', Authorization: 'Bearer dev-service-key' } })).json());
-    await page.locator('text=계정 · 권한').first().click(); await page.waitForTimeout(800);
+    await page.locator('text=담당자 명단 및 권한').first().click(); await page.waitForTimeout(800);
     const before = (await staffRows()).map(x => x.roster_id);
     await page.click('button:has-text("사용자 추가")');
     await page.waitForSelector('text=/임시 비밀번호 \d{6}/', { timeout: 10000 }).catch(() => {});
