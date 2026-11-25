@@ -834,6 +834,7 @@ class Component extends DCLogic {
     } catch (e) {}
     try { const v = parseInt(localStorage.getItem('sc.calPct'), 10); if (v >= 30 && v <= 92) this.setState({ calPct: v }); } catch (e) {}
     try { const v = parseInt(localStorage.getItem('sc.cpPct'), 10); if (v >= 30 && v <= 70) this.setState({ cpPct: v }); } catch (e) {}
+    try { if (localStorage.getItem('smartcare.tabPortrait.v1') === '1') this.setState({ tabPortrait: true }); } catch (e) {}
     try {
       const raw = localStorage.getItem('smartcare.calBg.v1'); const b = parseInt(raw, 10);
       const cu = JSON.parse(localStorage.getItem('smartcare.calCustom.v1') || 'null');
@@ -6441,7 +6442,24 @@ class Component extends DCLogic {
       greeting: userName + '님,\n' + (n ? (isToday ? '오늘 ' : '이 날 ') + n + '건이 있어요' : (isToday ? '오늘은 일정이 없어요' : '이 날은 일정이 없어요')),
       mNotToday: !isToday,
       mGoToday: () => this.setState({ mDay: TODAY, logDate: null }),
-      mWeekLabel: (start.getMonth() + 1) + '/' + start.getDate() + ' – ' + (end.getMonth() + 1) + '/' + end.getDate(),
+      mWeekLabel: start.getFullYear() + '년 ' + (start.getMonth() + 1) + '/' + start.getDate() + ' – ' + (end.getFullYear() !== start.getFullYear() ? end.getFullYear() + '년 ' : '') + (end.getMonth() + 1) + '/' + end.getDate(),
+      // 한 달 일정 한눈에 보기 (달력 아이콘)
+      mCalOpen: !!s.mCalOpen,
+      mCalToggle: () => this.setState({ mCalOpen: !s.mCalOpen, mCalMonth: mDay.slice(0, 7) }),
+      ...(() => {
+        const ym = s.mCalMonth || mDay.slice(0, 7); const [Y, M] = ym.split('-').map(Number);
+        const first = new Date(Y, M - 1, 1), last = new Date(Y, M, 0), start0 = new Date(first); start0.setDate(1 - first.getDay());
+        const weeks = Math.ceil((first.getDay() + last.getDate()) / 7);
+        const shiftM = (n) => { const d = new Date(Y, M - 1 + n, 1); this.setState({ mCalMonth: iso(d).slice(0, 7) }); };
+        const cells = Array.from({ length: weeks * 7 }, (_, i) => { const d = new Date(start0); d.setDate(start0.getDate() + i); const k = iso(d); const inM = d.getMonth() === M - 1; const tone = this.dayTone(k, d.getDay()); const cnt = plansOn(k).length;
+          return { day: d.getDate(), inM: inM, op: inM ? '1' : '0.35', holi: inM && tone.name ? tone.name.replace(/공휴일/, '').slice(0, 4) : '', hasHoli: !!(inM && tone.name), color: tone.color || 'var(--color-text)', cnt: cnt, hasCnt: cnt > 0, cntTxt: String(cnt), today: k === TODAY, sel: k === mDay,
+            ring: k === mDay ? '0 0 0 2px var(--color-accent)' : (k === TODAY ? 'inset 0 0 0 1px var(--color-accent)' : 'none'), bg: k === mDay ? 'color-mix(in oklch, var(--color-accent) 22%, transparent)' : 'transparent',
+            pick: () => this.setState({ mDay: k, logDate: null, mCalOpen: false }) }; });
+        const prefix = ym + '-'; const mp = (s.plans || []).filter(p => p.date.indexOf(prefix) === 0 && p.status !== '취소').sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+        const days = []; mp.forEach(p => { let g = days.find(x => x.date === p.date); if (!g) { const dd = new Date(p.date + 'T00:00'); const tone = this.dayTone(p.date, dd.getDay()); g = { date: p.date, label: (dd.getMonth() + 1) + '/' + dd.getDate() + ' (' + WD[dd.getDay()] + ')', holi: tone.name || '', hasHoli: !!tone.name, color: tone.color || 'var(--color-text)', items: [], pick: () => this.setState({ mDay: p.date, logDate: null, mCalOpen: false }) }; days.push(g); } g.items.push({ time: (p.start || '') + (p.end ? '~' + p.end : ''), program: p.program, place: p.place || '' }); });
+        const holis = []; for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) { const k = iso(d); const tone = this.dayTone(k, d.getDay()); if (tone.name) holis.push({ label: (d.getMonth() + 1) + '/' + d.getDate() + ' (' + WD[d.getDay()] + ')', name: tone.name, color: tone.color }); }
+        return { mCalTitle: Y + '년 ' + M + '월', mCalCells: cells, mCalPrev: () => shiftM(-1), mCalNext: () => shiftM(1), mCalThis: () => this.setState({ mCalMonth: TODAY.slice(0, 7), mDay: TODAY }), mCalDays: days, mCalHasDays: days.length > 0, mCalNoDays: days.length === 0, mCalCount: mp.length, mCalHolis: holis, mCalHasHolis: holis.length > 0 };
+      })(),
       mWeekPrev: () => shift(-7),
       mWeekNext: () => shift(7),
       onMDay: (e) => { if (e.target.value) this.setState({ mDay: e.target.value, logDate: null }); },
@@ -6453,15 +6471,15 @@ class Component extends DCLogic {
         const bandBase = tone.color ? 'color-mix(in oklch, ' + tone.color + ' 74%, black)' : 'color-mix(in oklch, var(--color-accent) 52%, black)';
         const bandOn = tone.color ? 'color-mix(in oklch, ' + tone.color + ' 86%, black)' : 'color-mix(in oklch, var(--color-accent) 74%, black)';
         return {
-          wd: t ? '오늘' : WD[i], num: d.getDate(), on: on, off: !on,
-          aria: (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + WD[i] + '요일' + (cnt ? ' · 일정 ' + cnt + '건' : ''),
-          btn: 'position: relative; display: flex; flex-direction: column; align-items: center; min-height: clamp(70px, 11vw, 92px); padding: 0; margin-top: 4px; border-radius: 12px; overflow: hidden; cursor: pointer; font: inherit; color: var(--color-text); '
+          wd: t ? '오늘' : (tone.name ? tone.name.replace(/공휴일/, '').slice(0, 4) || '휴일' : WD[i]), num: d.getDate(), on: on, off: !on,
+          aria: (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + WD[i] + '요일' + (tone.name ? ' · ' + tone.name : '') + (cnt ? ' · 일정 ' + cnt + '건' : ''),
+          btn: 'position: relative; display: flex; flex-direction: column; align-items: center; min-height: clamp(70px, 11cqw, 92px); padding: 0; margin-top: 4px; border-radius: 12px; overflow: hidden; cursor: pointer; font: inherit; color: var(--color-text); '
             + 'border: ' + (on ? '2px solid var(--color-accent)' : '1px solid var(--color-neutral-700)') + '; '
             + 'background: linear-gradient(180deg, color-mix(in oklch, var(--color-neutral-800) 70%, white 8%), var(--color-neutral-900)); '
             + 'box-shadow: ' + (on ? '0 0 0 3px color-mix(in oklch, var(--color-accent) 30%, transparent), 0 12px 20px rgba(0,0,0,0.38)' : '0 3px 8px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)') + '; '
             + 'transform: ' + (on ? 'translateY(-3px)' : 'none') + '; transition: transform 120ms ease, box-shadow 120ms ease;',
           band: 'align-self: stretch; padding: 5px 0 4px; text-align: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; color: #ffffff; background: ' + (on ? bandOn : bandBase) + '; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.25);',
-          numStyle: 'flex: 1; display: grid; place-items: center; font-size: clamp(20px, 3.4vw, 27px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; padding: 4px 0 2px; color: ' + (tone.color || 'var(--color-text)') + ';',
+          numStyle: 'flex: 1; display: grid; place-items: center; font-size: clamp(20px, 3.4cqw, 27px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; padding: 4px 0 2px; color: ' + (tone.color || 'var(--color-text)') + ';',
           dots: Array.from({ length: Math.min(cnt, 3) }, () => 1).map(() => ({ c: on ? 'var(--color-accent-200)' : 'var(--color-accent)' })),
           hasDots: cnt > 0, more: cnt > 3 ? '+' + (cnt - 3) : '', hasMore: cnt > 3,
           pick: () => this.setState({ mDay: k, logDate: null })
@@ -8185,14 +8203,16 @@ class Component extends DCLogic {
       rootPad: s.phoneOnly || !Component.DEV_BAR ? '0' : 'var(--space-3) 0 0',
       appMargin: s.phoneOnly ? '0' : 'var(--space-6) auto calc(var(--space-8) * 2)',
       appShadow: s.phoneOnly ? 'none' : 'var(--shadow-md)',
-      appMaxWidth: s.phoneOnly ? 'none' : (s.device === 'tablet' ? '980px' : '372px'),
+      appMaxWidth: s.phoneOnly ? 'none' : (s.device === 'tablet' ? (s.tabPortrait ? '700px' : '980px') : '372px'),
       pcUrl: 'smartcare.hospital.kr/' + s.pcView,
       inAppBanner: Component.inAppBrowser() && !s.inAppHide && !(() => { try { return sessionStorage.getItem('sc.inAppHide') === '1'; } catch (e) { return false; } })(),
       inAppIsKakao: /KAKAOTALK/i.test(navigator.userAgent || ''),
       inAppOpen: () => { if (!Component.openInBrowser()) this.flash('오른쪽 위 메뉴(⋮ 또는 ∨)에서 [다른 브라우저로 열기]를 눌러 주세요'); },
       inAppHideGo: () => { try { sessionStorage.setItem('sc.inAppHide', '1'); } catch (e) {} this.setState({ inAppHide: true }); },
       appFix: s.phoneOnly ? 'position: fixed; inset: 0; max-width: none;' : '',
-      appHeight: s.phoneOnly ? '100%' : (s.device === 'tablet' ? '780px' : '760px'),
+      appHeight: s.phoneOnly ? '100%' : (s.device === 'tablet' ? (s.tabPortrait ? '1000px' : '780px') : '760px'),
+      showTabRot: Component.DEV_BAR && !s.phoneOnly && s.device === 'tablet', tabRotLabel: s.tabPortrait ? '세로 (지금) → 가로로' : '가로 (지금) → 세로로', tabRotIcon: s.tabPortrait ? 'ph ph-device-tablet' : 'ph ph-device-tablet-camera',
+      tabRotGo: () => { const v = !s.tabPortrait; try { localStorage.setItem('smartcare.tabPortrait.v1', v ? '1' : '0'); } catch (e) {} this.setState({ tabPortrait: v }); },
       appBezel: s.phoneOnly ? '0' : (s.device === 'tablet' ? '14px' : '11px'),
       appOuterRadius: s.phoneOnly ? '0' : (s.device === 'tablet' ? '28px' : '38px'),
       appInnerRadius: s.phoneOnly ? '0' : (s.device === 'tablet' ? '20px' : '29px'),
