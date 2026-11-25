@@ -2382,6 +2382,14 @@ class Component extends DCLogic {
   saveSigRoles(list) { try { localStorage.setItem('smartcare.sigRoles.v1', JSON.stringify(list)); } catch (e) {} this.setState({ sigRev: (this.state.sigRev || 0) + 1 }); }
   sigName(r, patientName, guardianName, staffName) { return r.who === 'patient' ? patientName : r.who === 'guardian' ? guardianName : r.who === 'staff' ? staffName : ''; }
   signedFrom(saved) { const o = {}; Object.keys(saved || {}).forEach(k => { o[k] = !!saved[k]; }); return o; }
+  // 카카오톡·네이버·라인 등 앱 안의 보기 창인지, 그리고 기본 브라우저로 여는 방법
+  static inAppBrowser() { try { return /KAKAOTALK|NAVER|Line\/|FBAN|FBAV|Instagram|DaumApps/i.test(navigator.userAgent || ''); } catch (e) { return false; } }
+  static openInBrowser() {
+    const ua = navigator.userAgent || '', url = location.href.split('#')[0];
+    if (/KAKAOTALK/i.test(ua)) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); return true; }
+    if (/Android/i.test(ua)) { location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end'; return true; }
+    return false;
+  }
   static xmlEsc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   jrnApBox(titles, h) {
     const e = Component.xmlEsc; if (!titles || !titles.length) return '';
@@ -8101,6 +8109,10 @@ class Component extends DCLogic {
       appShadow: s.phoneOnly ? 'none' : 'var(--shadow-md)',
       appMaxWidth: s.phoneOnly ? 'none' : (s.device === 'tablet' ? '980px' : '372px'),
       pcUrl: 'smartcare.hospital.kr/' + s.pcView,
+      inAppBanner: Component.inAppBrowser() && !s.inAppHide && !(() => { try { return sessionStorage.getItem('sc.inAppHide') === '1'; } catch (e) { return false; } })(),
+      inAppIsKakao: /KAKAOTALK/i.test(navigator.userAgent || ''),
+      inAppOpen: () => { if (!Component.openInBrowser()) this.flash('오른쪽 위 메뉴(⋮ 또는 ∨)에서 [다른 브라우저로 열기]를 눌러 주세요'); },
+      inAppHideGo: () => { try { sessionStorage.setItem('sc.inAppHide', '1'); } catch (e) {} this.setState({ inAppHide: true }); },
       appFix: s.phoneOnly ? 'position: fixed; inset: 0; max-width: none;' : '',
       appHeight: s.phoneOnly ? '100%' : (s.device === 'tablet' ? '780px' : '760px'),
       appBezel: s.phoneOnly ? '0' : (s.device === 'tablet' ? '14px' : '11px'),

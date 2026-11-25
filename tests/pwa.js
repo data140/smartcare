@@ -25,6 +25,14 @@ check('서비스 워커는 환자 정보를 캐시하지 않음(저장 호출 �
   await pg.goto('http://localhost:8972/index.html'); await pg.waitForTimeout(3500);
   const live = await pg.evaluate(() => ({ m: (document.querySelector('link[rel=manifest]') || {}).href || '', t: !!document.querySelector('meta[name=theme-color]'), a: !!document.querySelector('link[rel=apple-touch-icon]') }));
   check('화면이 열린 뒤에도 앱 정보 연결이 남아 있음 (설치 가능 조건)', /manifest\.webmanifest$/.test(live.m) && live.t && live.a, JSON.stringify(live));
+  // 카카오톡 안에서 열면 안내(기본 브라우저로 열기)가 뜨고, 일반 브라우저에서는 뜨지 않음
+  const kk = await b.newContext({ userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120 Mobile Safari/537.36 KAKAOTALK 10.4.0', viewport: { width: 390, height: 800 }, isMobile: true });
+  const kp = await kk.newPage(); await kp.route('**/supabase.co/**', r => r.abort()); await kp.route('**/cdn.jsdelivr.net/**', r => r.abort());
+  await kp.goto('http://localhost:8972/index.html'); await kp.waitForTimeout(3000);
+  const kbn = await kp.locator('text=앱 안에서 열린 화면입니다').count(); const kbtn = await kp.locator('button:has-text("브라우저로 열기")').count();
+  await kp.locator('button:has-text("닫기")').first().click().catch(() => {}); await kp.waitForTimeout(300);
+  check('카카오톡 안에서 열면 안내와 [브라우저로 열기] 단추가 보이고 [닫기]로 숨길 수 있음', kbn >= 1 && kbtn >= 1 && (await kp.locator('text=앱 안에서 열린 화면입니다').count()) === 0);
+  check('일반 브라우저에서는 안내가 뜨지 않음', (await pg.locator('text=앱 안에서 열린 화면입니다').count()) === 0);
   await b.close(); srv.close();
   console.log('스마트케어 앱 설치(PWA) 점검\n' + results.join('\n')); process.exit(failed ? 1 : 0);
 })();
