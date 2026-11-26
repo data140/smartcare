@@ -76,6 +76,15 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     check('삭제하면 일지 목록에서 미술치료가 사라짐', (await hasRow('미술치료')) === 0 && (await hasRow('음악치료')) >= 1, String(await hasRow('미술치료')));
     await q.evaluate(() => [...document.querySelectorAll('.sc-dock .sc-tab')].find(b => b.offsetParent && b.innerText.trim() === '오늘').click()); await sleep(700);
     check('오늘 화면에서도 삭제한 일지 카드가 사라짐', !/미술치료/.test(await q.evaluate(() => document.body.innerText)));
+    // PC에서도 같은 결과: 일정까지 삭제했으므로 캘린더에서 오늘 미술치료가 사라지고 음악치료는 남음
+    await sleep(2500);
+    const ctx3 = await browser.newContext({ viewport: { width: 1440, height: 1000 } }); const w = await ctx3.newPage();
+    await w.goto(BASE + '/'); await w.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await w.locator('input[autocomplete="username"]').first().fill('100101'); await w.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await w.locator('button:has-text("로그인")').last().click(); await w.waitForSelector('text=가상환자1', { timeout: 20000 }); await sleep(1500);
+    await w.locator('aside >> text=캘린더').first().click(); await sleep(1500);
+    const cal = await w.evaluate(() => document.body.innerText);
+    check('PC 캘린더에서도 삭제한 일정(미술치료)이 보이지 않음', !/미술치료/.test(cal) && /음악치료/.test(cal));
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 12).join(' | ')); }
   console.log('스마트케어 일지 삭제 시험\n' + results.join('\n'));

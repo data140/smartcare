@@ -2739,7 +2739,7 @@ class Component extends DCLogic {
     const v = sess || {}; return !((v.review || []).length || (v.photos || []).length || v.confirmed);
   }
   logDelToday(uid) { const d = this.todayIso(); return this.logDelLog().filter(x => x.byId === uid && (x.at || '').slice(0, 10) === d).length; }
-  logDelete(key, reason, limit) {
+  logDelete(key, reason, limit, withPlan) {
     const s = this.state; const cur = this.curKey(s);
     const ss = Object.assign({}, s.sessions || {});
     const v = key === cur ? { review: s.review, confirmed: s.confirmed, photos: s.photos } : ss[key];
@@ -2752,7 +2752,13 @@ class Component extends DCLogic {
     const tomb = JSON.stringify({ deleted: true, at: now, by: this._userName || '', reason: reason });
     this._sessSaved = this._sessSaved || {}; this._sessSaved[key] = tomb; this._sessDel = this._sessDel || {}; this._sessDel[key] = true; this._sessDirty = this._sessDirty || {}; delete this._sessDirty[key];
     try { localStorage.setItem(Component.WSESS_PREFIX + enc, tomb); } catch (e) {}
-    const entry = { at: now, by: this._userName || '', byId: s.userId, key: key, reason: reason, photos: (v.photos || []).length, people: (v.review || []).filter(r => r && r.id).length };
+    // 일정(캘린더)까지 함께 삭제: 일정이 착오로 등록된 경우. 삭제 전 일정은 백업 키로 보관
+    let planDel = false;
+    if (withPlan) {
+      const pl = (s.plans || []).find(x => x.date + '|' + x.program === key);
+      if (pl) { try { localStorage.setItem('smartcare.planbak.' + pl.id + '.' + Date.now(), JSON.stringify(pl)); } catch (e) {} this.savePlans((s.plans || []).filter(x => x.id !== pl.id)); planDel = true; }
+    }
+    const entry = { at: now, by: this._userName || '', byId: s.userId, key: key, reason: reason, photos: (v.photos || []).length, people: (v.review || []).filter(r => r && r.id).length, plan: planDel };
     const log = this.logDelLog(); log.unshift(entry);
     try { localStorage.setItem('smartcare.logDel.v1', JSON.stringify(log.slice(0, 300))); } catch (e) {}
     const mine = this.logDelToday(s.userId);
@@ -2762,7 +2768,7 @@ class Component extends DCLogic {
     const patch = { sessions: ss, sessionMeta: mm, logDel: null };
     if (key === cur) { const dk = this.demoKey(); const d = ss[dk] || this.defaultSession(dk); Object.assign(patch, { activeSession: null, review: d.review, confirmed: d.confirmed, photos: d.photos, mobileView: s.device === 'pc' ? s.mobileView : 'logs', pcView: s.device === 'pc' ? 'logs' : s.pcView }); }
     this.setState(patch);
-    this.flash('일지를 삭제했습니다 (삭제 기록과 백업이 남았습니다)');
+    this.flash(planDel ? '일지와 일정을 삭제했습니다 (삭제 기록과 백업이 남았습니다)' : '일지를 삭제했습니다 (삭제 기록과 백업이 남았습니다)');
     return true;
   }
   // 경보의 계정 코드(uuid 앞 8자)를 이름으로: 서버가 주는 관리자용 이름 목록을 기기에 보관
@@ -6031,11 +6037,12 @@ class Component extends DCLogic {
       '확정': { bg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.36) calc(0.07 * var(--lc,1)) 150)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.90) 0.07 150)' }
     };
     // 지나지 않은 일정의 미작성은 아직 정상이므로 표시하지 않음
-    const showLog = p.status !== '취소' && !(log === '미작성' && p.date > today);
+    const hiddenLog = this.logHidden(k, ss);   // 삭제한 일지: 캘린더·집계에서도 일지 상태를 숨김 (PC·태블릿·휴대폰 동일)
+    const showLog = p.status !== '취소' && !(log === '미작성' && p.date > today) && !hiddenLog;
     return {
       progLabel: prog, progBg: PB[prog].bg, progFg: PB[prog].fg,
       logLabel: log === '검수' ? '검수 필요' : log === '확정' ? '일지 확정' : '일지 미작성',
-      logShort: log === '검수' ? '검수' : log === '확정' ? '확정' : '미작성',
+      logShort: hiddenLog ? '삭제' : (log === '검수' ? '검수' : log === '확정' ? '확정' : '미작성'),
       logBg: LB[log].bg, logFg: LB[log].fg,
       showLog: showLog, hideLog: !showLog
     };
@@ -12039,6 +12046,14 @@ class Component extends DCLogic {
         return {
           logDelCan: (isSys || hasRole('관리자') || hasRole('담당자')) && !s.confirmed,
           logDelAsk: () => this.setState({ logDel: { key: key, reason: '' } }),
+          logDelHasPlan: !!(d && (s.plans || []).some(x => x.date + '|' + x.program === d.key)),
+          logDelPlanOpts: (() => {
+            const hasPl = !!(d && (s.plans || []).some(x => x.date + '|' + x.program === d.key));
+            const cur = d && d.key === key ? { review: s.review, photos: s.photos } : ((s.sessions || {})[d ? d.key : ''] || {});
+            const empty = !((cur.review || []).length || (cur.photos || []).length);
+            const val = d && d.plan !== undefined ? d.plan : (hasPl && empty);
+            return [[true, '일정(캘린더)도 함께 삭제'], [false, '일지만 삭제 (일정은 남김)']].map(o => ({ label: o[1], cls: val === o[0] ? 'sel-chip' : '', pick: () => this.setState({ logDel: Object.assign({}, this.state.logDel, { plan: o[0] }) }) }));
+          })(),
           logDelOpen: !!d,
           logDelTitle: d ? d.key.split('|')[1] + ' · ' + d.key.split('|')[0] : '',
           logDelLeft: '오늘 남은 삭제 횟수 ' + Math.max(0, lim - used) + '회 (하루 ' + lim + '회까지)',
@@ -12046,7 +12061,13 @@ class Component extends DCLogic {
           logDelReasons: ['착오로 등록했어요', '같은 일지를 중복 등록했어요', '그 밖의 사유'].map(t => ({ label: t, cls: d && d.reason === t ? 'sel-chip' : '', pick: () => this.setState({ logDel: Object.assign({}, this.state.logDel, { reason: t }) }) })),
           logDelBlocked: !(d && d.reason) || used >= lim,
           logDelCancel: () => this.setState({ logDel: null }),
-          logDelGo: () => { const dd = this.state.logDel; if (dd) this.logDelete(dd.key, dd.reason, lim); },
+          logDelGo: () => {
+            const dd = this.state.logDel; if (!dd) return;
+            const hasPl = (s.plans || []).some(x => x.date + '|' + x.program === dd.key);
+            const cur = dd.key === key ? { review: s.review, photos: s.photos } : ((s.sessions || {})[dd.key] || {});
+            const empty = !((cur.review || []).length || (cur.photos || []).length);
+            this.logDelete(dd.key, dd.reason, lim, hasPl && (dd.plan !== undefined ? dd.plan : empty));
+          },
           logDelRows: this.logDelLog().slice(0, 20).map(x => ({ when: fmtT(x.at), who: x.by, what: String(x.key || '').split('|').reverse().join(' · '), why: x.reason + (x.photos || x.people ? ' (사진 ' + (x.photos || 0) + ' · 참여자 ' + (x.people || 0) + ')' : '') })),
           blurLogRows: (() => { let a = []; try { a = JSON.parse(localStorage.getItem('smartcare.blurLog.v1') || '[]') || []; } catch (e) {} return a.slice(0, 20).map(x => ({ when: fmtT(x.at), who: x.by, what: (x.key || '').split('|').reverse().join(' · '), why: (x.reason || '') + ' (사진 ' + (x.photos || 0) + '장)' })); })(),
           blurLogNone: (() => { try { return !(JSON.parse(localStorage.getItem('smartcare.blurLog.v1') || '[]') || []).length; } catch (e) { return true; } })(),

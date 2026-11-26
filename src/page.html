@@ -4592,6 +4592,8 @@
         <div class="dialog-body" style="display: flex; flex-direction: column; gap: 10px;">
           <div style="font-weight: 700;">{{ logDelTitle }}</div>
           <div style="font-size: 13.5px; line-height: 1.7;">사진과 판독 결과가 목록에서 사라집니다. 확정된 일지는 삭제할 수 없고, 삭제하면 누가·언제·왜 지웠는지 기록과 백업이 남습니다.</div>
+          <sc-if value="{{ logDelHasPlan }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 8px;"><div style="font-size: 13.5px; font-weight: 600;">이 일지의 일정</div>
+            <sc-for list="{{ logDelPlanOpts }}" as="o" hint-placeholder-count="2"><button type="button" sc-camel-on-click="{{ o.pick }}" class="sc-subtab {{ o.cls }}" style="justify-content: flex-start; width: 100%;">{{ o.label }}</button></sc-for></div></sc-if>
           <div style="font-size: 13.5px; font-weight: 600;">삭제 사유 (필수)</div>
           <sc-for list="{{ logDelReasons }}" as="r" hint-placeholder-count="3"><button type="button" sc-camel-on-click="{{ r.pick }}" class="sc-subtab {{ r.cls }}" style="justify-content: flex-start; width: 100%;">{{ r.label }}</button></sc-for>
           <div style="font-size: 12.5px; color: var(--color-neutral-500);">{{ logDelLeft }}</div>
