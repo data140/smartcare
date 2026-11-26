@@ -253,6 +253,8 @@ async function route(req, res, body) {
 
 http.createServer((req, res) => {
   let body = '';
+  // 한글 한 글자가 큰 요청의 조각 경계에 걸려도 깨지지 않게 문자 단위로 받음 (예전에는 조각마다 변환해 간헐적으로 글자가 깨졌음)
+  req.setEncoding('utf8');
   req.on('data', c => (body += c));
   req.on('end', () => route(req, res, body).catch(e => { console.error(e); send(res, 500, { error: e.message }); }));
 }).listen(PORT, () => console.log('개발 서버: ' + BASE + (STAFF ? '  (직원별 계정 · 직원 로그인 100101 / 1234)' : '  (서버 로그인 ' + SHARED_EMAIL + ' / ' + SHARED_PW + ')')));
