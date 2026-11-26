@@ -52,6 +52,9 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     check('삭제 기록 3건(누가·사유 포함)', log.length === 3 && log.every(x => x.by && x.reason && x.key), JSON.stringify(log.map(x => x.reason)));
     const bak = await p.evaluate(() => Object.keys(localStorage).filter(k => k.indexOf('smartcare.wsessbak.') === 0).length);
     check('삭제 전 내용이 백업으로 남음', bak >= 3, String(bak));
+    // 사진·판독 결과가 하나도 없는 빈 일지(검수 화면)에서도 삭제 단추가 보임
+    await p.evaluate(() => [...document.querySelectorAll('.sc-dock .sc-tab')].find(b => b.offsetParent && b.innerText.trim() === '검수').click()); await sleep(700);
+    check('빈 일지(사진 0 · 판독 0)에서도 삭제 단추가 보임', (await p.locator('button:has-text("잘못 등록한 일지 삭제")').count()) >= 1);
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 12).join(' | ')); }
   console.log('스마트케어 일지 삭제 시험\n' + results.join('\n'));
