@@ -197,6 +197,7 @@
             <sc-if value="{{ lgErr }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13.5px; color: var(--color-accent-300);">{{ lgErr }}</div></sc-if>
             <button type="submit" disabled="{{ lgBusy }}" class="btn btn-primary btn-block" style="min-height: 50px; font-size: 16px;"><i class="ph ph-sign-in"></i> {{ lgBtnLabel }}</button>
           </form>
+          <div style="display: flex; justify-content: center;"><button type="button" sc-camel-on-click="{{ exitApp }}" class="btn btn-ghost" data-exit-app="1" style="min-height: 44px; font-size: 14px; color: var(--color-neutral-400);"><i class="ph ph-power"></i> 앱 종료</button></div>
           <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
             <div style="display: flex; gap: var(--space-3); align-items: center; padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: 0 0 0 1px var(--color-neutral-700); font-size: 13.5px; color: var(--color-neutral-400);">
               <i class="ph ph-wifi-slash" style="font-size: 18px;"></i> 오프라인 — 마지막 동기화 기준 데이터로 열립니다. 저장한 일지는 연결 시 자동 전송됩니다.
@@ -4445,6 +4446,7 @@
               </div>
               <sc-if value="{{ pwcAvail }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ pwcShow }}" class="btn btn-secondary btn-block" style="min-height: 48px; font-size: 15px;"><i class="ph ph-password"></i> 비밀번호 변경</button></sc-if>
               <button sc-camel-on-click="{{ logout }}" class="btn btn-secondary btn-block" style="min-height: 48px; font-size: 15px;"><i class="ph ph-sign-out"></i> 로그아웃</button>
+              <button sc-camel-on-click="{{ logoutExit }}" class="btn btn-ghost btn-block" data-logout-exit="1" style="min-height: 48px; font-size: 15px; color: var(--color-neutral-400);"><i class="ph ph-power"></i> 로그아웃하고 앱 종료</button>
             </div>
           </sc-if>
           <sc-if value="{{ mConsent }}" hint-placeholder-val="{{ false }}">
@@ -4676,6 +4678,15 @@
           <button sc-camel-on-click="{{ revokeGo }}" disabled="{{ revokeBlocked }}" class="btn btn-primary" style="min-height: 42px; background: #b42318 !important; color: #fff !important;">동의 철회</button>
         </div>
       </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ exitedOpen }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-modal="true" aria-label="앱 종료" style="position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 32px; text-align: center; background: var(--color-bg); color: var(--color-text);" data-exited="1">
+      <i class="ph ph-power" style="font-size: 54px; color: var(--color-accent-300);"></i>
+      <div style="font-size: 22px; font-weight: 700;">앱을 종료했습니다</div>
+      <div style="font-size: 14.5px; line-height: 1.8; color: var(--color-neutral-400); max-width: 360px;">로그아웃되었고 이 기기에는 환자 정보가 남아 있지 않습니다.<br>이 화면이 닫히지 않으면 휴대폰의 최근 앱 화면에서 스마트케어를 위로 밀어 닫거나, 브라우저 탭을 닫아 주세요.</div>
+      <button type="button" sc-camel-on-click="{{ exitedRestart }}" class="btn btn-secondary" style="min-height: 48px; padding: 0 24px;"><i class="ph ph-arrow-clockwise"></i> 다시 시작</button>
     </div>
   </sc-if>
 
