@@ -46,6 +46,7 @@ class Component extends DCLogic {
     // 실제 휴대폰·태블릿 기기에서 자동 판별일 때만 전체 화면(기기 틀 없음). PC에서 모드를 골라 보면 기기 틀로 미리보기
     phoneOnly: Component.autoDevice() !== 'pc' && Component.detectDevice() !== 'pc',
     pcView: 'patients',
+    exited: (() => { try { return sessionStorage.getItem('sc.exited') === '1'; } catch (e) { return false; } })(),
     privView: (() => { try { const v = localStorage.getItem('sc.privView.v1'); return v === '1' ? true : (v === '0' ? false : null); } catch (e) { return null; } })(),
     mobileView: 'today',
     logTab: 'list',
@@ -755,13 +756,22 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
-    this._onPop = () => { if (!this.navGoBack()) { /* 기록이 없으면 그대로 */ } };
+    this._onPop = (e) => {
+      // 로그인 화면에서 뒤로가기: 로그아웃 전에 쌓인 이 앱의 화면 기록을 한 번에 거슬러 올라가 앱을 벗어남 (예전에는 같은 로그인 화면이 계속 남았음)
+      if (!this.state.logged) {
+        if (e && e.state && e.state.sc != null) { this._unw = true; try { history.back(); } catch (x) {} }
+        else if (this._unw) { this._unw = false; try { history.back(); } catch (x) {} }
+        return;
+      }
+      if (!this.navGoBack()) { /* 기록이 없으면 그대로 */ }
+    };
     window.addEventListener('popstate', this._onPop);
     this._onNavKey = (e) => {
       if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); this.navGoBack(); }
       else if (e.key === 'Backspace' && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') && !(e.target && e.target.isContentEditable)) { if (this.navGoBack()) e.preventDefault(); }
     };
     window.addEventListener('keydown', this._onNavKey);
+    try { if (sessionStorage.getItem('sc.exitAfter') === '1') setTimeout(() => { if (!this.state.logged) this.exitApp(); else { try { sessionStorage.removeItem('sc.exitAfter'); } catch (e) {} } }, 600); } catch (e) {}
     this.secStart();
     // 통계 '데이터 목록'의 [엑셀 다운로드] — 차트 부품이 호출
     window.__scXlsx = (id, cols, rows) => {
@@ -4230,6 +4240,18 @@ class Component extends DCLogic {
       Component.lsSetCritical(Component.VIEW_KEY, JSON.stringify(o), !!this.cloudCfg());
     } catch (e) {}
   }
+  // 앱 종료: 웹 앱은 스스로 닫을 수 없는 경우가 많아, 먼저 창 닫기를 시도하고 안 닫히면 종료 안내 화면을 보여 줌
+  exitApp() {
+    try { sessionStorage.removeItem('sc.exitAfter'); sessionStorage.setItem('sc.exited', '1'); } catch (e) {}   // 종료 표시는 화면이 다시 그려져도 유지(처음 화면 구성 중에 한 번 더 그려지는 경우가 있음)
+    try { window.close(); } catch (e) {}
+    setTimeout(() => this.setState({ exited: true }), 350);
+  }
+  // 로그아웃한 뒤 바로 종료 (직원별 계정 방식은 로그아웃 뒤 화면을 새로 열므로 표시를 남겨 두었다가 종료)
+  logoutExit() {
+    if (Component.isStaffMode()) { this._exitAfter = true; this.authSignOut(); return; }
+    try { localStorage.removeItem(Component.VIEW_KEY); sessionStorage.removeItem(Component.VIEW_KEY); } catch (e) {}
+    this.setState({ logged: false, device: Component.detectDevice() }); this.exitApp();
+  }
   // 화면을 새로 열기 직전: 대기 중인 저장을 멈추고 이후 저장을 막음 (아직 로그인 상태가 반영되기 전의 저장이 로그인 정보를 지워 로그인 화면으로 돌아가던 문제 방지)
   reloadPage(ms) { this._reloading = true; clearTimeout(this._viewT); setTimeout(() => window.location.reload(), ms || 0); }
   saveView() {
@@ -4902,6 +4924,7 @@ class Component extends DCLogic {
     this._staffSnap = null;
     if (Component.isStaffMode() && !unsent) {
       this.wipeLocalData();
+      if (this._exitAfter) { try { sessionStorage.setItem('sc.exitAfter', '1'); } catch (e) {} }   // 로그아웃하고 종료: 저장 정리가 끝난 뒤 표시를 남겨 새로 열린 화면이 종료하게 함
       if (reason === 'idle') { try { sessionStorage.setItem('sc.idleOut', '1'); } catch (e) {} }
       this.setState({ logged: false, cloudStatus: 'off', srvEmail: (a && a.email) || '', srvPw: '', srvErr: '' });
       // 화면에 남은 환자 정보까지 완전히 비우도록 새로 시작
@@ -11838,6 +11861,8 @@ class Component extends DCLogic {
       privShort: this.privOn() ? '끄기' : '켜기',
       privCls: this.privOn() ? 'sc-priv sc-priv-on' : 'sc-priv',
       privIcon: this.privOn() ? 'ph-fill ph-eye-slash' : 'ph ph-eye',
+      exitApp: () => this.exitApp(), logoutExit: () => this.logoutExit(),
+      exitedOpen: !!s.exited, exitedRestart: () => { try { sessionStorage.removeItem('sc.exitAfter'); sessionStorage.removeItem('sc.exited'); } catch (e) {} window.location.reload(); },
       isSysUser: isSys, notSysUser: !isSys,
       ...(() => {
         void s.secRev;
