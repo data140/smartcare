@@ -46,7 +46,7 @@ class Component extends DCLogic {
     // 실제 휴대폰·태블릿 기기에서 자동 판별일 때만 전체 화면(기기 틀 없음). PC에서 모드를 골라 보면 기기 틀로 미리보기
     phoneOnly: Component.autoDevice() !== 'pc' && Component.detectDevice() !== 'pc',
     pcView: 'patients',
-    privView: (() => { try { return localStorage.getItem('sc.privView.v1') === '1'; } catch (e) { return false; } })(),
+    privView: (() => { try { const v = localStorage.getItem('sc.privView.v1'); return v === '1' ? true : (v === '0' ? false : null); } catch (e) { return null; } })(),
     mobileView: 'today',
     logTab: 'list',
     setTab: 'ai',
@@ -2378,12 +2378,25 @@ class Component extends DCLogic {
   jrnPhotos(key, s) { return this.jrnPhotoObjs(key, s).map(o => o.url); }
   // ───── 얼굴 블러 (출력·내보내기): 원본은 그대로 두고 내보내는 복사본에만 적용 ─────
   // auto = 초상권 '동의'한 환자 얼굴만 선명(나머지·미확인은 블러), all = 모두 블러, off = 블러 안 함(사유 필수·기록)
-  jrnBlurMode() { try { const m = localStorage.getItem('smartcare.jrnBlur.v1'); return m === 'all' || m === 'off' ? m : 'auto'; } catch (e) { return 'auto'; } }
+  // 기관 설정(설정 › 개인정보 표시): 기본 블러 방식 · 동의 기준 · 블러 해제 허용 범위 · 보호 보기 기본값
+  static BLUR_CFG = { mode: 'auto', basis: 'portrait', allowOff: 'admin', privDefault: false };
+  blurCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem('smartcare.blurCfg.v1') || '{}') || {}; } catch (e) {} const o = Object.assign({}, Component.BLUR_CFG, c); if (o.mode !== 'all') o.mode = 'auto'; if (o.basis !== 'both') o.basis = 'portrait'; if (['admin', 'all', 'none'].indexOf(o.allowOff) < 0) o.allowOff = 'admin'; o.privDefault = !!o.privDefault; return o; }
+  blurCfgSave(patch) { const c = Object.assign(this.blurCfg(), patch); try { localStorage.setItem('smartcare.blurCfg.v1', JSON.stringify(c)); } catch (e) {} this.setState({ blurCfgRev: (this.state.blurCfgRev || 0) + 1, jrnBlurRes: null }); }
+  myRoleList() { const s = this.state; const me = (s.roster || []).find(m => m.id === s.userId) || {}; return Array.isArray(me.roles) ? me.roles : [me.role]; }
+  blurOffAllowed() { const a = this.blurCfg().allowOff, r = this.myRoleList(); if (a === 'none') return false; if (a === 'all') return r.some(x => x === '담당자' || x === '관리자' || x === '시스템관리자'); return r.some(x => x === '관리자' || x === '시스템관리자'); }
+  blurOkPatient(p) { if (!p || p.consent !== '동의') return false; return this.blurCfg().basis === 'both' ? p.face === '동의' : true; }
+  privOn() { const v = this.state.privView; return v === null || v === undefined ? this.blurCfg().privDefault : !!v; }
+  // 내보내기 블러 방식: 이 기기에서 고른 값(설정에서 허용된 범위 안) → 없으면 기관 기본값
+  jrnBlurMode() {
+    let m = ''; try { m = localStorage.getItem('sc.jrnBlur.v1') || ''; } catch (e) {}
+    if (m === 'off') return this.blurOffAllowed() ? 'off' : this.blurCfg().mode;
+    return m === 'all' || m === 'auto' ? m : this.blurCfg().mode;
+  }
   jrnBlurSig(key, s, mode) {
     const objs = this.jrnPhotoObjs(key, s);
     const sess = (s.activeSession === key) ? { review: s.review } : ((s.sessions || {})[key] || {});
     const rows = (sess.review || []).filter(r => r && r.src).map(r => [r.id || '', r.src.pid, r.src.x, r.src.y, r.src.bw, r.src.bh, r.src.w].join(','));
-    const cons = {}; PATIENTS.forEach(p => { if (p && p.id) cons[p.id] = p.consent || ''; });
+    const cons = {}; PATIENTS.forEach(p => { if (p && p.id) cons[p.id] = this.blurOkPatient(p) ? 'Y' : 'N'; });
     const used = (sess.review || []).filter(r => r && r.id).map(r => r.id + ':' + (cons[r.id] || ''));
     return mode + '|' + objs.map(o => o.id + ':' + o.url.length + ':' + o.url.slice(-24)).join(';') + '|' + rows.join(';') + '|' + used.join(';');
   }
@@ -2394,7 +2407,7 @@ class Component extends DCLogic {
     const rows = (sess.review || []).filter(r => r && r.src && o.id && r.src.pid === o.id && r.src.w);
     if (rows.length) {
       const k = cv.width / rows[0].src.w;
-      return { known: true, boxes: rows.map(r => ({ x: r.src.x * k, y: r.src.y * k, w: r.src.bw * k, h: r.src.bh * k, ok: !!(r.id && pats[r.id] && pats[r.id].consent === '동의') })) };
+      return { known: true, boxes: rows.map(r => ({ x: r.src.x * k, y: r.src.y * k, w: r.src.bw * k, h: r.src.bh * k, ok: !!(r.id && pats[r.id] && this.blurOkPatient(pats[r.id])) })) };
     }
     // 위치 기록이 없는 사진(운영일지에 직접 올린 사진 등): 얼굴을 직접 찾고, 누구인지 알 수 없으므로 모두 블러 대상
     const fa = await this.loadFaceApi();
@@ -3089,9 +3102,9 @@ class Component extends DCLogic {
         const rs = s.jrnBlurRes; const okRes = !!(j && rs && rs.urls && rs.sig === this.jrnBlurSig(j.key, s, mode));
         const reasonNeeded = mode === 'off' && !s.jrnBlurReason;
         const busy = mode !== 'off' && (!!s.jrnBlurBusy || !okRes);
-        const setMode = (m) => { try { localStorage.setItem('smartcare.jrnBlur.v1', m); } catch (e) {} this.setState({ jrnBlurRev: (s.jrnBlurRev || 0) + 1, jrnBlurRes: null, jrnBlurReason: m === 'off' ? s.jrnBlurReason : '' }); if (s.jrnPrev) setTimeout(() => this.jrnBlurPrepare(selKey), 20); };
+        const setMode = (m) => { try { localStorage.setItem('sc.jrnBlur.v1', m); } catch (e) {} this.setState({ jrnBlurRev: (s.jrnBlurRev || 0) + 1, jrnBlurRes: null, jrnBlurReason: m === 'off' ? s.jrnBlurReason : '' }); if (s.jrnPrev) setTimeout(() => this.jrnBlurPrepare(selKey), 20); };
         return {
-          jrnBlurTabs: [{ k: 'auto', label: '동의한 분만 선명 (권장)' }, { k: 'all', label: '모두 블러' }, { k: 'off', label: '블러 안 함' }].map(t => ({ label: t.label, cls: mode === t.k ? 'sel-chip' : '', on: mode === t.k, go: () => setMode(t.k) })),
+          jrnBlurTabs: [{ k: 'auto', label: this.blurCfg().basis === 'both' ? '초상권·안면 동의한 분만 선명' : '동의한 분만 선명 (권장)' }, { k: 'all', label: '모두 블러' }].concat(this.blurOffAllowed() ? [{ k: 'off', label: '블러 안 함' }] : []).map(t => ({ label: t.label, cls: mode === t.k ? 'sel-chip' : '', on: mode === t.k, go: () => setMode(t.k) })),
           jrnBlurOff: mode === 'off',
           jrnBlurAlbumNote: mode === 'off' ? (s.jrnBlurReason ? '원본 그대로 내려받습니다. 사유와 함께 기록이 남습니다.' : '블러 없이 내려받으려면 사유를 고르세요.') : (mode === 'all' ? '내려받는 사진의 모든 얼굴을 블러합니다. 화면의 사진은 그대로 보입니다.' : '내려받을 때 초상권 동의한 분만 선명하고 나머지는 블러합니다. 화면의 사진은 그대로 보입니다.'),
           jrnBlurReasons: ['내부 보관용', '본인·보호자에게 제공', '그 밖의 사유'].map(t => ({ label: t, cls: s.jrnBlurReason === t ? 'sel-chip' : '', go: () => this.setState({ jrnBlurReason: t }) })),
@@ -3180,14 +3193,14 @@ class Component extends DCLogic {
       ? { maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: 4 }
       : { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
     // 개인정보 보호 보기: 사진을 흐리게 — 누르고 있는 동안만 선명하게 보임
-    if (this.state.privView) {
+    if (this.privOn()) {
       style.filter = 'blur(16px)'; style.cursor = 'pointer'; style.transition = 'filter 0.15s';
       const show = (e) => { e.currentTarget.style.filter = 'none'; }, hide = (e) => { e.currentTarget.style.filter = 'blur(16px)'; };
       return React.createElement('img', { src: url, alt: alt, style: style, title: '개인정보 보호 보기 중 — 누르고 있는 동안만 보입니다', onPointerDown: show, onPointerUp: hide, onPointerLeave: hide, onPointerCancel: hide, draggable: false });
     }
     return React.createElement('img', { src: url, alt: alt, style: style });
   }
-  privToggle() { const on = !this.state.privView; try { if (on) localStorage.setItem('sc.privView.v1', '1'); else localStorage.removeItem('sc.privView.v1'); } catch (e) {} this.setState({ privView: on }); this.flash(on ? '개인정보 보호 보기를 켰습니다 — 사진은 누르고 있는 동안만 보입니다' : '개인정보 보호 보기를 껐습니다'); }
+  privToggle() { const on = !this.privOn(); try { localStorage.setItem('sc.privView.v1', on ? '1' : '0'); } catch (e) {} this.setState({ privView: on }); this.flash(on ? '개인정보 보호 보기를 켰습니다 — 사진은 누르고 있는 동안만 보입니다' : '개인정보 보호 보기를 껐습니다'); }
 
   flash(msg) {
     this.setState({ toast: msg });
@@ -3893,6 +3906,16 @@ class Component extends DCLogic {
       onPrivRegPat: (e) => { const v = clean(e.target.value); this.savePrivacy({ regPat: v || '#####*', regOn: true }); },
       privNameSamples: ['김명순A', '송인재', '남궁민수'].map(n => ({ from: n, to: c.nameOn ? Component.maskByPattern(n, c.namePat) : n })),
       privRegSamples: ['00010617', '1021345678'].map(n => ({ from: n, to: c.regOn ? Component.maskByPattern(n, c.regPat) : n })),
+      blurCfgRows: (() => {
+        const c = this.blurCfg();
+        const row = (key, label, desc, opts) => ({ label: label, desc: desc, opts: opts.map(o => ({ label: o[1], cls: c[key] === o[0] ? 'sel-chip' : '', on: c[key] === o[0], go: () => this.blurCfgSave({ [key]: o[0] }) })) });
+        return [
+          row('mode', '내보내기 기본 방식', '운영일지 내보내기·앨범 내려받기에서 처음 적용되는 얼굴 블러 방식입니다.', [['auto', '동의한 분만 선명 (권장)'], ['all', '모두 블러']]),
+          row('basis', '선명하게 둘 동의 기준', '선택한 기준을 모두 만족한 환자의 얼굴만 선명하게 내보냅니다. 나머지·미확인 얼굴은 블러됩니다.', [['portrait', '초상권 동의만'], ['both', '초상권 + 안면인식 동의 둘 다']]),
+          row('allowOff', '[블러 안 함] 허용 범위', '블러 없이 내보낼 수 있는 사람입니다. 허용해도 사유 선택이 필수이며 기록이 남습니다.', [['admin', '관리자만'], ['all', '담당자도'], ['none', '허용 안 함']]),
+          row('privDefault', '화면 보호 보기 기본값', '켜 두면 모든 직원 화면에서 사진이 처음부터 흐리게 보입니다(누르고 있는 동안만 선명). 각자 기기에서 바꾼 값이 우선합니다.', [[false, '기본 꺼짐'], [true, '기본 켜짐']])
+        ];
+      })(),
       privNameState: c.nameOn ? '이름 가림 켜짐' : '이름 가림 꺼짐', privRegState: c.regOn ? '등록번호 가림 켜짐' : '등록번호 가림 꺼짐'
     };
   }
@@ -11644,13 +11667,13 @@ class Component extends DCLogic {
           } })
         };
       })(),
-      privOn: !!s.privView, privOff: !s.privView,
+      privOn: this.privOn(), privOff: !this.privOn(),
       privToggle: () => this.privToggle(),
-      privFilter: s.privView ? 'blur(16px)' : 'none',
-      privLabel: s.privView ? '보호 보기 켜짐' : '개인정보 보호 보기',
-      privShort: s.privView ? '끄기' : '켜기',
-      privCls: s.privView ? 'sc-priv sc-priv-on' : 'sc-priv',
-      privIcon: s.privView ? 'ph-fill ph-eye-slash' : 'ph ph-eye',
+      privFilter: this.privOn() ? 'blur(16px)' : 'none',
+      privLabel: this.privOn() ? '보호 보기 켜짐' : '개인정보 보호 보기',
+      privShort: this.privOn() ? '끄기' : '켜기',
+      privCls: this.privOn() ? 'sc-priv sc-priv-on' : 'sc-priv',
+      privIcon: this.privOn() ? 'ph-fill ph-eye-slash' : 'ph ph-eye',
       isSysUser: isSys, notSysUser: !isSys,
       ...(() => {
         void s.secRev;
