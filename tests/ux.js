@@ -164,6 +164,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     check('아이디만 저장되고 비밀번호는 저장되지 않음', !!hint && JSON.parse(hint).id === '100101' && !/pw|pass|1234/i.test(Object.keys(JSON.parse(hint)).join(',') + hint.replace('100101', '')), hint);
     await p6.locator('button:has-text("로그아웃")').first().click();
     await p6.waitForSelector('input[autocomplete="username"]', { timeout: 15000 }); await sleep(800);
+    // 로그인 화면이 뜬 뒤 저장된 아이디가 채워지기까지 걸리는 시간이 환경마다 달라, 최대 6초까지 기다림
+    for (let i = 0; i < 12; i++) { if ((await p6.locator('input[autocomplete="username"]').first().inputValue()) === '100101') break; await sleep(500); }
     check('로그아웃 후에도 아이디가 채워져 있고 비밀번호는 비어 있음', (await p6.locator('input[autocomplete="username"]').first().inputValue()) === '100101' && (await p6.locator('input[autocomplete="current-password"]').first().inputValue()) === '');
     await p6.locator('label:has-text("이 기기에 아이디 저장") input').uncheck(); await sleep(300);
     check('저장을 끄면 저장된 아이디가 지워짐', (await p6.evaluate(() => localStorage.getItem('smartcare.loginHint.v1'))) === null);
