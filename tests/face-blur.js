@@ -68,6 +68,15 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     // 원본 보존
     const keep = await p.evaluate((o) => Object.keys(localStorage).filter(k => k.indexOf('smartcare.wsess.') === 0).some(k => { try { return JSON.parse(localStorage.getItem(k)).photos[0].url === o; } catch (e) { return false; } }), orig);
     check('원본 사진은 블러 후에도 그대로 보관됨', keep);
+    // 운영일지에 같은 사진을 직접 올렸어도(사진 번호가 달라도) 현장 일지 판독 결과로 누구인지 이어짐 → 동의한 분은 선명
+    await p.evaluate(([k, u]) => { localStorage.setItem('smartcare.journalph.v1', JSON.stringify({ [k]: [u] })); localStorage.setItem('sc.jrnBlur.v1', 'auto'); }, [today + '|음악치료', orig]);
+    await sleep(1500); await p.reload(); await p.waitForSelector('aside >> text=프로그램 운영일지', { timeout: 30000 }); await sleep(1500);
+    await p.locator('aside >> text=프로그램 운영일지').first().click(); await sleep(900);
+    await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
+    await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click();
+    for (let i = 0; i < 40; i++) { const t = await p.locator('[data-blur-bar] [role=status]').innerText().catch(() => ''); if (/명 중/.test(t)) break; await sleep(300); } await sleep(500);
+    r = await imgStats();
+    check('운영일지에 직접 올린 같은 사진도 판독 결과와 이어져 동의한 분은 선명', r && r.a > 100 && r.b < 40 && r.c < 40, JSON.stringify(r));
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 3).join(' | ')); }
   console.log('스마트케어 얼굴 블러 시험\n' + results.join('\n'));
