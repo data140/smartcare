@@ -2771,6 +2771,16 @@ class Component extends DCLogic {
     if (!this._sessDel || !this._sessDel[key]) return false;
     const v = sess || {}; return !((v.review || []).length || (v.photos || []).length || v.confirmed);
   }
+  // 동의서 '취득 방식' 표시: 실제로 남아 있는 서면 파일·전자서명 기록을 기준으로 (파일을 지우거나 동의를 철회한 뒤에도 예전 값이 남아 '서면 첨부'로 보이던 문제 방지)
+  consentViaOf(id, consent, s) {
+    s = s || this.state;
+    const stored = (s.consentVia || {})[id] || '';
+    const hasPaper = ((s.consentFiles || {})[id] || []).length > 0;
+    const mc = this.loadMobileConsent(id);
+    if (hasPaper) return stored === '모바일 전자서명' && mc ? stored : '서면 첨부';
+    if (mc) return '모바일 전자서명';
+    return consent === '동의' ? '모바일 전자서명' : '미취득';
+  }
   logDelRoleOk() { return this.myRoleList().some(x => x === '관리자' || x === '담당자' || x === '시스템관리자'); }
   logDelAskKey(key) { this.setState({ logDel: { key: key, reason: '' } }); }
   logDelToday(uid) { const d = this.todayIso(); return this.logDelLog().filter(x => x.byId === uid && (x.at || '').slice(0, 10) === d).length; }
@@ -9358,7 +9368,7 @@ class Component extends DCLogic {
         photoUrl: s.photoUrls[sel.id] || '',
         photoEl: this.img(s.photoUrls[sel.id], sel.name + ' 증명사진'),
         hasPhoto: !!s.photoUrls[sel.id], noPhoto: !s.photoUrls[sel.id],
-        consentVia: s.consentVia[sel.id] || (sel.consent === '동의' ? '모바일 전자서명' : '미취득'),
+        consentVia: this.consentViaOf(sel.id, sel.consent, s),
         files: (s.consentFiles[sel.id] || []).map(f => ({
           name: f.name, url: f.url,
           thumb: f.isPdf ? null : this.img(f.url, f.name, 'contain'),
@@ -9600,7 +9610,7 @@ class Component extends DCLogic {
         const W = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.70) 0.15 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.08 25)' }, OK = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', fg: 'var(--color-text)' }, NA = { line: 'var(--color-neutral-700)', fg: 'var(--color-text)' };
         // 템플릿용 sel 객체와 같은 계산 (날 데이터에는 이 두 값이 없음)
         const doc = sel.consent === '동의' ? 'PDF 보관됨' : '미작성';
-        const via = s.consentVia[sel.id] || (sel.consent === '동의' ? '모바일 전자서명' : '미취득');
+        const via = this.consentViaOf(sel.id, sel.consent, s);
         return [
           { label: '동의서', v: doc, c: bad(doc) ? W : OK },
           { label: '취득 방식', v: via, c: bad(via) ? W : OK },
