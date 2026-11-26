@@ -1377,6 +1377,12 @@ class Component extends DCLogic {
       alCurSelIcon: curAllOn ? 'ph-fill ph-check-square' : 'ph ph-square', alCurSelLabel: curAllOn ? '전체 해제' : '전체 선택',
       alCurToggleAll: () => { const n = Object.assign({}, this.state.alSel || {}); curItems.forEach(x => { if (curAllOn) delete n[x.id]; else n[x.id] = true; }); this.setState({ alSel: n }); },
       alCurDown: () => dl(curItems, null),
+      alCurAsg: () => {
+        const sel = curItems.filter(x => (this.state.alSel || {})[x.id]);
+        const keys = Array.from(new Set((sel.length ? sel : curItems).map(x => x.g.key)));
+        if (keys.length === 1) { this.faceAsgOpen(keys[0]); return; }
+        this.flash(keys.length ? '얼굴 지정은 한 번에 하나의 일지(날짜·프로그램)씩 합니다 — 한 일지의 사진을 고르거나 그 일지 폴더를 열어 주세요' : '지정할 사진이 없습니다');
+      },
       // 6a [받기 ▾]: 사진을 고르면 '선택한 사진 받기'가 기본, 아니면 '이 그룹 받기'
       ...(() => {
         const hasSel = selList.length > 0;
