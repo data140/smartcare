@@ -6,7 +6,7 @@
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const path = require('path');
-const SRC = 8831, DST = 8832;
+const SRC = +(process.env.QSRC || 8831), DST = +(process.env.QDST || 8832);
 const start = (args) => new Promise((ok, fail) => { const p = spawn('node', [path.join(__dirname, '..', 'tools', 'dev-server.js')].concat(args), { stdio: ['ignore', 'pipe', 'inherit'] }); p.stdout.once('data', () => ok(p)); p.once('exit', c => fail(new Error('서버 시작 실패 ' + c))); });
 const results = []; let failed = false;
 const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + name + (extra ? ' — ' + extra : '')); if (!ok) failed = true; };
@@ -48,6 +48,8 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
 
     const p = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = []; p.on('pageerror', e => errors.push(e.message));
+    // 느린 환경 재현용: THROTTLE=6 이면 화면 처리 속도를 1/6로 낮춤 (CI에서 간헐 실패 원인 추적)
+    if (process.env.THROTTLE) { const cdp = await p.context().newCDPSession(p); await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.THROTTLE) }); }
     await p.goto('http://localhost:' + DST + '/'); await p.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
     await p.click('button:has-text("시스템 관리자")');
     await p.locator('input[autocomplete="username"]').first().fill('admin'); await p.locator('input[autocomplete="current-password"]').first().fill('demo1234');
@@ -81,6 +83,17 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
         if (none === '444' && nofile === '454') break;
         await p.waitForTimeout(1000);
       }
+    }
+    // 값이 다를 때 원인 추적: 목록에서 빠진 환자 이름을 찾아 함께 출력
+    if (!(none === '444' && nofile === '454')) {
+      try {
+        await p.evaluate(() => { const sel = document.querySelector('[aria-label="한 페이지 인원"]'); if (sel) { const real = sel.tagName === 'SELECT' ? sel : sel.querySelector('select'); (real || sel).value = '0'; (real || sel).dispatchEvent(new Event('change', { bubbles: true })); } });
+        await p.waitForTimeout(1500);
+        const names = await p.evaluate(() => { const t = document.body.innerText; const m = t.match(/가상환자\d+/g) || []; return [...new Set(m)]; });
+        const have = new Set(names.map(x => Number(x.replace('가상환자', ''))));
+        const missing = []; for (let i = 1; i <= 455; i++) if (!have.has(i)) missing.push(i);
+        results.push('  · 진단: 목록에 보이는 환자 ' + have.size + '명, 빠진 번호 ' + missing.slice(0, 10).join(','));
+      } catch (e) { results.push('  · 진단 실패: ' + e.message); }
     }
     check('전자 동의·서면 동의서 반영 (동의 없음 444 · 서면 파일 없음 454)', none === '444' && nofile === '454', '동의 없음 ' + none + ' · 서면 파일 없음 ' + nofile);
     check('화면 오류 없음', errors.length === 0, errors.slice(0, 3).join(' | '));
