@@ -91,6 +91,22 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     for (let i = 0; i < 40; i++) { const t = await p.locator('[data-blur-bar] [role=status]').innerText().catch(() => ''); if (/명 중/.test(t)) break; await sleep(300); } await sleep(600);
     r = await imgStats();
     check('지정한 얼굴은 내보내기 사진에서도 선명, 나머지는 그대로 블러', r && r.c > 100 && r.b < 40, JSON.stringify(r));
+    // 여러 얼굴 한 번에 지정: 두 얼굴을 골라 [항상 블러 · 2개 모두]
+    await p.locator('button:has-text("얼굴 직접 지정")').first().click();
+    await p.waitForSelector('[data-face-stage]', { timeout: 15000 }); await sleep(500);
+    await p.locator('[data-face-stage] button[aria-label]').nth(0).click(); await sleep(200);
+    await p.locator('[data-face-stage] button[aria-label]').nth(1).click(); await sleep(300);
+    check('얼굴을 여러 개 골라도 선택이 유지됨 (2개 선택)', /2개 선택/.test(await p.locator('[data-face-npick]').innerText()), await p.locator('[data-face-npick]').innerText());
+    check('여러 개 선택 중에는 환자 목록 대신 한 번에 지정 단추가 나옴', (await p.locator('[data-face-pick] button:has-text("2개 모두")').count()) === 3 && (await p.locator('[data-face-pick] input').count()) === 0);
+    await p.locator('[data-face-pick] button:has-text("항상 블러")').click(); await sleep(1800);
+    const labs = await p.locator('[data-face-stage] button[aria-label]').evaluateAll(els => els.map(e => e.getAttribute('aria-label')));
+    check('선택한 두 얼굴이 한 번에 [블러 · 항상 블러]로 지정됨', /항상 블러/.test(labs[0]) && /항상 블러/.test(labs[1]) && !/항상 블러/.test(labs[2]), labs.join(' | '));
+    await p.locator('[data-face-npick]').waitFor(); await p.locator('button:has-text("모두 선택")').click(); await sleep(300);
+    check('[모두 선택]으로 얼굴 3개를 한 번에 선택', /3개 선택/.test(await p.locator('[data-face-npick]').innerText()));
+    await p.locator('[data-face-pick] button:has-text("지정 해제")').click(); await sleep(1800);
+    const labs2 = await p.locator('[data-face-stage] button[aria-label]').evaluateAll(els => els.map(e => e.getAttribute('aria-label')));
+    check('[지정 해제 · 3개 모두]로 자동 판단으로 되돌아감', labs2.every(x => !/ · /.test(x)), labs2.join(' | '));
+    await p.locator('[aria-label="얼굴 직접 지정"] button:has-text("완료")').click(); await sleep(400);
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 3).join(' | ')); }
   console.log('스마트케어 얼굴 블러 시험\n' + results.join('\n'));
