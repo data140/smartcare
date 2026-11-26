@@ -100,6 +100,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
         results.push('  · 진단: 브라우저 명부 ' + loc.join(' · '));
         const idx = sv.length ? (() => { try { const a = JSON.parse(sv[0].v); const i = a.findIndex(x => x.id === 'PT-B432'); return i; } catch (e) { return -2; } })() : -3;
         results.push('  · 진단: 서버 명부에서 PT-B432 위치 ' + idx);
+        results.push('  · 진단: 화면 메모리 명부 ' + JSON.stringify(await p.evaluate(() => window.__scPatientStats && window.__scPatientStats())));
         // 필터별로 432번 환자가 보이는지: 어느 쪽 증빙(전자 동의·서면 파일)이 붙었는지 가름
         for (const f of ['동의 없음', '서면 파일 없음', '동의 항목 미완료', '전체']) {
           await p.locator('button:has-text("' + f + '")').first().click().catch(() => {}); await p.waitForTimeout(700);
