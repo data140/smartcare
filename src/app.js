@@ -626,6 +626,8 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate(prevProps, prevStateArg) {
+    // 로그인 직후에 보안 경보 분석을 바로 돌림 (예전에는 화면을 연 지 4초 뒤 한 번 + 1분마다였고, 로그인 화면에 머문 사이 그 한 번이 지나가 경보등이 늦게 켜짐)
+    if (prevStateArg && !prevStateArg.logged && this.state.logged) { [3000, 10000, 25000].forEach(ms => setTimeout(() => { try { this.secScanAudit(); } catch (e) {} }, ms)); }
     this.applyUiScale();
     this.centerAlStrip();
 
@@ -2761,7 +2763,7 @@ class Component extends DCLogic {
     this._secExpL = (e) => this.secNoteExport(e && e.detail);
     window.addEventListener('sc-export', this._secExpL);
     // 3) 서버 기록(감사 로그) 분석 — 관리자 화면에서 1분마다
-    this._secT = setInterval(() => { if (!document.hidden) this.secScanAudit(); }, 60000);
+    this._secT = setInterval(() => { if (!document.hidden) this.secScanAudit(); }, 30000);
     setTimeout(() => this.secScanAudit(), 4000);
   }
   secStop() {
