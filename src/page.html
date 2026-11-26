@@ -3380,6 +3380,12 @@
                   <div style="display: flex; gap: 8px; flex-wrap: wrap;"><button type="button" sc-camel-on-click="{{ secScanNow }}" class="btn btn-secondary" style="min-height: 38px;"><i class="ph ph-magnifying-glass"></i> 지금 서버 기록 분석</button><button type="button" sc-camel-on-click="{{ secTest }}" class="btn btn-secondary" style="min-height: 38px;"><i class="ph ph-siren"></i> 경보 시험</button><button type="button" sc-camel-on-click="{{ secToggle }}" class="btn btn-primary" style="min-height: 38px;"><i class="ph ph-list-bullets"></i> 알림 목록 보기</button></div>
                   <div style="font-size: 12.5px; color: var(--color-neutral-500); line-height: 1.7;">※ 이 기능은 이상 징후를 알려 주는 것으로, 해킹을 막아 주지는 않습니다. 앱 로그인 화면을 거치지 않고 서버로 직접 시도하는 공격은 Supabase 기본 보호(횟수 제한)가 막으며, 이 화면의 서버 감시에는 잡히지 않을 수 있습니다.</div>
                 </div>
+                <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);" data-blur-log="1">
+                  <div style="font-size: 16px; font-weight: 600;">얼굴 블러 해제 내보내기 기록 (최근 20건)</div>
+                  <div style="font-size: 13px; color: var(--color-neutral-500); line-height: 1.7;">운영일지를 [블러 안 함]으로 내보낸 내역입니다. 누가·언제·어떤 일지·무슨 사유인지 남습니다.</div>
+                  <sc-if value="{{ blurLogNone }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13.5px; color: var(--color-neutral-500);">기록이 없습니다.</div></sc-if>
+                  <sc-for list="{{ blurLogRows }}" as="x" hint-placeholder-count="2"><div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 13.5px; padding: 8px 0; border-top: 1px solid var(--color-divider);"><span style="color: var(--color-neutral-400); min-width: 96px;">{{ x.when }}</span><b>{{ x.who }}</b><span>{{ x.what }}</span><span style="color: var(--color-neutral-400);">{{ x.why }}</span></div></sc-for>
+                </div>
                 <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);" data-log-del="1">
                   <div style="font-size: 16px; font-weight: 600;">일지 삭제 기록 (최근 20건)</div>
                   <div style="font-size: 13px; color: var(--color-neutral-500); line-height: 1.7;">착오 등록 일지를 지운 내역입니다. 삭제 전 내용은 백업 키로 보관되어 필요하면 복구할 수 있습니다. 한 사람이 하루 3건(관리자 10건) 넘게 지울 수 없고, 3건 이상이면 경보에 주의로 올라옵니다.</div>
@@ -4971,13 +4977,19 @@
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--color-divider);">
             <i class="ph ph-eye" style="font-size: 20px; color: var(--color-accent-300);"></i><span style="font-size: 16px; font-weight: 600;">운영일지 미리보기</span>
             <span style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap;">
-              <button type="button" sc-camel-on-click="{{ jrnGo }}" class="btn btn-primary" style="min-height: 38px;"><i class="{{ jrnGoIcon }}"></i> {{ jrnGoLabel }}</button>
+              <button type="button" sc-camel-on-click="{{ jrnGo }}" disabled="{{ jrnBlurBlocked }}" class="btn btn-primary" style="min-height: 38px;"><i class="{{ jrnGoIcon }}"></i> {{ jrnGoLabel }}</button>
               <button type="button" sc-camel-on-click="{{ jrnPrevClose }}" class="btn btn-secondary" data-keep="1" style="min-height: 38px; color: var(--color-text); font-weight: 600;"><i class="ph ph-x"></i> 닫기</button>
             </span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 18px; border-bottom: 1px solid var(--color-divider);">
             <sc-for list="{{ jrnTabs }}" as="t" hint-placeholder-count="3"><button type="button" class="{{ t.cls }}" sc-camel-on-click="{{ t.go }}" data-keep="1" style="display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-200); font: inherit; font-size: 13.5px; cursor: pointer;"><i class="{{ t.icon }}"></i>{{ t.label }}</button></sc-for>
             <span style="font-size: 12.5px; color: var(--color-neutral-500); flex: 1 1 240px;">{{ jrnFmtNote }}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 18px; border-bottom: 1px solid var(--color-divider);" data-blur-bar="1">
+            <span style="font-size: 13.5px; font-weight: 600;"><i class="ph ph-eye-closed"></i> 얼굴 블러</span>
+            <sc-for list="{{ jrnBlurTabs }}" as="t" hint-placeholder-count="3"><button type="button" class="{{ t.cls }}" aria-pressed="{{ t.on }}" sc-camel-on-click="{{ t.go }}" data-keep="1" style="min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-text); font: inherit; font-size: 13px; cursor: pointer;">{{ t.label }}</button></sc-for>
+            <sc-if value="{{ jrnBlurOff }}" hint-placeholder-val="{{ false }}"><span style="display: inline-flex; gap: 6px; flex-wrap: wrap;"><sc-for list="{{ jrnBlurReasons }}" as="r" hint-placeholder-count="3"><button type="button" class="{{ r.cls }}" sc-camel-on-click="{{ r.go }}" data-keep="1" style="min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-text); font: inherit; font-size: 12.5px; cursor: pointer;">{{ r.label }}</button></sc-for></span></sc-if>
+            <span role="status" style="font-size: 12.5px; color: var(--color-neutral-400); flex: 1 1 240px;">{{ jrnBlurStatus }}</span>
           </div>
           <iframe title="운영일지 미리보기" srcdoc="{{ jrnDoc }}" style="flex: 1; width: 100%; border: 0; background: #d9dce3;"></iframe>
         </div>

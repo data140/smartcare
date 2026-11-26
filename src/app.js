@@ -2356,10 +2356,105 @@ class Component extends DCLogic {
     const f = Object.assign({}, d, saved && saved.f ? saved.f : {});
     return { key: key, p: p, f: f, saved: !!saved, dateTxt: this.jrnDateTxt(p.date), timeTxt: (p.start || '') + (p.end ? '~' + p.end : ''), photos: this.jrnPhotos(key, s) };
   }
-  jrnPhotos(key, s) {
-    if (s.jrnPh && Array.isArray(s.jrnPh[key])) return s.jrnPh[key].filter(u => typeof u === 'string' && /^data:image\//.test(u)).slice(0, 4);
+  jrnPhotoObjs(key, s) {
+    if (s.jrnPh && Array.isArray(s.jrnPh[key])) return s.jrnPh[key].filter(u => typeof u === 'string' && /^data:image\//.test(u)).slice(0, 4).map(u => ({ url: u, id: '' }));
     const sess = (s.activeSession === key) ? { photos: s.photos } : ((s.sessions || {})[key] || {});
-    return (sess.photos || []).map(x => x && x.url).filter(u => typeof u === 'string' && /^data:image\//.test(u)).slice(0, 4);
+    return (sess.photos || []).filter(x => x && typeof x.url === 'string' && /^data:image\//.test(x.url)).slice(0, 4).map(x => ({ url: x.url, id: x.id || '' }));
+  }
+  jrnPhotos(key, s) { return this.jrnPhotoObjs(key, s).map(o => o.url); }
+  // ───── 얼굴 블러 (출력·내보내기): 원본은 그대로 두고 내보내는 복사본에만 적용 ─────
+  // auto = 초상권 '동의'한 환자 얼굴만 선명(나머지·미확인은 블러), all = 모두 블러, off = 블러 안 함(사유 필수·기록)
+  jrnBlurMode() { try { const m = localStorage.getItem('smartcare.jrnBlur.v1'); return m === 'all' || m === 'off' ? m : 'auto'; } catch (e) { return 'auto'; } }
+  jrnBlurSig(key, s, mode) {
+    const objs = this.jrnPhotoObjs(key, s);
+    const sess = (s.activeSession === key) ? { review: s.review } : ((s.sessions || {})[key] || {});
+    const rows = (sess.review || []).filter(r => r && r.src).map(r => [r.id || '', r.src.pid, r.src.x, r.src.y, r.src.bw, r.src.bh, r.src.w].join(','));
+    const cons = {}; PATIENTS.forEach(p => { if (p && p.id) cons[p.id] = p.consent || ''; });
+    const used = (sess.review || []).filter(r => r && r.id).map(r => r.id + ':' + (cons[r.id] || ''));
+    return mode + '|' + objs.map(o => o.id + ':' + o.url.length + ':' + o.url.slice(-24)).join(';') + '|' + rows.join(';') + '|' + used.join(';');
+  }
+  // 이 사진에서 얼굴 위치 (판독 결과에 저장된 위치 우선, 없으면 얼굴 검출) → [{x,y,w,h, ok}]  ok = 초상권 동의한 환자
+  async jrnFaceBoxes(key, s, o, cv) {
+    const sess = (s.activeSession === key) ? { review: s.review } : ((s.sessions || {})[key] || {});
+    const pats = {}; PATIENTS.forEach(p => { if (p && p.id) pats[p.id] = p; });
+    const rows = (sess.review || []).filter(r => r && r.src && o.id && r.src.pid === o.id && r.src.w);
+    if (rows.length) {
+      const k = cv.width / rows[0].src.w;
+      return { known: true, boxes: rows.map(r => ({ x: r.src.x * k, y: r.src.y * k, w: r.src.bw * k, h: r.src.bh * k, ok: !!(r.id && pats[r.id] && pats[r.id].consent === '동의') })) };
+    }
+    // 위치 기록이 없는 사진(운영일지에 직접 올린 사진 등): 얼굴을 직접 찾고, 누구인지 알 수 없으므로 모두 블러 대상
+    const fa = await this.loadFaceApi();
+    const out = [];
+    const add = (d, ox, oy, kk) => { const b = d.box; const r = { x: ox + b.x / kk, y: oy + b.y / kk, w: b.width / kk, h: b.height / kk }; if (!out.some(q => { const ix = Math.max(0, Math.min(q.x + q.w, r.x + r.w) - Math.max(q.x, r.x)), iy = Math.max(0, Math.min(q.y + q.h, r.y + r.h) - Math.max(q.y, r.y)); return ix * iy > 0.3 * Math.min(q.w * q.h, r.w * r.h); })) out.push(Object.assign(r, { ok: false })); };
+    (await fa.detectAllFaces(cv, new fa.SsdMobilenetv1Options({ minConfidence: 0.3, maxResults: 100 }))).forEach(d => add(d, 0, 0, 1));
+    for (const n of [2, 3]) {
+      const tw = cv.width / n, th = cv.height / n, ov = 0.25;
+      for (let ty = 0; ty < n; ty++) for (let tx = 0; tx < n; tx++) {
+        const sx = Math.max(0, tx * tw - tw * ov), sy = Math.max(0, ty * th - th * ov), sw = Math.min(cv.width - sx, tw * (1 + ov * 2)), sh = Math.min(cv.height - sy, th * (1 + ov * 2));
+        const kk = Math.min(2.5, 1400 / Math.max(sw, sh)); const tc = document.createElement('canvas'); tc.width = Math.round(sw * kk); tc.height = Math.round(sh * kk);
+        tc.getContext('2d').drawImage(cv, sx, sy, sw, sh, 0, 0, tc.width, tc.height);
+        let td = []; try { td = await fa.detectAllFaces(tc, new fa.SsdMobilenetv1Options({ minConfidence: 0.35, maxResults: 100 })); } catch (e) {}
+        td.forEach(d => add(d, sx, sy, kk));
+      }
+    }
+    return { known: false, boxes: out };
+  }
+  // 얼굴 부분을 큰 모자이크 + 번짐으로 덮음 (알아볼 수 없게, 복원 불가)
+  static blurRegion(cv, b) {
+    const pad = 0.28, x = Math.max(0, Math.floor(b.x - b.w * pad)), y = Math.max(0, Math.floor(b.y - b.h * pad));
+    const w = Math.min(cv.width - x, Math.ceil(b.w * (1 + pad * 2))), h = Math.min(cv.height - y, Math.ceil(b.h * (1 + pad * 2)));
+    if (w < 2 || h < 2) return;
+    const ctx = cv.getContext('2d');
+    // 먼저 여러 번 절반으로 줄여 평균을 낸 뒤(무늬가 남지 않게) 크게 키워 모자이크로 만듦
+    const px = Math.max(4, Math.round(Math.max(w, h) / 9));
+    const tw = Math.max(1, Math.round(w / px)), th = Math.max(1, Math.round(h / px));
+    let cur = document.createElement('canvas'); cur.width = w; cur.height = h; cur.getContext('2d').drawImage(cv, x, y, w, h, 0, 0, w, h);
+    while (cur.width > tw * 2 || cur.height > th * 2) {
+      const n = document.createElement('canvas'); n.width = Math.max(tw, Math.floor(cur.width / 2)); n.height = Math.max(th, Math.floor(cur.height / 2));
+      const nx = n.getContext('2d'); nx.imageSmoothingEnabled = true; try { nx.imageSmoothingQuality = 'high'; } catch (e) {} nx.drawImage(cur, 0, 0, n.width, n.height); cur = n;
+    }
+    const t = document.createElement('canvas'); t.width = tw; t.height = th; const tx = t.getContext('2d'); tx.imageSmoothingEnabled = true; tx.drawImage(cur, 0, 0, tw, th);
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(t, 0, 0, tw, th, x, y, w, h); ctx.restore();
+    const c2 = document.createElement('canvas'); c2.width = w; c2.height = h; c2.getContext('2d').drawImage(cv, x, y, w, h, 0, 0, w, h);
+    ctx.save(); ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2); ctx.clip();
+    try { ctx.filter = 'blur(' + Math.max(4, Math.round(px / 1.5)) + 'px)'; } catch (e) {}
+    ctx.drawImage(c2, x, y); ctx.restore();
+  }
+  jrnBlurLogExport(j) {
+    if (this.jrnBlurMode() !== 'off') return;
+    let a = []; try { a = JSON.parse(localStorage.getItem('smartcare.blurLog.v1') || '[]') || []; } catch (e) {}
+    a.unshift({ at: new Date().toISOString(), by: this._userName || '', byId: this.state.userId, key: j.key, program: j.p.program, reason: this.state.jrnBlurReason || '', photos: (j.photos || []).length });
+    try { localStorage.setItem('smartcare.blurLog.v1', JSON.stringify(a.slice(0, 300))); } catch (e) {}
+    this.setState({ blurLogRev: (this.state.blurLogRev || 0) + 1 });
+  }
+  async jrnBlurPrepare(key) {
+    key = key || this.state.jrnSel; const s = this.state; const mode = this.jrnBlurMode();
+    if (!key || mode === 'off') { this.setState({ jrnBlurRes: null, jrnBlurBusy: false }); return; }
+    const sig = this.jrnBlurSig(key, s, mode);
+    if (s.jrnBlurRes && s.jrnBlurRes.sig === sig) return;
+    const token = (this._jrnBlurTok = (this._jrnBlurTok || 0) + 1);
+    this.setState({ jrnBlurBusy: true });
+    try {
+      const objs = this.jrnPhotoObjs(key, s); const urls = []; let faces = 0, blurred = 0, kept = 0;
+      for (const o of objs) {
+        const cv = await this.toCanvas(o.url, 2000);
+        const fb = await this.jrnFaceBoxes(key, s, o, cv);
+        fb.boxes.forEach(b => { faces++; if (mode === 'all' || !b.ok) { blurred++; Component.blurRegion(cv, b); } else kept++; });
+        urls.push(cv.toDataURL('image/jpeg', 0.9));
+      }
+      if (token !== this._jrnBlurTok) return;
+      this.setState({ jrnBlurRes: { sig: sig, urls: urls, faces: faces, blurred: blurred, kept: kept, photos: objs.length }, jrnBlurBusy: false });
+    } catch (e) {
+      if (token !== this._jrnBlurTok) return;
+      this.setState({ jrnBlurRes: { sig: sig, urls: null, error: (e && e.message) || '얼굴 검출 실패' }, jrnBlurBusy: false });
+      this.flash('얼굴 블러 처리에 실패해 사진을 넣지 않았습니다 — 네트워크를 확인하고 다시 시도하세요');
+    }
+  }
+  // 내보내기에 쓸 사진: 블러 안 함이면 원본, 아니면 블러된 복사본(준비 전·실패 시에는 사진을 빼서 원본이 나가지 않게 함)
+  jrnOutPhotos(j) {
+    const mode = this.jrnBlurMode(); if (mode === 'off') return j.photos;
+    const r = this.state.jrnBlurRes; if (r && r.urls && r.sig === this.jrnBlurSig(j.key, this.state, mode)) return r.urls;
+    return [];
   }
   jrnSetField(key, name, val, s) {
     const j = this.jrnGet(key, s); if (!j) return;
@@ -2907,6 +3002,11 @@ class Component extends DCLogic {
     const rows = jt === 'all' ? rows0 : rows0.filter(p => stOf(p) === jt);
     let selKey = s.jrnSel && rows0.some(p => this.jrnKeyOf(p) === s.jrnSel) ? s.jrnSel : (rows.length ? this.jrnKeyOf(rows.find(p => p.date <= today) || rows[0]) : null);
     const j = selKey ? this.jrnGet(selKey, s) : null;
+    const jMode = this.jrnBlurMode();
+    const jRes = s.jrnBlurRes; const jResOk = !!(j && jRes && jRes.urls && jRes.sig === this.jrnBlurSig(j.key, s, jMode));
+    const jOut = () => Object.assign({}, j, { photos: this.jrnOutPhotos(j) });
+    const jOutNow = j ? Object.assign({}, j, { photos: jMode === 'off' ? j.photos : (jResOk ? jRes.urls : []) }) : null;
+    const jrnBlocked = !!j && ((jMode === 'off' && !s.jrnBlurReason) || (jMode !== 'off' && !jResOk && !(jRes && jRes.urls === null)));
     const logo = (() => { try { return localStorage.getItem('smartcare.journalLogo.v1') || ''; } catch (e) { return ''; } })();
     const phone = s.device === 'mobile' || s.device === 'tablet';
     const hasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -2954,16 +3054,31 @@ class Component extends DCLogic {
       jrnLearnTxt: j ? (this.jrnLearnCount(j.p.program) ? '이 프로그램(' + j.p.program + ')에서 직접 고쳐 쓴 문장 ' + this.jrnLearnCount(j.p.program) + '개를 학습해 자동 작성에 반영합니다.' : '직접 고쳐 쓰면 이 프로그램(' + j.p.program + ')의 다음 자동 작성에 반영됩니다. [자동으로 다시 쓰기]를 누를 때마다 다른 문장으로 작성됩니다.') : '',
       jrnLearnHas: !!(j && this.jrnLearnCount(j.p.program)),
       jrnLearnClear: () => { if (!j) return; this.jrnLearnClear(j.p.program); this.setState({ jrnVarRev: (this.state.jrnVarRev || 0) + 1 }); this.flash(j.p.program + ' 학습 내용을 지웠습니다'); },
-      jrnPreview: () => this.setState({ jrnPrev: true, jrnFmt: 'pdf' }),
+      jrnPreview: () => { this.setState({ jrnPrev: true, jrnFmt: 'pdf' }); setTimeout(() => this.jrnBlurPrepare(selKey), 30); },
       jrnPrevOpen: !!s.jrnPrev && !!j, jrnPrevClose: () => this.setState({ jrnPrev: false }),
       jrnTabs: [{ k: 'pdf', label: '인쇄 · PDF', icon: 'ph ph-printer' }, { k: 'docx', label: 'Word', icon: 'ph ph-file-doc' }, { k: 'hwpx', label: '한글(hwpx)', icon: 'ph ph-file-text' }].map(t => ({ label: t.label, icon: t.icon, on: (s.jrnFmt || 'pdf') === t.k, cls: (s.jrnFmt || 'pdf') === t.k ? 'sel-chip' : '', go: () => this.setState({ jrnFmt: t.k }) })),
       jrnFmtNote: (s.jrnFmt || 'pdf') === 'hwpx' ? '한글(.hwpx) 파일입니다. 한글 2014 이상에서 열 수 있고 사진이 포함됩니다. 열리지 않으면 Word 파일을 이용하세요.' : ((s.jrnFmt || 'pdf') === 'docx' ? 'Word(.docx) 파일입니다. 한글에서도 열 수 있고, 사진이 포함됩니다.' : '인쇄 창에서 [PDF로 저장]을 고르면 PDF 파일이 됩니다. 한 장(A4)에 맞춰 출력됩니다.'),
       jrnGoLabel: (s.jrnFmt || 'pdf') === 'hwpx' ? '한글 파일 다운로드' : ((s.jrnFmt || 'pdf') === 'docx' ? 'Word 파일 다운로드' : '인쇄 · PDF 저장'),
       jrnGoIcon: (s.jrnFmt || 'pdf') === 'pdf' ? 'ph ph-printer' : 'ph ph-download-simple',
-      jrnGo: () => { if (!j) return; const f = this.state.jrnFmt || 'pdf'; if (f === 'docx') this.jrnDocx(j, org, logo, ap, ft).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); else if (f === 'hwpx') { this.jrnHwpx(j, org, ap, ft, logo).catch(e => this.flash('한글 파일 저장 실패 — ' + (e && e.message))); } else this.jrnPrint(j, org, logo, ap, ft); },
-      jrnDoc: j && s.jrnPrev ? this.jrnHtml(j, org, logo, ap, ft) : '',
-      jrnPrintGo: () => { if (j) this.jrnPrint(j, org, logo); },
-      jrnDocxGo: () => { if (j) this.jrnDocx(j, org, logo).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); },
+      ...(() => {
+        const mode = this.jrnBlurMode();
+        const rs = s.jrnBlurRes; const okRes = !!(j && rs && rs.urls && rs.sig === this.jrnBlurSig(j.key, s, mode));
+        const reasonNeeded = mode === 'off' && !s.jrnBlurReason;
+        const busy = mode !== 'off' && (!!s.jrnBlurBusy || !okRes);
+        const setMode = (m) => { try { localStorage.setItem('smartcare.jrnBlur.v1', m); } catch (e) {} this.setState({ jrnBlurRev: (s.jrnBlurRev || 0) + 1, jrnBlurRes: null, jrnBlurReason: m === 'off' ? s.jrnBlurReason : '' }); setTimeout(() => this.jrnBlurPrepare(selKey), 20); };
+        return {
+          jrnBlurTabs: [{ k: 'auto', label: '동의한 분만 선명 (권장)' }, { k: 'all', label: '모두 블러' }, { k: 'off', label: '블러 안 함' }].map(t => ({ label: t.label, cls: mode === t.k ? 'sel-chip' : '', on: mode === t.k, go: () => setMode(t.k) })),
+          jrnBlurOff: mode === 'off',
+          jrnBlurReasons: ['내부 보관용', '본인·보호자에게 제공', '그 밖의 사유'].map(t => ({ label: t, cls: s.jrnBlurReason === t ? 'sel-chip' : '', go: () => this.setState({ jrnBlurReason: t }) })),
+          jrnBlurStatus: mode === 'off' ? (reasonNeeded ? '블러 없이 내보내려면 사유를 고르세요. 사유는 기록으로 남습니다.' : '얼굴이 그대로 나옵니다. 내보내면 사유와 함께 기록이 남습니다.') : (busy ? '얼굴을 찾아 블러 처리하는 중…' : (rs && rs.urls ? '사진 ' + rs.photos + '장 · 얼굴 ' + rs.faces + '명 중 ' + rs.blurred + '명 블러' + (rs.kept ? ', ' + rs.kept + '명 선명(초상권 동의)' : '') : '블러 처리에 실패해 사진은 넣지 않습니다.')),
+          jrnBlurBlocked: jrnBlocked,
+          jrnBlurWarn: mode === 'off'
+        };
+      })(),
+      jrnGo: () => { if (!j || jrnBlocked) return; this.jrnBlurLogExport(j); const f = this.state.jrnFmt || 'pdf'; if (f === 'docx') this.jrnDocx(jOut(), org, logo, ap, ft).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); else if (f === 'hwpx') { this.jrnHwpx(jOut(), org, ap, ft, logo).catch(e => this.flash('한글 파일 저장 실패 — ' + (e && e.message))); } else this.jrnPrint(jOut(), org, logo, ap, ft); },
+      jrnDoc: j && s.jrnPrev ? this.jrnHtml(jOutNow, org, logo, ap, ft) : '',
+      jrnPrintGo: () => { if (j) this.jrnPrint(jOut(), org, logo); },
+      jrnDocxGo: () => { if (j) this.jrnDocx(jOut(), org, logo).catch(e => this.flash('Word 저장 실패 — ' + (e && e.message))); },
       jrnLogoPick: (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, 420 / im.width, 140 / im.height); const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); try { localStorage.setItem('smartcare.journalLogo.v1', c.toDataURL('image/png')); } catch (x) {} this.setState({ jrnLogoTick: (this.state.jrnLogoTick || 0) + 1 }); this.flash('병원 로고를 저장했습니다'); }; im.src = rd.result; }; rd.readAsDataURL(f); },
       jrnLogo: logo, jrnHasLogo: !!logo,
       jrnLogoClear: () => { try { localStorage.removeItem('smartcare.journalLogo.v1'); } catch (e) {} this.setState({ jrnLogoTick: (this.state.jrnLogoTick || 0) + 1 }); },
@@ -11863,6 +11978,8 @@ class Component extends DCLogic {
           logDelCancel: () => this.setState({ logDel: null }),
           logDelGo: () => { const dd = this.state.logDel; if (dd) this.logDelete(dd.key, dd.reason, lim); },
           logDelRows: this.logDelLog().slice(0, 20).map(x => ({ when: fmtT(x.at), who: x.by, what: String(x.key || '').split('|').reverse().join(' · '), why: x.reason + (x.photos || x.people ? ' (사진 ' + (x.photos || 0) + ' · 참여자 ' + (x.people || 0) + ')' : '') })),
+          blurLogRows: (() => { let a = []; try { a = JSON.parse(localStorage.getItem('smartcare.blurLog.v1') || '[]') || []; } catch (e) {} return a.slice(0, 20).map(x => ({ when: fmtT(x.at), who: x.by, what: (x.key || '').split('|').reverse().join(' · '), why: (x.reason || '') + ' (사진 ' + (x.photos || 0) + '장)' })); })(),
+          blurLogNone: (() => { try { return !(JSON.parse(localStorage.getItem('smartcare.blurLog.v1') || '[]') || []).length; } catch (e) { return true; } })(),
           logDelNone: this.logDelLog().length === 0
         };
       })(),
