@@ -84,9 +84,9 @@ function logAudit(uid, ws, action, k, size, detail) { audit.push({ id: audit.len
 const esc = s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 const like = pat => { const re = new RegExp('^' + pat.split('*').map(esc).join('.*') + '$'); return v => re.test(v); };
 function cond(expr) {
-  const m = expr.match(/^(\w+)\.(not\.)?(like|eq|in|gte|gt)\.(.*)$/); if (!m) return () => true;
+  const m = expr.match(/^(\w+)\.(not\.)?(like|eq|in|gte|gt|lte|lt)\.(.*)$/); if (!m) return () => true;
   const [, col, neg, op, raw] = m; let f;
-  if (op === 'like') f = like(raw); else if (op === 'eq') f = v => String(v) === raw; else if (op === 'gt') f = v => v > raw; else if (op === 'gte') f = v => v >= raw;
+  if (op === 'like') f = like(raw); else if (op === 'eq') f = v => String(v) === raw; else if (op === 'gt') f = v => v > raw; else if (op === 'gte') f = v => v >= raw; else if (op === 'lt') f = v => v < raw; else if (op === 'lte') f = v => v <= raw;
   else { const list = raw.replace(/^\(|\)$/g, '').split(',').map(s => s.replace(/^"|"$/g, '')); f = v => list.includes(String(v)); }
   return r => (neg ? !f(r[col]) : f(r[col]));
 }

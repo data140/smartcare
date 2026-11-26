@@ -401,3 +401,8 @@ html[data-theme="light"] .sc-subtab { background: #ffffff; border-color: #c7ccd8
 .sc-priv { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-text); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .sc-priv i { font-size: 20px; }
 .sc-priv-on { background: var(--color-accent-900); border-color: var(--color-accent); color: var(--color-accent-100); font-weight: 700; }
+
+/* 라이트 테마: 사이드바 건수 배지가 선택된 항목에서 흐려 보이던 문제 — 진한 바탕 + 흰 글자 */
+html[data-theme="light"] .sc-sbbadge { background: #1e3a8a !important; color: #ffffff !important; }
+html[data-theme="light"] .sc-sbbadge * { color: #ffffff !important; }
+html[data-theme="light"] aside[aria-label="기능 메뉴"] [data-sb-sub] button[aria-current="page"] .sc-sbbadge span { color: #ffffff !important; }
