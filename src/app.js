@@ -1530,21 +1530,34 @@ class Component extends DCLogic {
 
   // 한 장 = 바로 저장, 여러 장 = ZIP (일자_프로그램 폴더로 묶음)
   async albumDownload(items, zipName) {
-    const list = (items || []).filter(x => x.ph && x.ph.url && x.ph.url.indexOf('wph:') !== 0);
+    let list = (items || []).filter(x => x.ph && x.ph.url && x.ph.url.indexOf('wph:') !== 0);
     if (!list.length) { this.flash('사진을 아직 불러오는 중입니다 — 잠시 뒤 다시 눌러 주세요'); return; }
+    const mode = this.jrnBlurMode();
+    if (mode === 'off' && !this.state.jrnBlurReason) { this.flash('얼굴 블러 없이 내려받으려면 위 [얼굴 블러]에서 사유를 먼저 고르세요'); return; }
     const save = (href, name) => { const a = document.createElement('a'); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
     void zipName;
-    if (list.length === 1) { save(list[0].ph.url, list[0].name); this.flash('다운로드 — ' + list[0].name); return; }
-    // 여러 장도 압축하지 않고 원본 사진 파일 그대로 한 장씩 저장 (파일명: 날짜_프로그램_번호)
     this.setState({ alBusy: true });
-    this.flash('사진 ' + list.length + '장을 원본 파일로 내려받는 중… (브라우저가 "여러 파일 다운로드"를 물으면 [허용]을 눌러 주세요)');
     try {
+      let blurN = 0, skipN = 0;
+      if (mode !== 'off') {
+        this.flash('얼굴을 찾아 블러 처리하는 중… (사진 ' + list.length + '장)');
+        const out = [];
+        for (const x of list) {
+          try { const r = await this.albumBlurOne(x, mode); blurN += r.blurred; out.push(Object.assign({}, x, { __tmp: true, ph: Object.assign({}, x.ph, { url: r.url }), name: x.name.replace(/(\.[A-Za-z0-9]+)?$/, '_블러.jpg') })); }
+          catch (e) { skipN++; }   // 얼굴 검출에 실패한 사진은 원본이 나가지 않도록 건너뜀
+        }
+        list = out;
+        if (!list.length) { this.flash('얼굴 블러 처리에 실패해 내려받지 않았습니다 — 네트워크를 확인하고 다시 시도하세요'); return; }
+      } else this.blurLogAdd('앨범 ' + (list[0].g.d || '') + (list.length > 1 ? ' 외' : ''), list[0].g.p || '앨범', list.length);
+      const note = mode === 'off' ? '블러 없이' : '얼굴 블러(' + blurN + '명)' + (skipN ? ' · 처리 실패 ' + skipN + '장 제외' : '');
+      if (list.length === 1) { save(list[0].ph.url, list[0].name); this.flash('다운로드 — ' + list[0].name + ' · ' + note); return; }
+      this.flash('사진 ' + list.length + '장을 한 장씩 내려받는 중… (브라우저가 "여러 파일 다운로드"를 물으면 [허용]을 눌러 주세요)');
       for (let i = 0; i < list.length; i++) {
         save(list[i].ph.url, list[i].name);
         await new Promise(r => setTimeout(r, 350));
       }
-      this.flash('다운로드 완료 — 원본 사진 ' + list.length + '장');
-    } finally { this.setState({ alBusy: false }); }
+      this.flash('다운로드 완료 — 사진 ' + list.length + '장 · ' + note);
+    } finally { this.setState({ alBusy: false }); setTimeout(() => { (list || []).forEach(x => { if (x.ph && /^blob:/.test(x.ph.url || '') && x.__tmp) { try { URL.revokeObjectURL(x.ph.url); } catch (e) {} } }); }, 4000); }
   }
 
   // 증명사진에서 실제로 얼굴 수를 셈 (가장 큰 얼굴 위치도 기억)
@@ -2420,12 +2433,22 @@ class Component extends DCLogic {
     try { ctx.filter = 'blur(' + Math.max(4, Math.round(px / 1.5)) + 'px)'; } catch (e) {}
     ctx.drawImage(c2, x, y); ctx.restore();
   }
-  jrnBlurLogExport(j) {
+  jrnBlurLogExport(j) { this.blurLogAdd(j.key, j.p.program, (j.photos || []).length); }
+  blurLogAdd(key, program, photos) {
     if (this.jrnBlurMode() !== 'off') return;
     let a = []; try { a = JSON.parse(localStorage.getItem('smartcare.blurLog.v1') || '[]') || []; } catch (e) {}
-    a.unshift({ at: new Date().toISOString(), by: this._userName || '', byId: this.state.userId, key: j.key, program: j.p.program, reason: this.state.jrnBlurReason || '', photos: (j.photos || []).length });
+    a.unshift({ at: new Date().toISOString(), by: this._userName || '', byId: this.state.userId, key: key, program: program, reason: this.state.jrnBlurReason || '', photos: photos });
     try { localStorage.setItem('smartcare.blurLog.v1', JSON.stringify(a.slice(0, 300))); } catch (e) {}
     this.setState({ blurLogRev: (this.state.blurLogRev || 0) + 1 });
+  }
+  // 앨범에서 내려받는 사진 1장에 블러 적용 → { url, blurred, faces }
+  async albumBlurOne(x, mode) {
+    const key = x.g.key || (x.g.d + '|' + x.g.p);
+    const cv = await this.toCanvas(x.ph.url, 3000);
+    const fb = await this.jrnFaceBoxes(key, this.state, { url: x.ph.url, id: x.ph.id || '' }, cv);
+    let n = 0; fb.boxes.forEach(b => { if (mode === 'all' || !b.ok) { n++; Component.blurRegion(cv, b); } });
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92));
+    return { url: URL.createObjectURL(blob), blurred: n, faces: fb.boxes.length };
   }
   async jrnBlurPrepare(key) {
     key = key || this.state.jrnSel; const s = this.state; const mode = this.jrnBlurMode();
@@ -3065,10 +3088,11 @@ class Component extends DCLogic {
         const rs = s.jrnBlurRes; const okRes = !!(j && rs && rs.urls && rs.sig === this.jrnBlurSig(j.key, s, mode));
         const reasonNeeded = mode === 'off' && !s.jrnBlurReason;
         const busy = mode !== 'off' && (!!s.jrnBlurBusy || !okRes);
-        const setMode = (m) => { try { localStorage.setItem('smartcare.jrnBlur.v1', m); } catch (e) {} this.setState({ jrnBlurRev: (s.jrnBlurRev || 0) + 1, jrnBlurRes: null, jrnBlurReason: m === 'off' ? s.jrnBlurReason : '' }); setTimeout(() => this.jrnBlurPrepare(selKey), 20); };
+        const setMode = (m) => { try { localStorage.setItem('smartcare.jrnBlur.v1', m); } catch (e) {} this.setState({ jrnBlurRev: (s.jrnBlurRev || 0) + 1, jrnBlurRes: null, jrnBlurReason: m === 'off' ? s.jrnBlurReason : '' }); if (s.jrnPrev) setTimeout(() => this.jrnBlurPrepare(selKey), 20); };
         return {
           jrnBlurTabs: [{ k: 'auto', label: '동의한 분만 선명 (권장)' }, { k: 'all', label: '모두 블러' }, { k: 'off', label: '블러 안 함' }].map(t => ({ label: t.label, cls: mode === t.k ? 'sel-chip' : '', on: mode === t.k, go: () => setMode(t.k) })),
           jrnBlurOff: mode === 'off',
+          jrnBlurAlbumNote: mode === 'off' ? (s.jrnBlurReason ? '원본 그대로 내려받습니다. 사유와 함께 기록이 남습니다.' : '블러 없이 내려받으려면 사유를 고르세요.') : (mode === 'all' ? '내려받는 사진의 모든 얼굴을 블러합니다. 화면의 사진은 그대로 보입니다.' : '내려받을 때 초상권 동의한 분만 선명하고 나머지는 블러합니다. 화면의 사진은 그대로 보입니다.'),
           jrnBlurReasons: ['내부 보관용', '본인·보호자에게 제공', '그 밖의 사유'].map(t => ({ label: t, cls: s.jrnBlurReason === t ? 'sel-chip' : '', go: () => this.setState({ jrnBlurReason: t }) })),
           jrnBlurStatus: mode === 'off' ? (reasonNeeded ? '블러 없이 내보내려면 사유를 고르세요. 사유는 기록으로 남습니다.' : '얼굴이 그대로 나옵니다. 내보내면 사유와 함께 기록이 남습니다.') : (busy ? '얼굴을 찾아 블러 처리하는 중…' : (rs && rs.urls ? '사진 ' + rs.photos + '장 · 얼굴 ' + rs.faces + '명 중 ' + rs.blurred + '명 블러' + (rs.kept ? ', ' + rs.kept + '명 선명(초상권 동의)' : '') : '블러 처리에 실패해 사진은 넣지 않습니다.')),
           jrnBlurBlocked: jrnBlocked,
