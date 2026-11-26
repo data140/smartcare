@@ -6172,7 +6172,8 @@ class Component extends DCLogic {
       ins: ['유형', '보험', '보험유형', '급여유형', '자격'], age: ['나이', '연령', '만나이'], sex: ['성', '성별'],
       admit: ['입원일자', '입원일', '입원날짜', '입원']
     };
-    const LOC = /^(\d+)\s*병동\s*-\s*0*(\d+)\s*-\s*(\d+)$/;
+    // 병동 부분: '3병동'(숫자+병동) 또는 '통합면역센터'처럼 한글로 시작하는 이름 — 날짜(2026-11-19)와 헷갈리지 않게 한글이 있어야 함
+    const LOC = /^(\d+\s*병동|[가-힣][가-힣A-Za-z0-9]*)\s*-\s*0*(\d+)\s*-\s*(\d+)$/;
     const DATE = /^\d{4}[-./]\d{1,2}[-./]\d{1,2}$/;
     const SEX = /^(F|M|남|여)$/i;
     const INS = /^(보험|의급|의보|자보|산재|일반|보호|차상위|건보|급여|비급여|\d종|의료급여\d?종?)$/;
@@ -6228,7 +6229,7 @@ class Component extends DCLogic {
       Object.keys(seen).forEach(k => { if (seen[k] > (seen[key] != null ? seen[key] : Infinity)) seen[k]--; });
       seen[key] = rows.length;
       rows.push({
-        ward: loc[1] + '병동', room: parseInt(loc[2], 10) + '호', bed: loc[3],
+        ward: loc[1].replace(/\s/g, ''), room: parseInt(loc[2], 10) + '호', bed: loc[3],
         doctor: /^\d+$/.test(doctor) ? '' : doctor, name: name, chart: chart, ins: ins, age: isNaN(age) || age == null ? null : age,
         sex: sex, admit: admit, extra: extra
       });
