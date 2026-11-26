@@ -118,6 +118,11 @@ async function handle(req) {
   const ws = str(body.ws, 40);
   if (!ws) return fail(400, '작업공간이 없습니다');
   const ip = clientIp(req);
+  // 존재하지 않는 작업공간 이름으로 쓰레기 기록이 쌓이지 않게: 직원이 한 명이라도 있는 작업공간만 받음
+  const known = await svc('/rest/v1/smartcare_staff?ws=eq.' + enc(ws) + '&select=ws&limit=1');
+  if (!known.ok || !(await known.json()).length) return fail(400, '알 수 없는 작업공간입니다');
+  // 오래된 기록 정리: 90일 지난 로그인 기록·경보는 가끔(약 2%) 호출 때 함께 지움
+  if (Math.random() < 0.02) await svc('/rest/v1/smartcare_sec_events?at=lt.' + enc(sinceIso(90 * 24 * 60)), { method: 'DELETE', headers: { Prefer: 'return=minimal' } }).catch(() => {});
 
   // 1) 로그인 실패 (로그인 전)
   if (body.action === 'login_fail') {

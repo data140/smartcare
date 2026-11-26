@@ -46,7 +46,10 @@ grant usage, select on sequence smartcare_sec_events_id_seq to service_role;
 -- 경보에 나오는 계정 코드(예: 903bd167)를 사람 이름으로 바꿔 보여 주기 위한 목록 (관리자만, 이름·소속만 — 이메일·사번은 내보내지 않음)
 create or replace function smartcare_sec_names(p_ws text)
 returns table (user_id uuid, name text, org text) language sql stable security definer set search_path = public as $$
-  select s.user_id, s.name, s.org from smartcare_staff s where s.ws = p_ws and smartcare_is_admin(p_ws);
+  -- 시스템 관리자는 전체, 기관 관리자는 자기 기관과 시스템 계정의 이름만 (다른 기관 직원 이름은 내보내지 않음)
+  select s.user_id, s.name, s.org
+  from smartcare_staff s, (select (smartcare_me_row(p_ws)).*) me
+  where s.ws = p_ws and smartcare_is_admin(p_ws) and (me.org = '*' or s.org = me.org or s.org = '*');
 $$;
 revoke all on function smartcare_sec_names(text) from public, anon;
 grant execute on function smartcare_sec_names(text) to authenticated;
