@@ -44,6 +44,14 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     if (await pick.count()) { await pick.click(); await sleep(500); }
     const n = await m.locator('text=터치하여 서명 >> visible=true').count();
     check('휴대폰 동의서에 설정한 서명란 3칸이 나옴(동의인·보호자·입회인)', n === 3 || (await m.locator('text=입회인 >> visible=true').count()) >= 1, n + '칸');
+    // 작성일자: 오늘 날짜가 기본이고, 날짜를 직접 고를 수 있음
+    const td = await m.evaluate(() => { const d = new Date(); return d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일'; });
+    const dateTxt = async () => (await m.locator('[data-mc-date]').first().innerText()).replace(/\s+/g, ' ');
+    check('작성일자가 오늘 날짜로 표시됨(9월 21일 고정이 아님)', (await dateTxt()).includes(td), await dateTxt());
+    const yIso = await m.evaluate(() => { const d = new Date(Date.now() - 3 * 86400000), q = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + q(d.getMonth() + 1) + '-' + q(d.getDate()); });
+    await m.locator('[data-mc-date] input[type=date]').fill(yIso); await sleep(500);
+    const yTxt = await m.evaluate((iso) => { const [a, b, c] = iso.split('-').map(Number); return a + '년 ' + b + '월 ' + c + '일'; }, yIso);
+    check('날짜를 직접 지정하면 그 날짜로 바뀜(오늘로 되돌리기 단추도 나옴)', (await dateTxt()).includes(yTxt) && (await m.locator('[data-mc-date] button:has-text("오늘로")').count()) === 1, await dateTxt());
     check('화면 오류 없음', errs.length === 0, errs.slice(0, 2).join('|'));
   } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
   console.log('스마트케어 동의서 서명란 시험\n' + results.join('\n'));
