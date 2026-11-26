@@ -4242,7 +4242,9 @@ class Component extends DCLogic {
       if (!v || !v.logged) return;
       if (Component.isStaffMode() && !this.cloudCfg()) return;
       if (Date.now() - (v.at || 0) > 12 * 3600 * 1000) { localStorage.removeItem(Component.VIEW_KEY); return; }
-      const m = this.state.roster.find(x => x.id === v.userId);
+      let m = this.state.roster.find(x => x.id === v.userId);
+      // 직원별 계정 방식: 다른 기관 직원이 처음 로그인해 화면을 다시 열 때는 이 기기에 직원 명부가 아직 없음 → 서버 로그인 기록과 저장해 둔 화면 정보로 이어감(명부는 곧 서버에서 받음)
+      if (!m && Component.isStaffMode() && this._auth && v.role && v.orgId) m = { id: v.userId, org: v.orgId, role: v.role, roles: [v.role], status: '활성' };
       if (!m || m.status !== '활성') return;
       const patch = {}; Component.VIEW_KEYS.forEach(k => { if (v[k] !== undefined) patch[k] = v[k]; });
       patch.device = Component.detectDevice();

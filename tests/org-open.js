@@ -35,6 +35,18 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       check('상단 기관 선택으로 전환해도 로그인 상태가 유지됨', await logged());
       check('다시 첫 번째 기관(ORG1)으로 돌아옴', (await orgNow()) === 'ORG1', await orgNow());
     }
+    // 다른 기관(ORG2) 직원의 사번 로그인: 서버에 ORG2 관리자 계정을 만들어 두고, 로그인 화면에서 그 기관·사번으로 로그인
+    const tok = (await (await fetch(BASE + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 's99.smartcare@smartcare.invalid', password: 'demo1234' }) })).json()).access_token;
+    const mk = await fetch(BASE + '/functions/v1/smartcare-staff', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: 'x', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ ws: 'smartcare', action: 'sync', create: true, password: '123456', must_change: false, staff: { roster_id: 50, org: 'ORG2', emp_no: '200101', name: '전주직원', roles: ['관리자'], status: '활성' } }) });
+    check('시험 준비: ORG2 관리자 계정을 서버에 만듦', mk.ok, String(mk.status));
+    const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 1000 } }); const q = await ctx2.newPage(); const errs2 = []; q.on('pageerror', e => errs2.push(e.message));
+    await q.goto(BASE + '/'); await q.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await q.locator('select').first().selectOption('ORG2').catch(async () => { await q.evaluate(() => { const s = document.querySelector('select'); s.value = 'ORG2'; s.dispatchEvent(new Event('change', { bubbles: true })); }); });
+    await q.locator('input[autocomplete="username"]').first().fill('200101'); await q.locator('input[autocomplete="current-password"]').first().fill('123456');
+    await q.locator('button:has-text("로그인")').last().click(); await q.waitForTimeout(9000);
+    const in2 = !(await q.$('input[autocomplete="current-password"]')) && (await q.locator('text=로그아웃').count()) > 0;
+    check('ORG2 직원이 그 기관·사번으로 로그인하면 로그인 화면으로 돌아가지 않고 들어감', in2, (await q.evaluate(() => document.body.innerText)).slice(0, 80).replace(/\n+/g, ' '));
+    check('로그인한 기관이 ORG2임', (await q.evaluate(() => window.__scOrg)) === 'ORG2', await q.evaluate(() => window.__scOrg));
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 3).join(' | ')); }
   console.log('스마트케어 시스템 관리자 기관 전환 시험\n' + results.join('\n'));
