@@ -28,7 +28,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       return url;
     }, [today + '|음악치료']);
     await sleep(2000); await p.reload(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
-    await p.evaluate(() => localStorage.removeItem('smartcare.jrnBlur.v1'));
+    await p.evaluate(() => localStorage.removeItem('sc.jrnBlur.v1'));
     await p.locator('aside button:has-text("운영일지") >> visible=true').first().click(); await sleep(1000);
     await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(500);
     await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click();

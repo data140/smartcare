@@ -73,7 +73,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     await p.locator('[role=tablist]:near(:text("상단")) button:has-text("가운데")').first().click(); await sleep(500);
     await p.locator('aside button:has-text("프로그램 운영일지") >> visible=true').first().click(); await sleep(800);
     await p.locator('button:has-text("음악치료") >> visible=true').first().click(); await sleep(400);
-    await p.evaluate(() => localStorage.setItem('smartcare.jrnBlur.v1', 'off'));
+    await p.evaluate(() => localStorage.setItem('sc.jrnBlur.v1', 'off'));
     await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click(); await sleep(700);
     await p.locator('[data-blur-bar] button:has-text("내부 보관용") >> visible=true').first().click().catch(() => {}); await sleep(200);
     const doc2 = await p.locator('iframe[title="운영일지 미리보기"]').getAttribute('srcdoc');
@@ -81,7 +81,7 @@ const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     check('하단에 직접 쓴 글자가 들어가고 로고는 빠짐(글자만)', /직접 쓴 하단 글자/.test(doc2));
     check('사진이 잘리지 않음(object-fit: contain)', /object-fit:contain/.test(doc2) && !/object-fit:cover/.test(doc2));
     await p.locator('button:has-text("닫기") >> visible=true').first().click(); await sleep(300);
-    await p.evaluate(() => localStorage.setItem('smartcare.jrnBlur.v1', 'off'));
+    await p.evaluate(() => localStorage.setItem('sc.jrnBlur.v1', 'off'));
     await p.locator('button:has-text("미리보기 · 내보내기") >> visible=true').first().click(); await sleep(700);
     await p.locator('[data-blur-bar] button:has-text("내부 보관용") >> visible=true').first().click().catch(() => {}); await sleep(200);
     const frame = p.frames().find(f => f !== p.mainFrame() && /프로그램 운영일지|프 로 그 램/.test(f.url() + '')) || p.frames()[1];

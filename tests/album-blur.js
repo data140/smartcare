@@ -26,7 +26,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       localStorage.setItem('smartcare.wsess.' + encodeURIComponent(k), JSON.stringify({ photos: [{ id: 'p1', url: url }], review: [row('PT-D001', 40), row('PT-D003', 240), row('', 440)], confirmed: false }));
     }, [today + '|음악치료']);
     await sleep(2000); await p.reload(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
-    await p.evaluate(() => localStorage.removeItem('smartcare.jrnBlur.v1'));
+    await p.evaluate(() => localStorage.removeItem('sc.jrnBlur.v1'));
     await p.locator('aside >> text=앨범 (아카이브)').first().click(); await sleep(2500);
     if (process.env.DBG) console.log((await p.evaluate(() => document.body.innerText)).slice(0, 700));
     check('앨범에 [내려받기 얼굴 블러] 선택줄이 있음', (await p.locator('[data-album-blur]').count()) >= 1);
