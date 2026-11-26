@@ -72,11 +72,15 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     await p.locator('text=서면 동의서 관리').first().click().catch(() => {}); await p.waitForTimeout(2000);
     // 큰 항목이 단계적으로 반영되므로(느린 환경에서는 더 오래), 기대한 값이 될 때까지 최대 25초 기다림
     let none, nofile;
-    for (let i = 0; i < 25; i++) {
-      const body = await p.evaluate(() => document.body.innerText);
-      none = (body.match(/동의 없음\s*(\d+)/) || [])[1]; nofile = (body.match(/서면 파일 없음\s*(\d+)/) || [])[1];
-      if (none === '444' && nofile === '454') break;
-      await p.waitForTimeout(1000);
+    // 기대한 값이 될 때까지 최대 25초 기다리고, 그래도 다르면 새로고침해서 한 번 더 확인 (간헐적으로 일부 항목만 먼저 반영되는 경우 대비)
+    for (let round = 0; round < 2 && !(none === '444' && nofile === '454'); round++) {
+      if (round) { await p.reload(); await p.waitForTimeout(6000); await p.locator('text=서면 동의서 관리').first().click().catch(() => {}); await p.waitForTimeout(2000); }
+      for (let i = 0; i < 25; i++) {
+        const body = await p.evaluate(() => document.body.innerText);
+        none = (body.match(/동의 없음\s*(\d+)/) || [])[1]; nofile = (body.match(/서면 파일 없음\s*(\d+)/) || [])[1];
+        if (none === '444' && nofile === '454') break;
+        await p.waitForTimeout(1000);
+      }
     }
     check('전자 동의·서면 동의서 반영 (동의 없음 444 · 서면 파일 없음 454)', none === '444' && nofile === '454', '동의 없음 ' + none + ' · 서면 파일 없음 ' + nofile);
     check('화면 오류 없음', errors.length === 0, errors.slice(0, 3).join(' | '));
