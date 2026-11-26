@@ -93,6 +93,13 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
         const have = new Set(names.map(x => Number(x.replace('가상환자', ''))));
         const missing = []; for (let i = 1; i <= 455; i++) if (!have.has(i)) missing.push(i);
         results.push('  · 진단: 목록에 보이는 환자 ' + have.size + '명, 빠진 번호 ' + missing.slice(0, 10).join(','));
+        // 서버(DST)에 저장된 명부와 브라우저에 저장된 명부의 인원도 확인 — 어디서 한 명이 빠졌는지 가름
+        const sv = await (await fetch('http://localhost:' + DST + '/rest/v1/smartcare_kv?select=k,v&k=like.*patients.v1', { headers: { apikey: 'x', Authorization: 'Bearer dev-service-key' } })).json();
+        results.push('  · 진단: 서버 명부 ' + sv.map(r => r.k.slice(-34) + '=' + (() => { try { return JSON.parse(r.v).length; } catch (e) { return 'x'; } })()).join(' · '));
+        const loc = await p.evaluate(() => Object.keys(localStorage).filter(k => /patients\.v1$/.test(k)).map(k => { try { return k.slice(-30) + '=' + JSON.parse(localStorage.getItem(k)).length; } catch (e) { return k.slice(-30) + '=x'; } }));
+        results.push('  · 진단: 브라우저 명부 ' + loc.join(' · '));
+        const idx = sv.length ? (() => { try { const a = JSON.parse(sv[0].v); const i = a.findIndex(x => x.id === 'PT-B432'); return i; } catch (e) { return -2; } })() : -3;
+        results.push('  · 진단: 서버 명부에서 PT-B432 위치 ' + idx);
       } catch (e) { results.push('  · 진단 실패: ' + e.message); }
     }
     check('전자 동의·서면 동의서 반영 (동의 없음 444 · 서면 파일 없음 454)', none === '444' && nofile === '454', '동의 없음 ' + none + ' · 서면 파일 없음 ' + nofile);
