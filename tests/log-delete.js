@@ -85,6 +85,15 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     await w.locator('aside >> text=캘린더').first().click(); await sleep(1500);
     const cal = await w.evaluate(() => document.body.innerText);
     check('PC 캘린더에서도 삭제한 일정(미술치료)이 보이지 않음', !/미술치료/.test(cal) && /음악치료/.test(cal));
+    // 목록에서 바로 삭제 (상세 화면을 열지 않고): 음악치료 일지 · '일지만 삭제' 선택
+    await goLogs();
+    check('일지 목록 줄에 삭제(휴지통) 단추가 있음', (await q.locator('button[aria-label="음악치료 일지 삭제"]').count()) === 1);
+    await q.locator('button[aria-label="음악치료 일지 삭제"]').tap(); await sleep(500);
+    await q.locator('button:has-text("일지만 삭제")').tap(); await sleep(200);
+    await q.locator('button:has-text("착오로 등록했어요")').tap(); await sleep(200);
+    await q.locator('.dialog-actions button:has-text("삭제")').tap(); await sleep(1000);
+    await goLogs();
+    check('목록에서 삭제하면 그 줄이 사라지고, 일정은 남음(캘린더 확인은 PC)', (await hasRow('음악치료')) === 0);
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 12).join(' | ')); }
   console.log('스마트케어 일지 삭제 시험\n' + results.join('\n'));
