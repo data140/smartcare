@@ -2372,7 +2372,12 @@ class Component extends DCLogic {
     return { key: key, p: p, f: f, saved: !!saved, dateTxt: this.jrnDateTxt(p.date), timeTxt: (p.start || '') + (p.end ? '~' + p.end : ''), photos: this.jrnPhotos(key, s) };
   }
   jrnPhotoObjs(key, s) {
-    if (s.jrnPh && Array.isArray(s.jrnPh[key])) return s.jrnPh[key].filter(u => typeof u === 'string' && /^data:image\//.test(u)).slice(0, 4).map(u => ({ url: u, id: '' }));
+    if (s.jrnPh && Array.isArray(s.jrnPh[key])) {
+      // 운영일지에 직접 올린 사진이라도 같은 사진이 현장 일지에 있으면 그 사진 번호를 써서 판독 결과(누구인지)를 이어 줌
+      const sess0 = (s.activeSession === key) ? { photos: s.photos } : ((s.sessions || {})[key] || {});
+      const byUrl = {}; (sess0.photos || []).forEach(x => { if (x && x.url && x.id) byUrl[x.url] = x.id; });
+      return s.jrnPh[key].filter(u => typeof u === 'string' && /^data:image\//.test(u)).slice(0, 4).map(u => ({ url: u, id: byUrl[u] || '' }));
+    }
     const sess = (s.activeSession === key) ? { photos: s.photos } : ((s.sessions || {})[key] || {});
     return (sess.photos || []).filter(x => x && typeof x.url === 'string' && /^data:image\//.test(x.url)).slice(0, 4).map(x => ({ url: x.url, id: x.id || '' }));
   }
@@ -2473,15 +2478,15 @@ class Component extends DCLogic {
     const token = (this._jrnBlurTok = (this._jrnBlurTok || 0) + 1);
     this.setState({ jrnBlurBusy: true });
     try {
-      const objs = this.jrnPhotoObjs(key, s); const urls = []; let faces = 0, blurred = 0, kept = 0;
+      const objs = this.jrnPhotoObjs(key, s); const urls = []; let faces = 0, blurred = 0, kept = 0, ident = 0;
       for (const o of objs) {
         const cv = await this.toCanvas(o.url, 2000);
         const fb = await this.jrnFaceBoxes(key, s, o, cv);
-        fb.boxes.forEach(b => { faces++; if (mode === 'all' || !b.ok) { blurred++; Component.blurRegion(cv, b); } else kept++; });
+        fb.boxes.forEach(b => { faces++; if (fb.known) ident++; if (mode === 'all' || !b.ok) { blurred++; Component.blurRegion(cv, b); } else kept++; });
         urls.push(cv.toDataURL('image/jpeg', 0.9));
       }
       if (token !== this._jrnBlurTok) return;
-      this.setState({ jrnBlurRes: { sig: sig, urls: urls, faces: faces, blurred: blurred, kept: kept, photos: objs.length }, jrnBlurBusy: false });
+      this.setState({ jrnBlurRes: { sig: sig, urls: urls, faces: faces, blurred: blurred, kept: kept, ident: ident, photos: objs.length }, jrnBlurBusy: false });
     } catch (e) {
       if (token !== this._jrnBlurTok) return;
       this.setState({ jrnBlurRes: { sig: sig, urls: null, error: (e && e.message) || '얼굴 검출 실패' }, jrnBlurBusy: false });
@@ -3133,7 +3138,7 @@ class Component extends DCLogic {
           jrnBlurOff: mode === 'off',
           jrnBlurAlbumNote: mode === 'off' ? (s.jrnBlurReason ? '원본 그대로 내려받습니다. 사유와 함께 기록이 남습니다.' : '블러 없이 내려받으려면 사유를 고르세요.') : (mode === 'all' ? '내려받는 사진의 모든 얼굴을 블러합니다. 화면의 사진은 그대로 보입니다.' : '내려받을 때 초상권 동의한 분만 선명하고 나머지는 블러합니다. 화면의 사진은 그대로 보입니다.'),
           jrnBlurReasons: ['내부 보관용', '본인·보호자에게 제공', '그 밖의 사유'].map(t => ({ label: t, cls: s.jrnBlurReason === t ? 'sel-chip' : '', go: () => this.setState({ jrnBlurReason: t }) })),
-          jrnBlurStatus: mode === 'off' ? (reasonNeeded ? '블러 없이 내보내려면 사유를 고르세요. 사유는 기록으로 남습니다.' : '얼굴이 그대로 나옵니다. 내보내면 사유와 함께 기록이 남습니다.') : (busy ? '얼굴을 찾아 블러 처리하는 중…' : (rs && rs.urls ? '사진 ' + rs.photos + '장 · 얼굴 ' + rs.faces + '명 중 ' + rs.blurred + '명 블러' + (rs.kept ? ', ' + rs.kept + '명 선명(초상권 동의)' : '') : '블러 처리에 실패해 사진은 넣지 않습니다.')),
+          jrnBlurStatus: mode === 'off' ? (reasonNeeded ? '블러 없이 내보내려면 사유를 고르세요. 사유는 기록으로 남습니다.' : '얼굴이 그대로 나옵니다. 내보내면 사유와 함께 기록이 남습니다.') : (busy ? '얼굴을 찾아 블러 처리하는 중…' : (rs && rs.urls ? '사진 ' + rs.photos + '장 · 얼굴 ' + rs.faces + '명 중 ' + rs.blurred + '명 블러' + (rs.kept ? ', ' + rs.kept + '명 선명(초상권 동의)' : '') + (mode === 'auto' && rs.faces > 0 && !rs.kept ? (rs.ident ? ' — 초상권 동의한 환자로 확인된 얼굴이 없어 모두 블러됩니다' : ' — 누구인지 확인되지 않은 얼굴은 모두 블러됩니다. 현장 일지에서 AI 판독(검수)을 마치면 초상권 동의한 분이 선명하게 나옵니다') : '') : '블러 처리에 실패해 사진은 넣지 않습니다.')),
           jrnBlurBlocked: jrnBlocked,
           jrnBlurWarn: mode === 'off'
         };
