@@ -2738,11 +2738,13 @@ class Component extends DCLogic {
     if (!this._sessDel || !this._sessDel[key]) return false;
     const v = sess || {}; return !((v.review || []).length || (v.photos || []).length || v.confirmed);
   }
+  logDelRoleOk() { return this.myRoleList().some(x => x === '관리자' || x === '담당자' || x === '시스템관리자'); }
+  logDelAskKey(key) { this.setState({ logDel: { key: key, reason: '' } }); }
   logDelToday(uid) { const d = this.todayIso(); return this.logDelLog().filter(x => x.byId === uid && (x.at || '').slice(0, 10) === d).length; }
   logDelete(key, reason, limit, withPlan) {
     const s = this.state; const cur = this.curKey(s);
     const ss = Object.assign({}, s.sessions || {});
-    const v = key === cur ? { review: s.review, confirmed: s.confirmed, photos: s.photos } : ss[key];
+    const v = key === cur ? { review: s.review, confirmed: s.confirmed, photos: s.photos } : (ss[key] || ((s.plans || []).some(x => x.date + '|' + x.program === key) ? { review: [], photos: [], confirmed: false } : null));
     if (!v) { this.flash('이미 없는 일지입니다'); return false; }
     if (v.confirmed) { this.flash('확정된 일지는 삭제할 수 없습니다'); return false; }
     if (!reason) { this.flash('삭제 사유를 선택하세요'); return false; }
@@ -8035,6 +8037,7 @@ class Component extends DCLogic {
       const meta = l.date.slice(11) + ' · ' + l.place + ' · ' + l.staff;
       return {
         program: l.program, status: l.status, chip: Component.statusChip(l.status),
+        canDel: l.status !== '확정' && this.logDelRoleOk(), askDel: () => this.logDelAskKey(key),
         meta: l.date + ' · ' + l.place + ' · ' + l.staff,
         countLabel: l.status === '미작성' ? '사진 첨부 전' : (attention ? 'AI 인식 ' : '확정 ') + l.count + '명',
         attention: attention, settled: !attention,
@@ -12109,6 +12112,7 @@ class Component extends DCLogic {
           statusColor: status === '미작성' ? 'var(--cal-red, oklch(0.68 0.19 25))' : 'inherit',
           statusWeight: status === '미작성' ? '600' : 'inherit',
           _fk: status === '확정' ? '검수 완료' : status === '검수 대기' ? '검수 필요' : '미작성',
+          canDel: status !== '확정' && this.logDelRoleOk(), askDel: () => this.logDelAskKey(key),
           key: key, timeTxt: p.start + (p.end ? '~' + p.end : ''),
           open: (s.mOpenCard === undefined ? mDayPlans.length === 1 : s.mOpenCard === key), closed: !(s.mOpenCard === undefined ? mDayPlans.length === 1 : s.mOpenCard === key),
           toggle: () => this.setState({ mOpenCard: (s.mOpenCard === undefined ? mDayPlans.length === 1 : s.mOpenCard === key) ? '' : key }),
