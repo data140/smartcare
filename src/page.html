@@ -3278,15 +3278,15 @@
             </sc-if>
 
             <sc-if value="{{ setApprovalTab }}" hint-placeholder-val="{{ false }}">
-              <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+              <div style="display: flex; flex-direction: column; gap: 24px; max-width: 1040px;">
                 <div style="display: flex; flex-direction: column; gap: var(--space-2);">
                   <div style="font-size: 20px;"><i class="ph ph-signature" style="color: var(--color-accent-300);"></i> 결재라인 · {{ apOrgName }}</div>
                   <div style="font-size: 14px; color: var(--color-neutral-400); line-height: 1.7;">출석부·통계 등 인쇄 문서 하단의 결재란입니다. 기관마다 따로 저장되며, 바꾸면 다음 인쇄부터 바로 적용됩니다. (최대 6칸 · 왼쪽부터 결재 순서)</div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--space-6); align-items: start;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 24px; align-items: stretch;">
                   <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
                     <div style="display: flex; align-items: center; gap: var(--space-3);">
-                      <span style="font-size: 15px;">결재 단계</span>
+                      <span style="font-size: 16px; font-weight: 600;">결재 단계</span>
                       <span style="font-size: 13px; color: var(--color-neutral-500);">{{ apCount }}칸</span>
                       <button sc-camel-on-click="{{ apAdd }}" class="btn btn-secondary" style="margin-left: auto; flex: none; white-space: nowrap; min-height: 36px; font-size: 13.5px;"><i class="ph ph-plus"></i> 결재란 추가</button>
                     </div>
@@ -3311,15 +3311,16 @@
                       </div>
                     </div>
                   </div>
+                  <div style="display: flex; flex-direction: column; gap: 24px;">
                   <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
-                    <span style="font-size: 15px;">결재란 위치 <span style="font-size: 12.5px; color: var(--color-neutral-500);">출석부 · 통계 · 프로그램 운영일지 인쇄에 같이 적용됩니다</span></span>
+                    <span style="font-size: 16px; font-weight: 600;">결재란 위치 <span style="font-size: 12.5px; color: var(--color-neutral-500);">출석부 · 통계 · 프로그램 운영일지 인쇄에 같이 적용됩니다</span></span>
                     <sc-for list="{{ apPosRows }}" as="r" hint-placeholder-count="2">
                       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"><span style="min-width: 40px; font-size: 13.5px; color: var(--color-neutral-400);">{{ r.label }}</span>
                         <div role="tablist" style="display: flex; gap: 6px; flex-wrap: wrap;"><sc-for list="{{ r.items }}" as="x" hint-placeholder-count="3"><button type="button" role="tab" class="{{ x.cls }}" aria-selected="{{ x.on }}" sc-camel-on-click="{{ x.go }}" data-keep="1" style="min-height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-200); font: inherit; font-size: 13.5px; cursor: pointer;">{{ x.label }}</button></sc-for></div></div>
                     </sc-for>
                   </div>
                   <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
-                    <span style="font-size: 15px;">인쇄 미리보기</span>
+                    <span style="font-size: 16px; font-weight: 600;">인쇄 미리보기</span>
                     <div style="padding: var(--space-6); border-radius: 4px; background: #ffffff; color: #1a1a1a; font-family: 'Malgun Gothic', sans-serif; min-height: 230px; display: flex; flex-direction: column;">
                       <div style="padding-bottom: 8px; border-bottom: 1px solid #1a1a1a;">
                         <div style="font-size: 9px; color: #666;">사회사업실 · 스마트케어</div>
@@ -3332,6 +3333,7 @@
                       <div style="height: 6px; border-radius: 2px; background: #eeeeee; width: 100%; margin-top: 6px;"></div>
                       <sc-if value="{{ apBottom }}" hint-placeholder-val="{{ false }}"><sc-if value="{{ apHas }}" hint-placeholder-val="{{ true }}"><div style="display: flex; justify-content: {{ apJust }}; margin-top: auto; padding-top: 14px;"><div style="display: flex;"><sc-for list="{{ apPreview }}" as="p" hint-placeholder-count="3"><div style="width: 56px; border: 0.75px solid #999; margin-left: -0.75px; text-align: center; font-size: 10.5px;"><div style="background: #f3f3f3; border-bottom: 0.75px solid #999; padding: 3px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ p.title }}</div><div style="height: 26px;"></div></div></sc-for></div></div></sc-if></sc-if>
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -3403,16 +3405,16 @@
               </div>
             </sc-if>
             <sc-if value="{{ setJournalTab }}" hint-placeholder-val="{{ false }}">
-              <div style="display: flex; flex-direction: column; gap: var(--space-5, 16px); max-width: 760px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 24px; align-items: stretch; max-width: 1040px;">
                 <div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
-                  <div style="font-size: 17px;">시스템 이름 (PC 화면 맨 위)</div>
+                  <div style="font-size: 16px; font-weight: 600;">시스템 이름 (PC 화면 맨 위)</div>
                   <div style="font-size: 13.5px; color: var(--color-neutral-500); line-height: 1.7;">PC 화면 왼쪽 위에 표시되는 이름입니다. 기관에 맞게 바꿀 수 있고, 비워 두면 "스마트케어"로 표시됩니다.</div>
                   <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;"><input class="input" value="{{ sysNameRaw }}" sc-camel-on-change="{{ onSysName }}" aria-label="시스템 이름" placeholder="스마트케어" maxlength="24" style="min-height: 44px; flex: 1 1 240px; max-width: 360px;"><button type="button" sc-camel-on-click="{{ sysNameReset }}" class="btn btn-secondary" style="min-height: 40px;"><i class="ph ph-arrow-counter-clockwise"></i> 기본으로</button></div>
                   <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--color-neutral-500);">미리보기 <span style="padding: 6px 14px; border-radius: 8px; background: var(--color-bg); font-size: 17px; font-weight: 700; color: var(--color-accent-300);">{{ sysName }}</span></div>
                 </div>
-                <div style="font-size: 14px; color: var(--color-neutral-500); line-height: 1.7;">프로그램 운영일지 문서 맨 아래에 찍히는 로고와 글자를 정합니다. 이 기관의 모든 직원에게 같이 적용됩니다.</div>
                 <div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
-                  <div style="font-size: 17px;">문서 하단 (병원 로고 · 글자)</div>
+                  <div style="font-size: 16px; font-weight: 600;">문서 하단 (병원 로고 · 글자)</div>
+                  <div style="font-size: 13.5px; color: var(--color-neutral-500); line-height: 1.7;">프로그램 운영일지 문서 맨 아래에 찍히는 로고와 글자를 정합니다. 이 기관의 모든 직원에게 같이 적용됩니다.</div>
                   <div style="display: flex; flex-wrap: wrap; gap: 8px;"><sc-for list="{{ jrnFootTabs }}" as="t" hint-placeholder-count="3"><button type="button" class="{{ t.cls }}" aria-pressed="{{ t.on }}" sc-camel-on-click="{{ t.go }}" style="min-height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-text); font: inherit; font-size: 14px; cursor: pointer;">{{ t.label }}</button></sc-for></div>
                   <div style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 13px; color: var(--color-neutral-500);">위치 (문서 맨 아래 기준)</span>
                     <div role="tablist" aria-label="하단 위치" style="display: flex; gap: 6px; flex-wrap: wrap;"><sc-for list="{{ jrnAlignTabs }}" as="t" hint-placeholder-count="3"><button type="button" role="tab" class="{{ t.cls }}" aria-selected="{{ t.on }}" sc-camel-on-click="{{ t.go }}" data-keep="1" style="display: inline-flex; align-items: center; min-height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-neutral-700); background: var(--color-neutral-900); color: var(--color-neutral-200); font: inherit; font-size: 13.5px; cursor: pointer;">{{ t.label }}</button></sc-for></div></div>
@@ -3956,6 +3958,7 @@
           <button type="button" sc-camel-on-click="{{ secAckAll }}" class="btn btn-secondary" style="min-height: 36px; font-size: 13px;">모두 확인</button><button type="button" sc-camel-on-click="{{ secToggle }}" class="btn btn-ghost" aria-label="닫기" style="min-height: 36px; width: 36px; padding: 0;"><i class="ph ph-x"></i></button></div>
         <div style="overflow: auto; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px;">
           <sc-if value="{{ secNone }}" hint-placeholder-val="{{ false }}"><div style="padding: 18px 6px; font-size: 14px; color: var(--color-neutral-500); line-height: 1.7;">감지된 이상 징후가 없습니다. 로그인 반복·심야 접속·대량 삭제·대량 내려받기·허용되지 않은 외부 전송 시도를 지켜보고 있습니다.</div></sc-if>
+          <sc-if value="{{ secAllAcked }}" hint-placeholder-val="{{ false }}"><div style="padding: 18px 6px; font-size: 14px; color: var(--color-neutral-400); line-height: 1.7;"><i class="ph-fill ph-check-circle" style="color: oklch(0.72 0.14 150);"></i> 확인이 필요한 알림이 없습니다.</div></sc-if>
           <sc-for list="{{ secItems }}" as="e" hint-placeholder-count="2">
             <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--color-neutral-900); opacity: {{ e.op }};">
               <div style="display: flex; align-items: center; gap: 8px;"><span style="padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: {{ e.bg }};">{{ e.levelTxt }}</span><span style="font-size: 12.5px; color: var(--color-neutral-400);">{{ e.when }}</span></div>
@@ -3965,6 +3968,7 @@
               <sc-if value="{{ e.ackd }}" hint-placeholder-val="{{ false }}"><div style="font-size: 12px; color: var(--color-neutral-500);">{{ e.ackTxt }}</div></sc-if>
             </div>
           </sc-for>
+          <sc-if value="{{ secHasAcked }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ secAckedToggle }}" class="btn btn-ghost" style="align-self: center; min-height: 36px; font-size: 13px; color: var(--color-neutral-400);">{{ secAckedTxt }}</button></sc-if>
         </div>
       </div>
     </div>
