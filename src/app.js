@@ -1533,6 +1533,7 @@ class Component extends DCLogic {
   async albumDownload(items, zipName) {
     let list = (items || []).filter(x => x.ph && x.ph.url && x.ph.url.indexOf('wph:') !== 0);
     if (!list.length) { this.flash('사진을 아직 불러오는 중입니다 — 잠시 뒤 다시 눌러 주세요'); return; }
+    try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '앨범 사진 ' + list.length + '장' })); } catch (e) {}
     const mode = this.jrnBlurMode();
     if (mode === 'off' && !this.state.jrnBlurReason) { this.flash('얼굴 블러 없이 내려받으려면 위 [얼굴 블러]에서 사유를 먼저 고르세요'); return; }
     const save = (href, name) => { const a = document.createElement('a'); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
@@ -2874,6 +2875,7 @@ class Component extends DCLogic {
       + '<script>(function(){function fit(){var b=document.getElementById("pg");b.style.zoom=1;b.style.minHeight="";var h=b.scrollHeight,a=1030,z=1;if(h>a){z=a/h;b.style.zoom=z.toFixed(3);}b.style.minHeight=(a/z)+"px";}window.addEventListener("load",fit);fit();})();<\/script></body></html>';
   }
   async jrnPrint(j, org, logo, ap, ft) {
+    try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '운영일지 인쇄' })); } catch (e) {}
     const html = this.jrnHtml(j, org, logo, ap, ft);
     const fr = document.createElement('iframe');
     fr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
@@ -3163,6 +3165,7 @@ class Component extends DCLogic {
       const name = '프로그램통계_' + stamp;
       if (kind === 'jpg') {
         const url = canvas.toDataURL('image/jpeg', 0.92);
+        try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '통계 JPG' })); } catch (e) {}
         const a = document.createElement('a'); a.href = url; a.download = name + '.jpg';
         document.body.appendChild(a); a.click(); a.remove();
         this.flash('JPG 다운로드 — ' + name + '.jpg');
@@ -5762,12 +5765,14 @@ class Component extends DCLogic {
   }
 
   fileDownload(url, name) {
+    try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '서면동의서 파일 ' + (name || '') })); } catch (e) {}
     const a = document.createElement('a');
     a.href = this.blobUrl(url); a.download = name || '서면동의서';
     document.body.appendChild(a); a.click(); a.remove();
     this.flash('다운로드 — ' + (name || '서면동의서'));
   }
   async filePrint(url, name, isPdf) {
+    try { window.dispatchEvent(new CustomEvent('sc-export', { detail: '서면동의서 인쇄 ' + (name || '') })); } catch (e) {}
     let imgs;
     if (isPdf) {
       this.flash('PDF 인쇄 준비 중…');
