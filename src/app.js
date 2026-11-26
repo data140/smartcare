@@ -11852,7 +11852,7 @@ class Component extends DCLogic {
         const d = s.logDel || null;
         const fmtT = (iso) => { try { return new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return iso; } };
         return {
-          logDelCan: (isSys || hasRole('관리자') || hasRole('담당자')) && !s.confirmed && has,
+          logDelCan: (isSys || hasRole('관리자') || hasRole('담당자')) && !s.confirmed,
           logDelAsk: () => this.setState({ logDel: { key: key, reason: '' } }),
           logDelOpen: !!d,
           logDelTitle: d ? d.key.split('|')[1] + ' · ' + d.key.split('|')[0] : '',
