@@ -240,6 +240,7 @@ async function route(req, res, body) {
       rows.forEach(r => { if (isEv) T.push(Object.assign({ id: T.length + 1, at: new Date().toISOString() }, r)); else { const i = T.findIndex(x => x.ws === r.ws); if (i >= 0) Object.assign(T[i], r); else T.push(r); } });
       return send(res, 201);
     }
+    if (req.method === 'DELETE') { if (who !== 'service') return send(res, 403, { code: '42501' }); const del = T.filter(filters(u.searchParams)); del.forEach(r => T.splice(T.indexOf(r), 1)); return send(res, 204); }
     if (req.method === 'GET') {
       const rows = T.filter(filters(u.searchParams)).filter(r => adminOk(r.ws));
       const total = rows.length;
