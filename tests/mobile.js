@@ -18,6 +18,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
   const cnt = (re) => (html.match(re) || []).length;
   check('화면 틀: <div> 여닫음 짝이 맞음', cnt(/<div\b/g) === cnt(/<\/div>/g), cnt(/<div\b/g) + ' / ' + cnt(/<\/div>/g));
   check('화면 틀: <sc-if> 여닫음 짝이 맞음', cnt(/<sc-if\b/g) === cnt(/<\/sc-if>/g), cnt(/<sc-if\b/g) + ' / ' + cnt(/<\/sc-if>/g));
+  check('화면 틀: 일지 작성·검수 화면에 카메라 촬영(capture) 입력과 [사진 촬영] 단추가 있음', cnt(/capture="environment"[^>]*sitePhotoCamRef/g) >= 2 && cnt(/takePhoto/g) >= 2 && /사진 촬영/.test(html));
   check('화면 틀: <sc-for> 여닫음 짝이 맞음', cnt(/<sc-for\b/g) === cnt(/<\/sc-for>/g), cnt(/<sc-for\b/g) + ' / ' + cnt(/<\/sc-for>/g));
 
   const srv = spawn('node', [path.join(__dirname, '..', 'tools', 'dev-server.js'), String(PORT), '--staff'], { stdio: ['ignore', 'pipe', 'inherit'] });
