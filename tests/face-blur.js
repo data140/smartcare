@@ -77,6 +77,20 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     for (let i = 0; i < 40; i++) { const t = await p.locator('[data-blur-bar] [role=status]').innerText().catch(() => ''); if (/명 중/.test(t)) break; await sleep(300); } await sleep(500);
     r = await imgStats();
     check('운영일지에 직접 올린 같은 사진도 판독 결과와 이어져 동의한 분은 선명', r && r.a > 100 && r.b < 40 && r.c < 40, JSON.stringify(r));
+    // 얼굴 직접 지정: 누구인지 모르는 세 번째 얼굴을 PT-D001(초상권 동의)로 지정 → 선명해짐
+    await p.locator('button:has-text("얼굴 직접 지정")').first().click();
+    await p.waitForSelector('[data-face-stage]', { timeout: 15000 }); await sleep(500);
+    const nBox = await p.locator('[data-face-stage] button[aria-label]').count();
+    check('얼굴 직접 지정 창에 얼굴 상자 3개가 보임', nBox === 3, String(nBox));
+    await p.locator('[data-face-stage] button[aria-label]').nth(2).click(); await sleep(400);
+    await p.locator('[data-face-pick] input').fill('가상환자1'); await sleep(400);
+    await p.locator('[data-face-pick] button:has-text("가상환자1")').first().click(); await sleep(1500);
+    const lab = await p.locator('[data-face-stage] button[aria-label]').nth(2).getAttribute('aria-label');
+    check('지정한 얼굴이 [선명 · 가상환자1]로 표시됨', /선명/.test(lab) && /가상환자1/.test(lab), lab);
+    await p.locator('[aria-label="얼굴 직접 지정"] button:has-text("완료")').click(); await sleep(500);
+    for (let i = 0; i < 40; i++) { const t = await p.locator('[data-blur-bar] [role=status]').innerText().catch(() => ''); if (/명 중/.test(t)) break; await sleep(300); } await sleep(600);
+    r = await imgStats();
+    check('지정한 얼굴은 내보내기 사진에서도 선명, 나머지는 그대로 블러', r && r.c > 100 && r.b < 40, JSON.stringify(r));
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 3).join(' | ')); }
   console.log('스마트케어 얼굴 블러 시험\n' + results.join('\n'));

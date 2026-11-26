@@ -2404,10 +2404,24 @@ class Component extends DCLogic {
     const rows = (sess.review || []).filter(r => r && r.src).map(r => [r.id || '', r.src.pid, r.src.x, r.src.y, r.src.bw, r.src.bh, r.src.w].join(','));
     const cons = {}; PATIENTS.forEach(p => { if (p && p.id) cons[p.id] = this.blurOkPatient(p) ? 'Y' : 'N'; });
     const used = (sess.review || []).filter(r => r && r.id).map(r => r.id + ':' + (cons[r.id] || ''));
-    return mode + '|' + objs.map(o => o.id + ':' + o.url.length + ':' + o.url.slice(-24)).join(';') + '|' + rows.join(';') + '|' + used.join(';');
+    return mode + '|' + objs.map(o => o.id + ':' + o.url.length + ':' + o.url.slice(-24)).join(';') + '|' + rows.join(';') + '|' + used.join(';') + '|' + JSON.stringify(this.faceAsgMap()[key] || {});
   }
   // 이 사진에서 얼굴 위치 (판독 결과에 저장된 위치 우선, 없으면 얼굴 검출) → [{x,y,w,h, ok}]  ok = 초상권 동의한 환자
+  // ───── 얼굴 직접 지정: 사진에서 얼굴을 눌러 누구인지(또는 직원·항상 블러) 정함 — 자동 판독보다 우선 ─────
+  faceAsgMap() { try { return JSON.parse(localStorage.getItem('smartcare.faceAsg.v1') || '{}') || {}; } catch (e) { return {}; } }
+  faceAsgSave(m) { try { localStorage.setItem('smartcare.faceAsg.v1', JSON.stringify(m)); } catch (e) {} this.setState({ faceAsgRev: (this.state.faceAsgRev || 0) + 1, jrnBlurRes: null }); }
+  static photoKeyOf(o) { return o.id || ('u' + Component.jrnHash((o.url || '').slice(-200) + (o.url || '').length)); }
+  faceSig(o, b, cv) { return Component.photoKeyOf(o) + ':' + Math.round(b.x / cv.width * 500) + ',' + Math.round(b.y / cv.height * 500); }
   async jrnFaceBoxes(key, s, o, cv) {
+    const r = await this.jrnFaceBoxesRaw(key, s, o, cv);
+    const asg = (this.faceAsgMap()[key] || {}); const pats = {}; PATIENTS.forEach(p => { if (p && p.id) pats[p.id] = p; });
+    r.boxes.forEach(b => {
+      b.sig = this.faceSig(o, b, cv); b.auto = b.ok; const v = asg[b.sig];
+      if (v) { b.assigned = v; b.ok = v === '__staff' ? true : v === '__blur' ? false : !!(pats[v] && this.blurOkPatient(pats[v])); }
+    });
+    return r;
+  }
+  async jrnFaceBoxesRaw(key, s, o, cv) {
     const sess = (s.activeSession === key) ? { review: s.review } : ((s.sessions || {})[key] || {});
     const pats = {}; PATIENTS.forEach(p => { if (p && p.id) pats[p.id] = p; });
     const rows = (sess.review || []).filter(r => r && r.src && o.id && r.src.pid === o.id && r.src.w);
@@ -2470,6 +2484,19 @@ class Component extends DCLogic {
     const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92));
     return { url: URL.createObjectURL(blob), blurred: n, faces: fb.boxes.length };
   }
+  async faceAsgOpen(key) {
+    this.setState({ faceAsg: { key: key, loading: true, photos: [], idx: 0, pick: -1, q: '' } });
+    try {
+      const objs = this.jrnPhotoObjs(key, this.state); const photos = [];
+      for (const o of objs) {
+        const cv = await this.toCanvas(o.url, 2000);
+        const fb = await this.jrnFaceBoxes(key, this.state, o, cv);
+        photos.push({ o: o, w: cv.width, h: cv.height, boxes: fb.boxes, known: fb.known });
+      }
+      this.setState({ faceAsg: { key: key, loading: false, photos: photos, idx: 0, pick: -1, q: '' } });
+    } catch (e) { this.setState({ faceAsg: null }); this.flash('얼굴을 찾지 못했습니다 — 네트워크를 확인하고 다시 시도하세요'); }
+  }
+  faceAsgSet(sig, v) { const d = this.state.faceAsg; if (!d) return; const m = this.faceAsgMap(); const cur = Object.assign({}, m[d.key] || {}); if (v) cur[sig] = v; else delete cur[sig]; m[d.key] = cur; this.faceAsgSave(m); this.faceAsgOpen(d.key); setTimeout(() => this.jrnBlurPrepare(d.key), 50); }
   async jrnBlurPrepare(key) {
     key = key || this.state.jrnSel; const s = this.state; const mode = this.jrnBlurMode();
     if (!key || mode === 'off') { this.setState({ jrnBlurRes: null, jrnBlurBusy: false }); return; }
@@ -3124,6 +3151,30 @@ class Component extends DCLogic {
         const busy = mode !== 'off' && (!!s.jrnBlurBusy || !okRes);
         const setMode = (m) => { try { localStorage.setItem('sc.jrnBlur.v1', m); } catch (e) {} this.setState({ jrnBlurRev: (s.jrnBlurRev || 0) + 1, jrnBlurRes: null, jrnBlurReason: m === 'off' ? s.jrnBlurReason : '' }); if (s.jrnPrev) setTimeout(() => this.jrnBlurPrepare(selKey), 20); };
         return {
+          faceAsgBtn: () => this.faceAsgOpen(selKey),
+          ...(() => {
+            const d = s.faceAsg; const ph = d && d.photos ? d.photos[d.idx] : null;
+            const pick = d && ph && d.pick >= 0 ? ph.boxes[d.pick] : null;
+            const q = ((d && d.q) || '').trim();
+            const pl = !pick ? [] : PATIENTS.filter(p => p && p.name && (!q || p.name.indexOf(q) >= 0 || (p.chartNo || '').indexOf(q) >= 0)).slice(0, 40);
+            const nm = (b) => !b.assigned ? '' : (b.assigned === '__staff' ? '직원' : b.assigned === '__blur' ? '항상 블러' : ((PATIENTS.find(p => p.id === b.assigned) || {}).name || ''));
+            return {
+              faceAsgOpen: !!d, faceAsgLoading: !!(d && d.loading), faceAsgReady: !!(d && !d.loading),
+              faceAsgClose: () => this.setState({ faceAsg: null }),
+              faceAsgImg: ph ? ph.o.url : '', faceAsgHasPhoto: !!ph, faceAsgNoFace: !!(ph && !ph.boxes.length),
+              faceAsgTabs: (d && d.photos ? d.photos : []).map((x, i) => ({ label: (i + 1) + '번 사진', cls: i === d.idx ? 'sel-chip' : '', go: () => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { idx: i, pick: -1 }) }) })),
+              faceAsgBoxes: ph ? ph.boxes.map((b, i) => ({
+                style: 'position: absolute; left: ' + (b.x / ph.w * 100) + '%; top: ' + (b.y / ph.h * 100) + '%; width: ' + (b.w / ph.w * 100) + '%; height: ' + (b.h / ph.h * 100) + '%; border: 3px solid ' + (b.ok ? '#22c55e' : '#ef4444') + '; border-radius: 6px; box-sizing: border-box; background: ' + (d.pick === i ? 'rgba(255,255,255,0.25)' : 'transparent') + '; cursor: pointer; padding: 0;',
+                tag: (b.ok ? '선명' : '블러') + (nm(b) ? ' · ' + nm(b) : ''), tagBg: b.ok ? '#16a34a' : '#dc2626',
+                go: () => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { pick: d.pick === i ? -1 : i, q: '' }) })
+              })) : [],
+              faceAsgHasPick: !!pick,
+              faceAsgPickTitle: pick ? '이 얼굴은 누구인가요? (현재: ' + (pick.ok ? '선명' : '블러') + (nm(pick) ? ' · 지정 ' + nm(pick) : ' · 자동') + ')' : '',
+              faceAsgQ: (d && d.q) || '', onFaceAsgQ: (e) => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { q: e.target.value }) }),
+              faceAsgSpecials: !pick ? [] : [['__staff', '직원 (선명하게)'], ['__blur', '항상 블러'], ['', '지정 해제 (자동 판단)']].map(o => ({ label: o[1], go: () => this.faceAsgSet(pick.sig, o[0]) })),
+              faceAsgPatients: pl.map(p => ({ label: p.name, sub: (p.room || '') + ' · 초상권 ' + (p.consent || '확인전') + (this.blurOkPatient(p) ? ' (선명)' : ' (블러)'), go: () => this.faceAsgSet(pick.sig, p.id) }))
+            };
+          })(),
           jrnBlurTabs: [{ k: 'auto', label: this.blurCfg().basis === 'both' ? '초상권·안면 동의한 분만 선명' : '동의한 분만 선명 (권장)' }, { k: 'all', label: '모두 블러' }].concat(this.blurOffAllowed() ? [{ k: 'off', label: '블러 안 함' }] : []).map(t => ({ label: t.label, cls: mode === t.k ? 'sel-chip' : '', on: mode === t.k, go: () => setMode(t.k) })),
           jrnBlurOff: mode === 'off',
           jrnBlurAlbumNote: mode === 'off' ? (s.jrnBlurReason ? '원본 그대로 내려받습니다. 사유와 함께 기록이 남습니다.' : '블러 없이 내려받으려면 사유를 고르세요.') : (mode === 'all' ? '내려받는 사진의 모든 얼굴을 블러합니다. 화면의 사진은 그대로 보입니다.' : '내려받을 때 초상권 동의한 분만 선명하고 나머지는 블러합니다. 화면의 사진은 그대로 보입니다.'),
