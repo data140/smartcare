@@ -2719,6 +2719,11 @@ class Component extends DCLogic {
   }
   // ───── 일지 삭제 (착오 등록 정리): 확정 전 일지만 · 사유 필수 · 사람당 하루 한도 · 기록과 백업이 남음 ─────
   logDelLog() { let a = []; try { a = JSON.parse(localStorage.getItem('smartcare.logDel.v1') || '[]') || []; } catch (e) {} return Array.isArray(a) ? a : []; }
+  // 삭제한 일지(일정만 남은 빈 일지)는 목록·오늘 카드에서 숨김. 같은 일지에 다시 내용이 생기면 다시 보임
+  logHidden(key, sess) {
+    if (!this._sessDel || !this._sessDel[key]) return false;
+    const v = sess || {}; return !((v.review || []).length || (v.photos || []).length || v.confirmed);
+  }
   logDelToday(uid) { const d = this.todayIso(); return this.logDelLog().filter(x => x.byId === uid && (x.at || '').slice(0, 10) === d).length; }
   logDelete(key, reason, limit) {
     const s = this.state; const cur = this.curKey(s);
@@ -4621,6 +4626,7 @@ class Component extends DCLogic {
     }
     // 삭제 표시된 빈 일지는 목록에서 제거
     if (v && v.deleted) {
+      this._sessDel = this._sessDel || {}; this._sessDel[key] = true;
       const ss = Object.assign({}, this.state.sessions || {}); delete ss[key];
       const mm = Object.assign({}, this.state.sessionMeta || {}); delete mm[key];
       this._workApplying = true;
@@ -7647,7 +7653,7 @@ class Component extends DCLogic {
     const mToday = this.todayIso();
     const mDay = s.mDay || mToday;
     const mIsDemoDay = mDay === mToday;
-    const mDayPlans = (s.plans || []).filter(p => p.date === mDay && p.status !== '취소').sort((a, b) => a.start.localeCompare(b.start));
+    const mDayPlans = (s.plans || []).filter(p => p.date === mDay && p.status !== '취소' && !this.logHidden(p.date + '|' + p.program, p.date + '|' + p.program === this.curKey(s) ? { review: s.review, photos: s.photos, confirmed: s.confirmed } : (s.sessions || {})[p.date + '|' + p.program])).sort((a, b) => a.start.localeCompare(b.start));
     const logDayPlans = (s.plans || []).filter(p => p.date === (s.logDate || mDay) && p.status !== '취소').sort((a, b) => a.start.localeCompare(b.start));
     const dupMap = this.dupInfo(s.review);
     const dupName = (o) => o.id ? this.patient(o.id).name : '미확인 인물 ' + o.n;
@@ -7950,6 +7956,7 @@ class Component extends DCLogic {
         // 일정이 '예정'인 채로 지났거나 오늘인 프로그램만 (일정에서 '완료'·'취소' 처리한 것은 제외)
         if (!p || p.status !== '예정' || !p.date || p.date > todayIsoV) return;
         const k = p.date + '|' + p.program;
+        if (this.logHidden(k, sessAll[k])) return;
         if (!out[k]) out[k] = { id: 'LOG-' + p.date.replace(/-/g, '') + '-' + p.program, program: p.program, date: p.date + ' ' + (p.start || ''), place: p.place || '', staff: staffTxt(p.staff) };
       });
       Object.keys(sessAll).forEach(k => {
