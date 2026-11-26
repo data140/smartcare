@@ -2789,7 +2789,16 @@ class Component extends DCLogic {
     if (pt && pt.consentRevoked && consent !== '동의') return '철회됨';
     if (hasPaper) return stored === '모바일 전자서명' && mc ? stored : '서면 첨부';
     if (mc) return '모바일 전자서명';
-    return consent === '동의' ? '모바일 전자서명' : '미취득';
+    return consent === '동의' ? '증빙 없음' : '미취득';   // 동의 상태만 있고 서면 파일·전자서명 기록이 없으면 '모바일 전자서명'이라고 단정하지 않음
+  }
+  // 동의서 표시: 실제 증빙(서면 파일·전자 동의 기록)이 있을 때만 '보관됨'
+  consentDocOf(id, consent, s) {
+    s = s || this.state;
+    const pt = PATIENTS.find(x => x.id === id);
+    if (pt && pt.consentRevoked && consent !== '동의') return '철회됨';
+    if (((s.consentFiles || {})[id] || []).length > 0) return 'PDF 보관됨';
+    if (this.loadMobileConsent(id)) return '전자 동의 기록';
+    return consent === '동의' ? '증빙 없음' : '미작성';
   }
   // ───── 동의 철회: 동의 상태·안면인식 등록 정보를 실제로 바꾸고, 증빙(서면 파일·전자서명)은 보존하며 '철회됨'으로 표시, 기록을 남김 ─────
   consentLogList() { try { const a = JSON.parse(localStorage.getItem('smartcare.consentLog.v1') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
@@ -9395,7 +9404,7 @@ class Component extends DCLogic {
         stay: sel.stay || '재원', face: sel.face, faceId: sel.faceId,
         consentOk: sel.consent === '동의', consentNo: sel.consent !== '동의',
         consentLabel: '동의 ' + sel.consent,
-        consentDoc: sel.consent === '동의' ? 'PDF 보관됨' : '미작성',
+        consentDoc: this.consentDocOf(sel.id, sel.consent, s),
         photoUrl: s.photoUrls[sel.id] || '',
         photoEl: this.img(s.photoUrls[sel.id], sel.name + ' 증명사진'),
         hasPhoto: !!s.photoUrls[sel.id], noPhoto: !s.photoUrls[sel.id],
@@ -9641,7 +9650,7 @@ class Component extends DCLogic {
         const bad = (v) => !v || v === '—' || /미작성|미취득|없음|미동의|확인전|철회/.test(String(v));
         const W = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.70) 0.15 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.08 25)' }, OK = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', fg: 'var(--color-text)' }, NA = { line: 'var(--color-neutral-700)', fg: 'var(--color-text)' };
         // 템플릿용 sel 객체와 같은 계산 (날 데이터에는 이 두 값이 없음)
-        const doc = sel.consent === '동의' ? 'PDF 보관됨' : '미작성';
+        const doc = this.consentDocOf(sel.id, sel.consent, s);
         const via = this.consentViaOf(sel.id, sel.consent, s);
         return [
           { label: '동의서', v: doc, c: bad(doc) ? W : OK },

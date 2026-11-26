@@ -18,6 +18,12 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     await p.locator('input[autocomplete="username"]').first().fill('100101'); await p.locator('input[autocomplete="current-password"]').first().fill('1234');
     await p.locator('button:has-text("로그인")').last().click(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
     await p.locator('aside >> text=환자 등록 관리').first().click(); await sleep(1500);
+    // 동의 상태는 '동의'인데 서면 파일·전자 동의 기록이 없는 환자(가상환자1): 보관됨·모바일 전자서명이라고 거짓 표시하지 않음
+    await p.locator('text=가상환자1').first().click(); await sleep(1200);
+    const tile = (label) => p.evaluate((l) => { const t = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && e.textContent.trim() === l); return t ? (t.parentElement.innerText.trim() === l ? t.parentElement.parentElement : t.parentElement).innerText.replace(/\s+/g, ' ') : ''; }, label);
+    check('증빙이 없으면 동의서 칸이 [PDF 보관됨]이 아니라 [증빙 없음]', /증빙 없음/.test(await tile('동의서')) && !/보관됨/.test(await tile('동의서')), await tile('동의서'));
+    check('증빙이 없으면 취득 방식이 [모바일 전자서명]이 아니라 [증빙 없음]', /증빙 없음/.test(await tile('취득 방식')) && !/전자서명/.test(await tile('취득 방식')), await tile('취득 방식'));
+    await p.locator('button[aria-label="닫기"] >> visible=true').first().click().catch(() => {}); await sleep(600);
     // 동의 없음(PT-D003 가상환자3: 보류) 환자를 골라 연다
     await p.locator('text=가상환자3').first().click(); await sleep(1200);
     const via = async () => p.evaluate(() => { const t = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && e.textContent.trim() === '취득 방식'); return t ? (t.parentElement.innerText.trim() === '취득 방식' ? t.parentElement.parentElement : t.parentElement).innerText.replace(/\s+/g, ' ') : ''; });
