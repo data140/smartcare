@@ -87,6 +87,12 @@ const login = async (email, password) => (await (await fetch(BASE + '/auth/v1/to
     await p.locator('[data-sec-srv] button:has-text("저장")').click(); await sleep(1200);
     const cfg = await call({ action: 'cfg_get' }, null, admin);
     check('화면에서 이메일을 바꿔 저장하면 서버에 반영됨', cfg.cfg.emails.length === 1 && cfg.cfg.emails[0] === 'c@example.com', JSON.stringify(cfg.cfg.emails));
+    // 로그아웃 뒤 로그인 화면에서 한참 머물다 로그인해도(화면을 연 지 4초가 지난 뒤) 곧바로 경보 분석이 돌아 경보등이 켜짐
+    await p.locator('button:has-text("로그아웃")').first().click(); await p.waitForSelector('input[autocomplete="username"]', { timeout: 15000 }); await sleep(7000);
+    await p.locator('input[autocomplete="username"]').first().fill('100101'); await p.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await p.locator('button:has-text("로그인")').last().click(); await p.waitForSelector('text=가상환자1', { timeout: 20000 }); await sleep(12000);
+    const lamp2 = await p.evaluate(() => { const b = document.querySelector('button[aria-label="보안 경보"]'); return b ? b.className : ''; });
+    check('로그인 화면에 오래 머문 뒤 로그인해도 12초 안에 서버 경보로 경보등이 켜짐', /sc-sec-crit/.test(lamp2), lamp2);
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n')[0]); }
   console.log('스마트케어 보안 경보 2단계 시험\n' + results.join('\n'));
