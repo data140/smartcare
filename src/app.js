@@ -10445,6 +10445,12 @@ class Component extends DCLogic {
         }
       })),
       signStatus: signedCount + ' / ' + sigRoles.length + ' 서명 완료' + ((sigRoles.some(r => r.who === 'guardian') && !sigRoles.filter(r => r.who === 'guardian').some(r => s.signed[r.k])) ? ' · 보호자 서명은 의사결정 능력 저하 시 필수' : ''),
+      mcDateIso: s.mcDate || this.todayIso(),
+      mcDateTxt: this.jrnDateTxt(s.mcDate || this.todayIso()),
+      mcDateMax: this.todayIso(),
+      mcDateCustom: !!(s.mcDate && s.mcDate !== this.todayIso()),
+      onMcDate: (e) => { const v = e.target.value; if (/^\d{4}-\d{2}-\d{2}$/.test(v)) this.setState({ mcDate: v === this.todayIso() ? '' : v }); },
+      mcDateToday: () => this.setState({ mcDate: '' }),
       saveConsent: () => {
         const pg = sigRoles.filter(r => r.who === 'patient' || r.who === 'guardian');
         if (pg.length && !pg.some(r => s.signed[r.k])) {
@@ -10456,7 +10462,7 @@ class Component extends DCLogic {
         // 전자 동의 기록 저장 → PC 동의서 관리에서 조회
         const nowD = new Date(), p2 = (n) => String(n).padStart(2, '0');
         const rec = {
-          at: nowD.getFullYear() + '-' + p2(nowD.getMonth() + 1) + '-' + p2(nowD.getDate()) + ' ' + p2(nowD.getHours()) + ':' + p2(nowD.getMinutes()),
+          at: (s.mcDate || (nowD.getFullYear() + '-' + p2(nowD.getMonth() + 1) + '-' + p2(nowD.getDate()))) + ' ' + p2(nowD.getHours()) + ':' + p2(nowD.getMinutes()),
           device: s.device === 'tablet' ? '태블릿 현장 앱' : (s.device === 'pc' ? 'PC' : '스마트폰 현장 앱'),
           portrait: !!s.consent.portrait, face: !!s.consent.face,
           staff: userName, patientName: sel.name,
@@ -10470,7 +10476,7 @@ class Component extends DCLogic {
           tgt.consentVia = '모바일';
           this.persistPatients(this.state.photoUrls);
         }
-        this.setState({ mcTick: (s.mcTick || 0) + 1 });
+        this.setState({ mcTick: (s.mcTick || 0) + 1, mcDate: '' });
         if (!s.consent.face) this.flash('안면인식 미동의로 저장 — 출석은 수기 기록으로 대체됩니다');
         else this.flash('동의서 저장 — PDF 생성 후 명부에 연결되었습니다');
         if (s.device === 'pc') this.setState({ pcView: 'patients', pdOpen: true });

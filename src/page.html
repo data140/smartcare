@@ -3257,7 +3257,7 @@
                           <span style="font-size: 18px;">{{ w.name }}</span>
                           <span style="font-size: 13.5px; color: var(--color-neutral-500);">{{ w.meta }}</span>
                         </span>
-                        <span style="grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2);">
+                        <span style="grid-column: 2; grid-row: 1; display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2);">
                           <span style="display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; justify-content: flex-end;">
                             <input class="input" placeholder="호실 추가 (예: 306)" value="{{ w.roomDraft }}" sc-camel-on-change="{{ w.onRoomDraft }}" sc-camel-on-key-down="{{ w.roomKey }}" style="min-height: 36px; width: 180px;">
                             <button sc-camel-on-click="{{ w.addRoom }}" class="btn btn-secondary" style="min-height: 36px; font-size: 13.5px;"><i class="ph ph-plus"></i> 호실 추가</button>
@@ -3267,7 +3267,7 @@
                         </span>
                       </sc-if>
                     </div>
-                    <div style="grid-column: 1; display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                    <div style="grid-column: 1 / -1; display: flex; gap: var(--space-2); flex-wrap: wrap;" data-ward-rooms="1">
                       <sc-for list="{{ w.rooms }}" as="rm" hint-placeholder-count="5">
                         <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 999px; background: {{ rm.bg }}; box-shadow: {{ rm.ring }}; font-size: 13.5px; color: {{ rm.color }};">
                           <span style="text-decoration: {{ rm.deco }};">{{ rm.label }}</span>
@@ -4546,7 +4546,9 @@
                     </div>
                   </div>
                 </sc-if>
-                <div style="font-size: 14px; color: var(--color-neutral-400); margin-top: var(--space-4);">작성일자 <span style="font-variant-numeric: tabular-nums;">2026년 9월 21일</span></div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--color-neutral-400); margin-top: var(--space-4);" data-mc-date="1">작성일자 <span style="font-variant-numeric: tabular-nums; color: var(--color-text);">{{ mcDateTxt }}</span>
+                  <input type="date" value="{{ mcDateIso }}" max="{{ mcDateMax }}" sc-camel-on-change="{{ onMcDate }}" aria-label="작성일자 선택" class="input" style="min-height: 40px; width: 160px;">
+                  <sc-if value="{{ mcDateCustom }}" hint-placeholder-val="{{ false }}"><button type="button" sc-camel-on-click="{{ mcDateToday }}" class="btn btn-ghost" style="min-height: 36px; font-size: 13px;">오늘로</button></sc-if></div>
               </div>
 
               <div style="display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--color-divider);">
