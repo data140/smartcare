@@ -1084,6 +1084,7 @@ class Component extends DCLogic {
 
   _idInput = React.createRef();
   _siteInput = React.createRef();
+  _siteCam = React.createRef();
   _consentInput = React.createRef();
   _statsRef = React.createRef();
   _sbRef = React.createRef();
@@ -12010,7 +12011,8 @@ class Component extends DCLogic {
           this.flash(p.label + ' 삭제');
         }
       })),
-      sitePhotoRef: this._siteInput,
+      sitePhotoRef: this._siteInput, sitePhotoCamRef: this._siteCam,
+      takePhoto: () => { if (this._siteCam.current) this._siteCam.current.click(); },
       onSitePhotos: (e) => { const fs = Array.from(e.target.files || []); e.target.value = ''; if (fs.length) this.setState({ sitePhotosOpen: true }); addSitePhotos(fs); },
       addPhoto: () => { if (this._siteInput.current) this._siteInput.current.click(); },
       photoHint: s.offline

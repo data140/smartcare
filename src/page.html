@@ -2450,6 +2450,7 @@
             <div style="display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-8); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
               <div class="field"><label>현장사진 * (여러 장 · 끌어다 놓기 가능)</label>
                 <input type="file" accept="image/*" multiple="{{ true }}" ref="{{ sitePhotoRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
+                <input type="file" accept="image/*" capture="environment" ref="{{ sitePhotoCamRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
                 <div data-drop="site" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-3); margin-top: var(--space-2);">
                   <sc-for list="{{ photos }}" as="ph" hint-placeholder-count="2">
                     <div style="aspect-ratio: 1; border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: var(--shadow-sm); display: grid; place-items: center; text-align: center; position: relative; overflow: hidden;">
@@ -2518,6 +2519,7 @@
               <sc-if value="{{ noSitePhotos }}" hint-placeholder-val="{{ true }}"><span style="display: inline-flex; align-items: center; gap: var(--space-2); font-size: 14px; color: var(--color-neutral-500);"><i class="ph ph-images" style="font-size: 18px;"></i>첨부된 현장사진 없음</span></sc-if>
               <span style="margin-left: auto; display: flex; gap: var(--space-2); flex-wrap: wrap;">
                 <input type="file" accept="image/*" multiple="{{ true }}" ref="{{ sitePhotoRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
+                <input type="file" accept="image/*" capture="environment" ref="{{ sitePhotoCamRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
                 <button sc-camel-on-click="{{ addPhoto }}" class="btn btn-secondary" style="min-height: 42px;"><i class="ph ph-camera-plus" style="font-size: 18px;"></i> 사진 추가</button>
                 <sc-if value="{{ canReanalyze }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ reanalyze }}" class="btn btn-primary" style="min-height: 42px;"><i class="ph ph-scan-smiley" style="font-size: 18px;"></i> {{ reanalyzeLabel }}</button></sc-if>
               </span>
@@ -4177,6 +4179,7 @@
 
               <div class="field"><label>현장사진 * (여러 장)</label>
                 <input type="file" accept="image/*" multiple="{{ true }}" ref="{{ sitePhotoRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
+                <input type="file" accept="image/*" capture="environment" ref="{{ sitePhotoCamRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
                 <div data-drop="site" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-top: var(--space-2);">
                   <sc-for list="{{ photos }}" as="ph" hint-placeholder-count="2">
                     <div style="aspect-ratio: 1; border-radius: var(--radius-md); background: var(--color-neutral-900); box-shadow: var(--shadow-sm); display: grid; place-items: center; text-align: center; position: relative; overflow: hidden;">
@@ -4192,7 +4195,8 @@
                       <button sc-camel-on-click="{{ ph.remove }}" style="position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(22, 24, 38, 0.82); color: var(--color-text); cursor: pointer; display: grid; place-items: center; font-size: 14px;" aria-label="사진 삭제"><i class="ph ph-x"></i></button>
                     </div>
                   </sc-for>
-                  <button sc-camel-on-click="{{ addPhoto }}" style="aspect-ratio: 1; border-radius: var(--radius-md); border: 1px dashed var(--color-neutral-700); background: var(--color-bg); color: var(--color-neutral-400); cursor: pointer; display: grid; place-items: center; font-size: 26px;" style-hover="border-color: var(--color-accent); color: var(--color-accent-300);" aria-label="사진 추가"><i class="ph ph-camera"></i></button>
+                  <button sc-camel-on-click="{{ takePhoto }}" style="aspect-ratio: 1; border-radius: var(--radius-md); border: 1px dashed var(--color-neutral-700); background: var(--color-bg); color: var(--color-neutral-400); cursor: pointer; display: grid; place-items: center; font-size: 26px;" style-hover="border-color: var(--color-accent); color: var(--color-accent-300);" aria-label="카메라로 사진 촬영"><span style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><i class="ph ph-camera"></i><span style="font-size: 12.5px;">사진 촬영</span></span></button>
+                  <button sc-camel-on-click="{{ addPhoto }}" style="aspect-ratio: 1; border-radius: var(--radius-md); border: 1px dashed var(--color-neutral-700); background: var(--color-bg); color: var(--color-neutral-400); cursor: pointer; display: grid; place-items: center; font-size: 26px;" style-hover="border-color: var(--color-accent); color: var(--color-accent-300);" aria-label="앨범·파일에서 사진 추가"><span style="display: flex; flex-direction: column; align-items: center; gap: 6px;"><i class="ph ph-image"></i><span style="font-size: 12.5px;">앨범·파일</span></span></button>
                 </div>
                 <div style="font-size: 13px; color: var(--color-neutral-600); margin-top: var(--space-2); line-height: 1.6;">{{ photoHint }}</div>
               </div>
@@ -4270,8 +4274,10 @@
                     </sc-if>
                   </sc-if>
                   <input type="file" accept="image/*" multiple="{{ true }}" ref="{{ sitePhotoRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
+                  <input type="file" accept="image/*" capture="environment" ref="{{ sitePhotoCamRef }}" sc-camel-on-change="{{ onSitePhotos }}" style="display: none;">
                   <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
-                    <button sc-camel-on-click="{{ addPhoto }}" class="btn btn-secondary" style="min-height: 46px; flex: 1 1 160px;"><i class="ph ph-camera-plus" style="font-size: 18px;"></i> 사진 추가</button>
+                    <button sc-camel-on-click="{{ takePhoto }}" class="btn btn-secondary" style="min-height: 46px; flex: 1 1 160px;"><i class="ph ph-camera" style="font-size: 18px;"></i> 사진 촬영</button>
+                    <button sc-camel-on-click="{{ addPhoto }}" class="btn btn-secondary" style="min-height: 46px; flex: 1 1 160px;"><i class="ph ph-camera-plus" style="font-size: 18px;"></i> 앨범·파일</button>
                     <sc-if value="{{ sitePhotosOpenCanRe }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ reanalyze }}" class="btn btn-primary" style="min-height: 46px; flex: 1 1 160px;"><i class="ph ph-scan-smiley" style="font-size: 18px;"></i> {{ reanalyzeLabel }}</button></sc-if>
                   </div>
                   <sc-if value="{{ analyzing }}" hint-placeholder-val="{{ false }}">
