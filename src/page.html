@@ -4640,14 +4640,21 @@
                 </div>
               </sc-if>
             </div>
-            <sc-if value="{{ faceAsgHasPick }}" hint-placeholder-val="{{ false }}">
-              <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; min-width: 0;" data-face-pick="1">
-                <div style="font-size: 14px; font-weight: 600; line-height: 1.5;">{{ faceAsgPickTitle }}</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;"><sc-for list="{{ faceAsgSpecials }}" as="o" hint-placeholder-count="3"><button type="button" sc-camel-on-click="{{ o.go }}" class="btn btn-secondary" data-keep="1" style="min-height: 34px; font-size: 13px;">{{ o.label }}</button></sc-for></div>
-                <input class="input" value="{{ faceAsgQ }}" sc-camel-on-change="{{ onFaceAsgQ }}" placeholder="이름·등록번호로 찾기" aria-label="환자 찾기" style="min-height: 40px;">
-                <div style="display: flex; flex-direction: column; gap: 4px; max-height: 38vh; overflow: auto;"><sc-for list="{{ faceAsgPatients }}" as="p" hint-placeholder-count="5"><button type="button" sc-camel-on-click="{{ p.go }}" data-keep="1" style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--color-neutral-800); background: var(--color-neutral-900); color: var(--color-text); font: inherit; cursor: pointer; text-align: left;"><span style="font-size: 14px;">{{ p.label }}</span><span style="font-size: 12px; color: var(--color-neutral-500);">{{ p.sub }}</span></button></sc-for></div>
-              </div>
-            </sc-if>
+            <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; min-width: 0;" data-face-panel="1">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><span style="font-size: 13px; color: var(--color-neutral-400); flex: 1 1 140px;" data-face-npick="1">{{ faceAsgNPick }}</span>
+                <button type="button" sc-camel-on-click="{{ faceAsgAllGo }}" class="btn btn-secondary" data-keep="1" style="min-height: 32px; font-size: 12.5px;">모두 선택</button>
+                <button type="button" sc-camel-on-click="{{ faceAsgNoneGo }}" class="btn btn-ghost" data-keep="1" style="min-height: 32px; font-size: 12.5px;">선택 해제</button></div>
+              <sc-if value="{{ faceAsgHasPick }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;" data-face-pick="1">
+                  <div style="font-size: 14px; font-weight: 600; line-height: 1.5;">{{ faceAsgPickTitle }}</div>
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap;"><sc-for list="{{ faceAsgSpecials }}" as="o" hint-placeholder-count="3"><button type="button" sc-camel-on-click="{{ o.go }}" class="btn btn-secondary" data-keep="1" style="min-height: 34px; font-size: 13px;">{{ o.label }}</button></sc-for></div>
+                  <sc-if value="{{ faceAsgOnePick }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 8px;">
+                    <input class="input" value="{{ faceAsgQ }}" sc-camel-on-change="{{ onFaceAsgQ }}" placeholder="이름·등록번호로 찾기" aria-label="환자 찾기" style="min-height: 40px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px; max-height: 38vh; overflow: auto;"><sc-for list="{{ faceAsgPatients }}" as="p" hint-placeholder-count="5"><button type="button" sc-camel-on-click="{{ p.go }}" data-keep="1" style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--color-neutral-800); background: var(--color-neutral-900); color: var(--color-text); font: inherit; cursor: pointer; text-align: left;"><span style="font-size: 14px;">{{ p.label }}</span><span style="font-size: 12px; color: var(--color-neutral-500);">{{ p.sub }}</span></button></sc-for></div>
+                  </div></sc-if>
+                </div>
+              </sc-if>
+            </div>
           </div>
         </sc-if>
       </div>

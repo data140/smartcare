@@ -2492,8 +2492,8 @@ class Component extends DCLogic {
     const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92));
     return { url: URL.createObjectURL(blob), blurred: n, faces: fb.boxes.length };
   }
-  async faceAsgOpen(key) {
-    this.setState({ faceAsg: { key: key, loading: true, photos: [], idx: 0, pick: -1, q: '' } });
+  async faceAsgOpen(key, keepIdx) {
+    this.setState({ faceAsg: { key: key, loading: true, photos: [], idx: keepIdx || 0, picks: [], q: '' } });
     try {
       const objs = this.jrnPhotoObjs(key, this.state); const photos = [];
       for (const o of objs) {
@@ -2501,10 +2501,17 @@ class Component extends DCLogic {
         const fb = await this.jrnFaceBoxes(key, this.state, o, cv);
         photos.push({ o: o, w: cv.width, h: cv.height, boxes: fb.boxes, known: fb.known });
       }
-      this.setState({ faceAsg: { key: key, loading: false, photos: photos, idx: 0, pick: -1, q: '' } });
+      this.setState({ faceAsg: { key: key, loading: false, photos: photos, idx: Math.min(keepIdx || 0, Math.max(0, photos.length - 1)), picks: [], q: '' } });
     } catch (e) { this.setState({ faceAsg: null }); this.flash('얼굴을 찾지 못했습니다 — 네트워크를 확인하고 다시 시도하세요'); }
   }
-  faceAsgSet(sig, v) { const d = this.state.faceAsg; if (!d) return; const m = this.faceAsgMap(); const cur = Object.assign({}, m[d.key] || {}); if (v) cur[sig] = v; else delete cur[sig]; m[d.key] = cur; this.faceAsgSave(m); this.faceAsgOpen(d.key); setTimeout(() => this.jrnBlurPrepare(d.key), 50); }
+  faceAsgSet(sig, v) { this.faceAsgSetMany([sig], v); }
+  // 선택한 얼굴 여러 개를 한 번에 지정(환자 지정은 한 명씩, 직원·항상 블러·해제는 여러 개 동시에)
+  faceAsgSetMany(sigs, v) {
+    const d = this.state.faceAsg; if (!d || !sigs.length) return;
+    const m = this.faceAsgMap(); const cur = Object.assign({}, m[d.key] || {});
+    sigs.forEach(sig => { if (v) cur[sig] = v; else delete cur[sig]; });
+    m[d.key] = cur; this.faceAsgSave(m); this.faceAsgOpen(d.key, d.idx); setTimeout(() => this.jrnBlurPrepare(d.key), 50);
+  }
   async jrnBlurPrepare(key) {
     key = key || this.state.jrnSel; const s = this.state; const mode = this.jrnBlurMode();
     if (!key || mode === 'off') { this.setState({ jrnBlurRes: null, jrnBlurBusy: false }); return; }
@@ -3204,7 +3211,10 @@ class Component extends DCLogic {
           faceAsgBtn: () => this.faceAsgOpen(selKey),
           ...(() => {
             const d = s.faceAsg; const ph = d && d.photos ? d.photos[d.idx] : null;
-            const pick = d && ph && d.pick >= 0 ? ph.boxes[d.pick] : null;
+            const picks = (d && ph && Array.isArray(d.picks) ? d.picks : []).filter(i => ph.boxes[i]);
+            const pick = picks.length === 1 ? ph.boxes[picks[0]] : null;
+            const manyPick = picks.length > 1;
+            const togglePick = (i) => { const cur = (this.state.faceAsg.picks || []); this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { picks: cur.indexOf(i) >= 0 ? cur.filter(x => x !== i) : cur.concat(i), q: '' }) }); };
             const q = ((d && d.q) || '').trim();
             const pl = !pick ? [] : PATIENTS.filter(p => p && p.name && (!q || p.name.indexOf(q) >= 0 || (p.chartNo || '').indexOf(q) >= 0)).slice(0, 40);
             const nm = (b) => !b.assigned ? '' : (b.assigned === '__staff' ? '직원' : b.assigned === '__blur' ? '항상 블러' : ((PATIENTS.find(p => p.id === b.assigned) || {}).name || ''));
@@ -3212,16 +3222,20 @@ class Component extends DCLogic {
               faceAsgOpen: !!d, faceAsgLoading: !!(d && d.loading), faceAsgReady: !!(d && !d.loading),
               faceAsgClose: () => this.setState({ faceAsg: null }),
               faceAsgImg: ph ? ph.o.url : '', faceAsgHasPhoto: !!ph, faceAsgNoFace: !!(ph && !ph.boxes.length),
-              faceAsgTabs: (d && d.photos ? d.photos : []).map((x, i) => ({ label: (i + 1) + '번 사진', cls: i === d.idx ? 'sel-chip' : '', go: () => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { idx: i, pick: -1 }) }) })),
+              faceAsgTabs: (d && d.photos ? d.photos : []).map((x, i) => ({ label: (i + 1) + '번 사진', cls: i === d.idx ? 'sel-chip' : '', go: () => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { idx: i, picks: [] }) }) })),
               faceAsgBoxes: ph ? ph.boxes.map((b, i) => ({
-                style: 'position: absolute; left: ' + (b.x / ph.w * 100) + '%; top: ' + (b.y / ph.h * 100) + '%; width: ' + (b.w / ph.w * 100) + '%; height: ' + (b.h / ph.h * 100) + '%; border: 3px solid ' + (b.ok ? '#22c55e' : '#ef4444') + '; border-radius: 6px; box-sizing: border-box; background: ' + (d.pick === i ? 'rgba(255,255,255,0.25)' : 'transparent') + '; cursor: pointer; padding: 0;',
+                style: 'position: absolute; left: ' + (b.x / ph.w * 100) + '%; top: ' + (b.y / ph.h * 100) + '%; width: ' + (b.w / ph.w * 100) + '%; height: ' + (b.h / ph.h * 100) + '%; border: 3px solid ' + (b.ok ? '#22c55e' : '#ef4444') + '; border-radius: 6px; box-sizing: border-box; background: ' + (picks.indexOf(i) >= 0 ? 'rgba(255,255,255,0.3)' : 'transparent') + '; cursor: pointer; padding: 0;',
                 tag: (b.ok ? '선명' : '블러') + (nm(b) ? ' · ' + nm(b) : ''), tagBg: b.ok ? '#16a34a' : '#dc2626',
-                go: () => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { pick: d.pick === i ? -1 : i, q: '' }) })
+                go: () => togglePick(i)
               })) : [],
-              faceAsgHasPick: !!pick,
-              faceAsgPickTitle: pick ? '이 얼굴은 누구인가요? (현재: ' + (pick.ok ? '선명' : '블러') + (nm(pick) ? ' · 지정 ' + nm(pick) : ' · 자동') + ')' : '',
+              faceAsgHasPick: picks.length > 0,
+              faceAsgNPick: picks.length ? picks.length + '개 선택' : '선택 없음 — 얼굴 상자를 눌러 고르세요 (여러 개 가능)',
+              faceAsgAllGo: () => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { picks: ph ? ph.boxes.map((b, i) => i) : [], q: '' }) }),
+              faceAsgNoneGo: () => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { picks: [] }) }),
+              faceAsgOnePick: !!pick,
+              faceAsgPickTitle: manyPick ? '얼굴 ' + picks.length + '개를 한 번에 지정합니다 (환자 지정은 한 명씩 선택했을 때만 가능)' : (pick ? '이 얼굴은 누구인가요? (현재: ' + (pick.ok ? '선명' : '블러') + (nm(pick) ? ' · 지정 ' + nm(pick) : ' · 자동') + ')' : ''),
               faceAsgQ: (d && d.q) || '', onFaceAsgQ: (e) => this.setState({ faceAsg: Object.assign({}, this.state.faceAsg, { q: e.target.value }) }),
-              faceAsgSpecials: !pick ? [] : [['__staff', '직원 (선명하게)'], ['__blur', '항상 블러'], ['', '지정 해제 (자동 판단)']].map(o => ({ label: o[1], go: () => this.faceAsgSet(pick.sig, o[0]) })),
+              faceAsgSpecials: !picks.length ? [] : [['__staff', '직원 (선명하게)'], ['__blur', '항상 블러'], ['', '지정 해제 (자동 판단)']].map(o => ({ label: o[1] + (manyPick ? ' · ' + picks.length + '개 모두' : ''), go: () => this.faceAsgSetMany(picks.map(i => ph.boxes[i].sig), o[0]) })),
               faceAsgPatients: pl.map(p => ({ label: p.name, sub: (p.room || '') + ' · 초상권 ' + (p.consent || '확인전') + (this.blurOkPatient(p) ? ' (선명)' : ' (블러)'), go: () => this.faceAsgSet(pick.sig, p.id) }))
             };
           })(),
