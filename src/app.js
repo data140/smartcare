@@ -9505,6 +9505,7 @@ class Component extends DCLogic {
         const MATCH = {
           '전체': r => !r.hasMobile || !r.hasPaper || !r.agreed,
           '동의 없음': r => !r.hasMobile && !r.hasPaper,
+          '증빙 없음': r => (r.p.consent === '동의' || r.p.face === '동의') && !r.hasMobile && !r.hasPaper,
           '서면 파일 없음': r => !r.hasPaper,
           '동의 항목 미완료': r => (r.hasMobile || r.hasPaper) && !r.agreed
         };
@@ -9579,7 +9580,15 @@ class Component extends DCLogic {
           cpPendClosed: s.cpPendOpen === false,
           toggleCpPend: () => this.setState({ cpPendOpen: s.cpPendOpen === false }),
           cpPendNone: pendRows.length === 0,
-          cpPendFilters: ['전체', '동의 없음', '서면 파일 없음', '동의 항목 미완료'].map(k => ({
+          cpPendXlsx: () => {
+            if (!sorted.length) { this.flash('내려받을 환자가 없습니다'); return; }
+            const cols = ['이름', '병실', '등록번호', '입원일', '초상권 동의', '안면인식 동의', '모바일 전자 동의', '서면 동의서 파일', '증빙 상태'];
+            const rows = sorted.map(r => [r.p.name || '', r.p.room || '', r.p.chartNo || '', r.p.admitDate || r.p.admit || '', r.p.consent || '확인전', r.p.face || '확인전', r.hasMobile ? '있음' : '없음', r.hasPaper ? '있음' : '없음', (r.hasMobile || r.hasPaper) ? '증빙 있음' : ((r.p.consent === '동의' || r.p.face === '동의') ? '증빙 없음 (동의 상태만 입력됨)' : '동의 없음')]);
+            const d = new Date(), p2 = (n) => String(n).padStart(2, '0');
+            Component.saveBlob(Component.xlsxBlob(cols, rows, '동의 증빙 점검'), '동의증빙점검_' + pf.replace(/\s+/g, '') + '_' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '.xlsx');
+            this.flash('엑셀 파일을 내려받았습니다 (' + rows.length + '명, ' + pf + ') — 개인정보가 들어 있으니 열람 후 파기하세요');
+          },
+          cpPendFilters: ['전체', '동의 없음', '증빙 없음', '서면 파일 없음', '동의 항목 미완료'].map(k => ({
             label: k, n: cntF(k), on: pf === k, off: pf !== k,
             go: () => this.setState({ cpPendF: k, cpPg: 0 })
           })),

@@ -1203,10 +1203,11 @@
             <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
               <sc-if value="{{ cpPendOpen }}" hint-placeholder-val="{{ true }}">
                 <span role="group" aria-label="동의 미완료 필터" style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; padding: 3px; border-radius: 999px; background: var(--color-neutral-900); box-shadow: inset 0 0 0 1px var(--color-neutral-800);">
-                <sc-for list="{{ cpPendFilters }}" as="f" hint-placeholder-count="4">
+                <sc-for list="{{ cpPendFilters }}" as="f" hint-placeholder-count="5">
                   <sc-if value="{{ f.on }}" hint-placeholder-val="{{ false }}"><button class="sel-chip" sc-camel-on-click="{{ f.go }}" aria-pressed="true" style="display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--color-accent); background: var(--color-accent-900); color: var(--color-accent-100); font: inherit; font-size: 13.5px; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.35); white-space: nowrap;">{{ f.label }} <span style="font-variant-numeric: tabular-nums; color: var(--color-accent-300);">{{ f.n }}</span></button></sc-if>
                   <sc-if value="{{ f.off }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ f.go }}" aria-pressed="false" class="btn btn-secondary" style="min-height: 32px; padding: 0 11px; border-radius: 999px; font-size: 13.5px; white-space: nowrap;">{{ f.label }} <span style="font-variant-numeric: tabular-nums; color: var(--color-neutral-500);">{{ f.n }}</span></button></sc-if>
                 </sc-for>
+                <button type="button" sc-camel-on-click="{{ cpPendXlsx }}" class="btn btn-secondary" data-keep="1" title="지금 보고 있는 조건의 환자 전체를 엑셀로 내려받기" style="min-height: 32px; padding: 0 12px; font-size: 13px; margin-left: 6px; white-space: nowrap;"><i class="ph ph-file-xls"></i> 엑셀</button>
                 </span>
               </sc-if>
             </div>
