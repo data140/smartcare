@@ -46,6 +46,7 @@ class Component extends DCLogic {
     // 실제 휴대폰·태블릿 기기에서 자동 판별일 때만 전체 화면(기기 틀 없음). PC에서 모드를 골라 보면 기기 틀로 미리보기
     phoneOnly: Component.autoDevice() !== 'pc' && Component.detectDevice() !== 'pc',
     pcView: 'patients',
+    privView: (() => { try { return localStorage.getItem('sc.privView.v1') === '1'; } catch (e) { return false; } })(),
     mobileView: 'today',
     logTab: 'list',
     setTab: 'ai',
@@ -3178,8 +3179,15 @@ class Component extends DCLogic {
     const style = fit === 'contain'
       ? { maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: 4 }
       : { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
+    // 개인정보 보호 보기: 사진을 흐리게 — 누르고 있는 동안만 선명하게 보임
+    if (this.state.privView) {
+      style.filter = 'blur(16px)'; style.cursor = 'pointer'; style.transition = 'filter 0.15s';
+      const show = (e) => { e.currentTarget.style.filter = 'none'; }, hide = (e) => { e.currentTarget.style.filter = 'blur(16px)'; };
+      return React.createElement('img', { src: url, alt: alt, style: style, title: '개인정보 보호 보기 중 — 누르고 있는 동안만 보입니다', onPointerDown: show, onPointerUp: hide, onPointerLeave: hide, onPointerCancel: hide, draggable: false });
+    }
     return React.createElement('img', { src: url, alt: alt, style: style });
   }
+  privToggle() { const on = !this.state.privView; try { if (on) localStorage.setItem('sc.privView.v1', '1'); else localStorage.removeItem('sc.privView.v1'); } catch (e) {} this.setState({ privView: on }); this.flash(on ? '개인정보 보호 보기를 켰습니다 — 사진은 누르고 있는 동안만 보입니다' : '개인정보 보호 보기를 껐습니다'); }
 
   flash(msg) {
     this.setState({ toast: msg });
@@ -11636,6 +11644,13 @@ class Component extends DCLogic {
           } })
         };
       })(),
+      privOn: !!s.privView, privOff: !s.privView,
+      privToggle: () => this.privToggle(),
+      privFilter: s.privView ? 'blur(16px)' : 'none',
+      privLabel: s.privView ? '보호 보기 켜짐' : '개인정보 보호 보기',
+      privShort: s.privView ? '끄기' : '켜기',
+      privCls: s.privView ? 'sc-priv sc-priv-on' : 'sc-priv',
+      privIcon: s.privView ? 'ph-fill ph-eye-slash' : 'ph ph-eye',
       isSysUser: isSys, notSysUser: !isSys,
       ...(() => {
         void s.secRev;

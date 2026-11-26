@@ -108,7 +108,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const bb = await pm.evaluate(() => { const d = [...document.querySelectorAll('[aria-label="다크"],[aria-label="라이트"]')].map(e => e.getAttribute('aria-pressed')); return d.join(','); });
     await pm.locator('[aria-label="화면 모드"] button[aria-pressed="false"]').first().tap(); await sleep(400);
     check('휴대폰에서도 라이트/다크가 바뀜', (await pm.evaluate(() => [...document.querySelectorAll('[aria-label="다크"],[aria-label="라이트"]')].map(e => e.getAttribute('aria-pressed')).join(','))) !== bb);
-    await pm.locator('button:has-text("로그아웃")').last().tap();
+    await pm.evaluate(() => { const x = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.querySelector('.ph-x') && /브리핑/.test((b.parentElement || {}).innerText || '')); if (x) x.click(); }); await sleep(300);
+    await pm.locator('button:has-text("로그아웃")').last().evaluate(e => e.scrollIntoView({ block: 'center' })); await sleep(300); await pm.locator('button:has-text("로그아웃")').last().tap();
     check('휴대폰에서 로그아웃하면 로그인 화면으로 돌아감', await pm.waitForSelector('input[autocomplete="username"]', { timeout: 15000 }).then(() => true, () => false));
     await ctxm.close();
 
