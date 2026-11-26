@@ -98,6 +98,7 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
         results.push('  · 진단: 서버 명부 ' + sv.map(r => r.k.slice(-34) + '=' + (() => { try { return JSON.parse(r.v).length; } catch (e) { return 'x'; } })()).join(' · '));
         const loc = await p.evaluate(() => Object.keys(localStorage).filter(k => /patients\.v1$/.test(k)).map(k => { try { return k.slice(-30) + '=' + JSON.parse(localStorage.getItem(k)).length; } catch (e) { return k.slice(-30) + '=x'; } }));
         results.push('  · 진단: 브라우저 명부 ' + loc.join(' · '));
+        results.push('  · 진단: 서버 명부의 PT-B432 재원상태 ' + (() => { try { const a = JSON.parse(sv[0].v); const x = a.find(y => y.id === 'PT-B432'); return x ? x.stay + '/' + (x.dischargeBy || '') : '없음'; } catch (e) { return '?'; } })());
         const idx = sv.length ? (() => { try { const a = JSON.parse(sv[0].v); const i = a.findIndex(x => x.id === 'PT-B432'); return i; } catch (e) { return -2; } })() : -3;
         results.push('  · 진단: 서버 명부에서 PT-B432 위치 ' + idx);
         results.push('  · 진단: 화면 메모리 명부 ' + JSON.stringify(await p.evaluate(() => window.__scPatientStats && window.__scPatientStats())));

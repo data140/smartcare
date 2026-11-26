@@ -764,7 +764,7 @@ class Component extends DCLogic {
     window.addEventListener('keydown', this._onNavKey);
     this.secStart();
     // 시험·점검용: 명부 인원 수만 알려 주는 읽기 전용 함수 (환자 정보는 내보내지 않음)
-    window.__scPatientStats = () => { const by = {}; PATIENTS.forEach(p => { const k = p.stay || '재원'; by[k] = (by[k] || 0) + 1; }); return { n: PATIENTS.length, byStay: by }; };
+    window.__scPatientStats = () => { const by = {}; PATIENTS.forEach(p => { const k = p.stay || '재원'; by[k] = (by[k] || 0) + 1; }); return { n: PATIENTS.length, byStay: by, notStayIds: PATIENTS.filter(p => (p.stay || '재원') !== '재원').slice(0, 5).map(p => p.id + ':' + p.stay + ':' + (p.dischargeBy || '') + ':' + (p.dischargeDate || '')) }; };
     // 통계 '데이터 목록'의 [엑셀 다운로드] — 차트 부품이 호출
     window.__scXlsx = (id, cols, rows) => {
       const st = (REPORTS.find(r => r.id === id) || {}).name || '통계';
