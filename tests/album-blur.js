@@ -46,6 +46,16 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     check('앨범 내려받기가 내보내기 감시(보안 경보)에 집계됨', (await p.evaluate(() => window.__exp)).some(x => /앨범 사진/.test(x)));
     let r = d && await stats(d.f);
     check('기본값: 동의한 환자 얼굴은 선명, 보류·미확인 얼굴은 블러', r && r.a > 100 && r.b < 40 && r.c < 40, JSON.stringify(r));
+    // 앨범에서 얼굴 직접 지정: 누구인지 모르던 세 번째 얼굴을 동의한 환자(PT-D001)로 지정 → 내려받은 사진에서 선명
+    check('앨범 화면에 [얼굴 지정] 단추가 있음', (await p.locator('[data-album-asg]').count()) >= 1);
+    await p.locator('[data-album-asg]').first().click();
+    await p.waitForSelector('[data-face-stage]', { timeout: 15000 }); await sleep(500);
+    await p.locator('[data-face-stage] button[aria-label]').nth(2).click(); await sleep(300);
+    await p.locator('[data-face-pick] input').fill('가상환자1'); await sleep(300);
+    await p.locator('[data-face-pick] button:has-text("가상환자1")').first().click(); await sleep(1500);
+    await p.locator('[aria-label="얼굴 직접 지정"] button:has-text("완료")').click(); await sleep(500);
+    d = await down(); r = d && await stats(d.f);
+    check('지정한 얼굴은 내려받은 사진에서 선명, 지정하지 않은 보류 환자 얼굴은 블러', r && r.c > 100 && r.b < 40, JSON.stringify(r));
     // 블러 안 함: 사유 전에는 내려받기 안 됨
     await p.locator('[data-album-blur] button:has-text("블러 안 함")').click(); await sleep(400);
     let none = await down();

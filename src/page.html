@@ -2035,6 +2035,7 @@
                       </span>
                       <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px; flex: none; position: relative;">
                         <button sc-camel-on-click="{{ alCurToggleAll }}" class="btn btn-ghost" title="이 그룹 사진 모두 선택 / 해제" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;"><i class="{{ alCurSelIcon }}"></i> {{ alCurSelLabel }}</button>
+                        <button sc-camel-on-click="{{ alCurAsg }}" class="btn btn-ghost" title="이 일지 사진에서 얼굴을 눌러 누구인지 지정 (내려받기 블러에 반영)" data-album-asg="1" style="min-height: 32px; padding: 0 10px; font-size: 13px; white-space: nowrap;"><i class="ph ph-user-focus"></i> 얼굴 지정</button>
                         <span style="display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 2px 0 10px; border-radius: 8px; border: 1px solid {{ alSelBd }}; background: {{ alSelBg }}; white-space: nowrap;">
                           <span style="font-size: 13px; color: {{ alSelFg }}; font-variant-numeric: tabular-nums; min-width: 52px;">선택 {{ alSelN }}장</span>
                           <button sc-camel-on-click="{{ alClearSel }}" disabled="{{ alSelNone }}" title="선택 해제" aria-label="선택 해제" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: {{ alSelFg }}; cursor: pointer; display: grid; place-items: center;" style-hover="background: var(--color-neutral-800);"><i class="ph ph-x" style="font-size: 14px;"></i></button>
