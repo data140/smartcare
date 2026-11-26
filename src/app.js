@@ -4223,12 +4223,15 @@ class Component extends DCLogic {
   // 미리보기 창·배포 주소 모두에서 확실히 남도록 localStorage 사용 (로그아웃 시 삭제, 12시간 후 만료)
   writeView() {
     try {
+      if (this._reloading) return;   // 기관 전환 등으로 화면을 다시 열 때는 저장해 둔 로그인 상태를 건드리지 않음
       if (!this.state.logged) { localStorage.removeItem(Component.VIEW_KEY); return; }
       const o = {}; Component.VIEW_KEYS.forEach(k => { if (this.state[k] !== undefined) o[k] = this.state[k]; });
       o.at = Date.now();
       Component.lsSetCritical(Component.VIEW_KEY, JSON.stringify(o), !!this.cloudCfg());
     } catch (e) {}
   }
+  // 화면을 새로 열기 직전: 대기 중인 저장을 멈추고 이후 저장을 막음 (아직 로그인 상태가 반영되기 전의 저장이 로그인 정보를 지워 로그인 화면으로 돌아가던 문제 방지)
+  reloadPage(ms) { this._reloading = true; clearTimeout(this._viewT); setTimeout(() => window.location.reload(), ms || 0); }
   saveView() {
     clearTimeout(this._viewT);
     this._viewT = setTimeout(() => this.writeView(), 150);
@@ -4250,7 +4253,7 @@ class Component extends DCLogic {
       patch.orgId = want;
       if (want !== (window.__scOrg || 'ORG1')) {
         try { const o = {}; Component.VIEW_KEYS.forEach(k => { if (patch[k] !== undefined) o[k] = patch[k]; }); o.at = Date.now(); Component.lsSetCritical(Component.VIEW_KEY, JSON.stringify(o), !!this.cloudCfg()); } catch (e) {}
-        window.location.reload(); return;
+        this.reloadPage(0); return;
       }
       this.setState(patch);
     } catch (e) {}
@@ -6111,7 +6114,7 @@ class Component extends DCLogic {
       // 다른 기관(또는 시스템 관리자)으로 로그인: 그 기관 데이터만 새로 불러오도록 화면을 다시 엶
       try { const o = {}; Component.VIEW_KEYS.forEach(k => { if (view[k] !== undefined) o[k] = view[k]; }); o.at = Date.now(); Component.lsSetCritical(Component.VIEW_KEY, JSON.stringify(o), !!this.cloudCfg()); } catch (e) {}
       this.flash('로그인 — 기관 데이터를 불러오는 중…');
-      setTimeout(() => window.location.reload(), 300);
+      this.reloadPage(300);
       return;
     }
     this.setState(view);
@@ -11898,7 +11901,7 @@ class Component extends DCLogic {
         try { window.localStorage.setItem('sc.sysOrg.v1', v); } catch (er) {}
         this.saveWork && this.saveWork();
         this.flash((s.orgs.find(o => o.id === v) || {}).name + ' 데이터로 전환합니다…');
-        setTimeout(() => window.location.reload(), 600);
+        this.writeView(); this.reloadPage(600);
       },
       orgCount: s.orgs.length,
       orgRows: s.orgs.map((o, oi) => {
@@ -11932,7 +11935,7 @@ class Component extends DCLogic {
           name: o.name, isCur: isCur, notCur: !isCur, neverShow: false,
           meta: '기관 코드 ' + o.id + ' · 활성 계정 ' + staffN + '명 · 기관 관리자 ' + s.roster.filter(m => m.org === o.id && m.status === '활성' && (Array.isArray(m.roles) ? m.roles : [m.role]).indexOf('관리자') >= 0).length + '명',
           goAccounts: () => this.setState({ setTab: 'staff', acctOrg: o.id }),
-          goOpen: () => { if (o.id === (window.__scOrg || 'ORG1')) { this.setState({ pcView: 'patients' }); return; } try { window.localStorage.setItem('sc.sysOrg.v1', o.id); } catch (e) {} this.flash(o.name + ' 데이터로 전환합니다…'); setTimeout(() => window.location.reload(), 600); },
+          goOpen: () => { if (o.id === (window.__scOrg || 'ORG1')) { this.setState({ pcView: 'patients' }); return; } try { window.localStorage.setItem('sc.sysOrg.v1', o.id); } catch (e) {} this.flash(o.name + ' 데이터로 전환합니다…'); this.writeView(); this.reloadPage(600); },
           shadow: over ? '0 0 0 2px var(--color-accent), var(--shadow-md)' : (isCur ? '0 0 0 1px var(--color-accent-700)' : 'var(--shadow-sm)'),
           onName: (e) => { const v = e.target.value; this.setState({ orgs: this.state.orgs.map(x => x.id === o.id ? Object.assign({}, x, { name: v }) : x) }); },
           go: () => this.switchOrg(o.id)
