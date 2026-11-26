@@ -2777,9 +2777,32 @@ class Component extends DCLogic {
     const stored = (s.consentVia || {})[id] || '';
     const hasPaper = ((s.consentFiles || {})[id] || []).length > 0;
     const mc = this.loadMobileConsent(id);
+    const pt = PATIENTS.find(x => x.id === id);
+    if (pt && pt.consentRevoked && consent !== '동의') return '철회됨';
     if (hasPaper) return stored === '모바일 전자서명' && mc ? stored : '서면 첨부';
     if (mc) return '모바일 전자서명';
     return consent === '동의' ? '모바일 전자서명' : '미취득';
+  }
+  // ───── 동의 철회: 동의 상태·안면인식 등록 정보를 실제로 바꾸고, 증빙(서면 파일·전자서명)은 보존하며 '철회됨'으로 표시, 기록을 남김 ─────
+  consentLogList() { try { const a = JSON.parse(localStorage.getItem('smartcare.consentLog.v1') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  revokeConsent(pid, reason) {
+    const p = PATIENTS.find(x => x.id === pid); if (!p) return false;
+    if (!this.logDelRoleOk()) { this.flash('동의 철회는 담당자 이상만 할 수 있습니다'); return false; }
+    if (!reason) { this.flash('철회 사유를 선택하세요'); return false; }
+    const now = new Date().toISOString(), by = this._userName || '';
+    const before = { consent: p.consent || '확인전', face: p.face || '확인전', hadPhoto: !!((this.state.photoUrls || {})[pid] || p.photo) };
+    p.consent = '미동의'; p.face = '미동의'; p.faceId = '—'; p.photo = false;
+    p.consentRevoked = { at: now, by: by, reason: reason };
+    const map = Object.assign({}, this.state.photoUrls || {}); delete map[pid];   // 안면인식에 쓰던 증명사진 삭제
+    // 전자 동의 기록은 증빙으로 보존하되 철회 표시
+    const mc = this.loadMobileConsent(pid); if (mc) this.persistMobileConsent(pid, Object.assign({}, mc, { revoked: { at: now, by: by, reason: reason } }));
+    const via = Object.assign({}, this.state.consentVia || {}); via[pid] = '철회됨';
+    const log = this.consentLogList(); log.unshift({ at: now, by: by, byId: this.state.userId, pid: pid, name: p.name, reason: reason, before: before });
+    try { localStorage.setItem('smartcare.consentLog.v1', JSON.stringify(log.slice(0, 300))); } catch (e) {}
+    this.setState({ photoUrls: map, consentVia: via, revokeAsk: null, consentRev: (this.state.consentRev || 0) + 1 });
+    this.persistPatients(map);
+    this.flash(p.name + ' 동의 철회 완료 — 동의 상태 미동의 · 안면인식 등록 정보(증명사진) 삭제 · 증빙 파일은 보존');
+    return true;
   }
   logDelRoleOk() { return this.myRoleList().some(x => x === '관리자' || x === '담당자' || x === '시스템관리자'); }
   logDelAskKey(key) { this.setState({ logDel: { key: key, reason: '' } }); }
@@ -9583,14 +9606,15 @@ class Component extends DCLogic {
       goLogs: () => this.setState({ pcView: 'logs', logTab: 'list', nlOpen: false }),
       goAttendance: () => this.setState({ pcView: 'logs', logTab: 'attendance' }),
       goStats: () => this.setState({ pcView: 'stats', fetch: 'ready' }),
-      askRevoke: () => this.setState({
-        dialog: {
-          title: sel.name + '님의 동의를 철회할까요?',
-          body: '안면인식 Collection에서 얼굴 데이터가 삭제되고 이후 AI 매칭 대상에서 제외됩니다. 과거 출석 기록은 보존되며, 출석은 수기 기록으로 대체됩니다.',
-          cta: '동의 철회',
-          confirm: () => { this.setState({ dialog: null }); this.flash(sel.name + ' 동의 철회 — 얼굴 데이터 삭제 완료'); }
-        }
-      }),
+      askRevoke: () => this.setState({ revokeAsk: { pid: sel.id, name: sel.name, reason: '' } }),
+      revokeOpen: !!s.revokeAsk,
+      revokeName: s.revokeAsk ? s.revokeAsk.name : '',
+      revokeReasons: ['본인 요청', '보호자 요청', '퇴원·전원', '그 밖의 사유'].map(t => ({ label: t, cls: s.revokeAsk && s.revokeAsk.reason === t ? 'sel-chip' : '', pick: () => this.setState({ revokeAsk: Object.assign({}, this.state.revokeAsk, { reason: t }) }) })),
+      revokeBlocked: !(s.revokeAsk && s.revokeAsk.reason),
+      revokeCancel: () => this.setState({ revokeAsk: null }),
+      revokeGo: () => { const d = this.state.revokeAsk; if (d) this.revokeConsent(d.pid, d.reason); },
+      consentLogRows: this.consentLogList().slice(0, 20).map(x => ({ when: (() => { try { return new Date(x.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return x.at; } })(), who: x.by, what: x.name, why: x.reason })),
+      consentLogNone: this.consentLogList().length === 0,
 
       // 등록
       formName: s.formName,
@@ -9606,7 +9630,7 @@ class Component extends DCLogic {
       selGuardianCount: ((PATIENTS.find(p => p.id === sel.id) || {}).guardians || []).length + '명',
       // 1a 상태판: 비어 있거나 미완료면 빨간 표시
       selTiles: (() => {
-        const bad = (v) => !v || v === '—' || /미작성|미취득|없음|미동의|확인전/.test(String(v));
+        const bad = (v) => !v || v === '—' || /미작성|미취득|없음|미동의|확인전|철회/.test(String(v));
         const W = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.70) 0.15 25)', fg: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.86) 0.08 25)' }, OK = { line: 'oklch(calc(var(--lf1,0) + var(--lf2,1) * 0.76) 0.14 145)', fg: 'var(--color-text)' }, NA = { line: 'var(--color-neutral-700)', fg: 'var(--color-text)' };
         // 템플릿용 sel 객체와 같은 계산 (날 데이터에는 이 두 값이 없음)
         const doc = sel.consent === '동의' ? 'PDF 보관됨' : '미작성';
