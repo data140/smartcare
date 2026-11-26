@@ -26,7 +26,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       localStorage.setItem('smartcare.wsess.' + encodeURIComponent(k), JSON.stringify({ photos: [{ id: 'p1', url: url }], review: [row('PT-D001', 40), row('PT-D003', 240), row('', 440)], confirmed: false }));
     }, [today + '|음악치료']);
     await sleep(2000); await p.reload(); await p.waitForSelector('text=가상환자1', { timeout: 20000 });
-    await p.evaluate(() => localStorage.removeItem('sc.jrnBlur.v1'));
+    await p.evaluate(() => { localStorage.removeItem('sc.jrnBlur.v1'); window.__exp = []; window.addEventListener('sc-export', e => window.__exp.push(e.detail)); });
     await p.locator('aside >> text=앨범 (아카이브)').first().click(); await sleep(2500);
     if (process.env.DBG) console.log((await p.evaluate(() => document.body.innerText)).slice(0, 700));
     check('앨범에 [내려받기 얼굴 블러] 선택줄이 있음', (await p.locator('[data-album-blur]').count()) >= 1);
@@ -43,6 +43,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const down = async () => { const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 40000 }).catch(() => null), p.locator('button:has-text("그룹 받기") >> visible=true').first().click()]); if (!dl) return null; const f = path.join(os.tmpdir(), 'alb-' + Date.now() + '-' + dl.suggestedFilename()); await dl.saveAs(f); return { f, name: dl.suggestedFilename() }; };
     let d = await down();
     check('기본값: 내려받기가 됨', !!d);
+    check('앨범 내려받기가 내보내기 감시(보안 경보)에 집계됨', (await p.evaluate(() => window.__exp)).some(x => /앨범 사진/.test(x)));
     let r = d && await stats(d.f);
     check('기본값: 동의한 환자 얼굴은 선명, 보류·미확인 얼굴은 블러', r && r.a > 100 && r.b < 40 && r.c < 40, JSON.stringify(r));
     // 블러 안 함: 사유 전에는 내려받기 안 됨
