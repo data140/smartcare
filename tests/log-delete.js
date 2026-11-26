@@ -55,6 +55,27 @@ const check = (name, ok, extra) => { results.push((ok ? '  ✓ ' : '  ✗ ') + n
     // 사진·판독 결과가 하나도 없는 빈 일지(검수 화면)에서도 삭제 단추가 보임
     await p.evaluate(() => [...document.querySelectorAll('.sc-dock .sc-tab')].find(b => b.offsetParent && b.innerText.trim() === '검수').click()); await sleep(700);
     check('빈 일지(사진 0 · 판독 0)에서도 삭제 단추가 보임', (await p.locator('button:has-text("잘못 등록한 일지 삭제")').count()) >= 1);
+    // 일정만 있는 빈 일지(오늘 미술치료)를 삭제하면 목록에서 사라짐 (관리자 계정: 하루 한도 10건)
+    const ctx2 = await browser.newContext({ viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+    const q = await ctx2.newPage();
+    await q.goto(BASE + '/'); await q.waitForSelector('input[autocomplete="username"]', { timeout: 60000 });
+    await q.locator('input[autocomplete="username"]').first().fill('100101'); await q.locator('input[autocomplete="current-password"]').first().fill('1234');
+    await q.locator('button:has-text("로그인")').last().tap();
+    await q.waitForFunction(() => /오늘/.test(document.body.innerText) && !document.querySelector('input[autocomplete="username"]'), null, { timeout: 20000 }); await sleep(1500);
+    await q.evaluate(() => { const x = [...document.querySelectorAll('button')].find(b => b.offsetParent && b.querySelector('.ph-x') && /브리핑/.test((b.parentElement || {}).innerText || '')); if (x) x.click(); });
+    const goLogs = async () => { await q.evaluate(() => [...document.querySelectorAll('.sc-dock .sc-tab')].find(b => b.offsetParent && b.innerText.trim() === '일지').click()); await sleep(600); };
+    await goLogs();
+    const hasRow = (t) => q.locator('button:has-text("' + t + '")').filter({ hasText: '미작성' }).count();
+    const before2 = await hasRow('미술치료');
+    check('시험 준비: 오늘 일정(미술치료)의 빈 일지가 목록에 있음', before2 >= 1, String(before2));
+    await q.locator('button:has-text("미술치료")').filter({ hasText: '미작성' }).first().tap(); await sleep(800);
+    await q.locator('button:has-text("잘못 등록한 일지 삭제")').tap(); await sleep(400);
+    await q.locator('button:has-text("착오로 등록했어요")').tap(); await sleep(200);
+    await q.locator('.dialog-actions button:has-text("삭제")').tap(); await sleep(1000);
+    await goLogs();
+    check('삭제하면 일지 목록에서 미술치료가 사라짐', (await hasRow('미술치료')) === 0 && (await hasRow('음악치료')) >= 1, String(await hasRow('미술치료')));
+    await q.evaluate(() => [...document.querySelectorAll('.sc-dock .sc-tab')].find(b => b.offsetParent && b.innerText.trim() === '오늘').click()); await sleep(700);
+    check('오늘 화면에서도 삭제한 일지 카드가 사라짐', !/미술치료/.test(await q.evaluate(() => document.body.innerText)));
     check('화면 오류 없음', errs.length === 0, errs.join(' | '));
   } catch (e) { check('시험 진행', false, e.message.split('\n').slice(0, 12).join(' | ')); }
   console.log('스마트케어 일지 삭제 시험\n' + results.join('\n'));
